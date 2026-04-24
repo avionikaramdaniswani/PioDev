@@ -1,0 +1,66 @@
+import { Switch, Route, Router as WouterRouter } from "wouter";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Toaster } from "@/components/ui/toaster";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import NotFound from "@/pages/not-found";
+
+// Auth & Context
+import { AuthProvider } from "@/hooks/use-auth";
+import { ThemeProvider } from "@/hooks/use-theme";
+
+// Pages
+import LandingPage from "@/pages/landing";
+import Login from "@/pages/login";
+import Register from "@/pages/register";
+import ForgotPassword from "@/pages/forgot-password";
+import ChatPage from "@/pages/chat";
+import Settings from "@/pages/settings";
+import AdminPage from "@/pages/admin";
+import WhatsNewPage from "@/pages/whats-new";
+import CheckEmail from "@/pages/check-email";
+import VideoStudio from "@/pages/video-studio";
+import PremiumApplyPage from "@/pages/premium-apply";
+import ResetPassword from "@/pages/reset-password";
+import ApiKeysPage from "@/pages/api-keys";
+
+const queryClient = new QueryClient();
+
+function Router() {
+  return (
+    <Switch>
+      <Route path="/" component={LandingPage} />
+      <Route path="/chat" component={ChatPage} />
+      <Route path="/login" component={Login} />
+      <Route path="/register" component={Register} />
+      <Route path="/forgot-password" component={ForgotPassword} />
+      <Route path="/settings" component={Settings} />
+      <Route path="/admin" component={AdminPage} />
+      <Route path="/whats-new" component={WhatsNewPage} />
+      <Route path="/check-email" component={CheckEmail} />
+      <Route path="/video-studio" component={VideoStudio} />
+      <Route path="/premium" component={PremiumApplyPage} />
+      <Route path="/reset-password" component={ResetPassword} />
+      <Route path="/api-keys" component={ApiKeysPage} />
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
+
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <ThemeProvider>
+          <WouterRouter base={import.meta.env.BASE_URL.replace(/\/$/, "")}>
+            <AuthProvider>
+              <Router />
+            </AuthProvider>
+          </WouterRouter>
+        </ThemeProvider>
+        <Toaster />
+      </TooltipProvider>
+    </QueryClientProvider>
+  );
+}
+
+export default App;

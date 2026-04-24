@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background-color:#09090b;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#09090b;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="max-width:480px;width:100%;">
+
+          <tr>
+            <td align="center" style="padding-bottom:32px;">
+              <table role="presentation" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="background:linear-gradient(135deg,#6366f1,#818cf8);width:36px;height:36px;border-radius:10px;text-align:center;vertical-align:middle;font-size:18px;color:#ffffff;">
+                    &gt;_
+                  </td>
+                  <td style="padding-left:10px;font-size:18px;font-weight:700;color:#ffffff;letter-spacing:-0.3px;">
+                    PioDev
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="background-color:#18181b;border:1px solid #27272a;border-radius:16px;padding:40px 32px;">
+
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding-bottom:24px;">
+                    <div style="width:56px;height:56px;background-color:rgba(99,102,241,0.12);border:1px solid rgba(99,102,241,0.25);border-radius:14px;line-height:56px;text-align:center;font-size:28px;">
+                      &#9993;
+                    </div>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td align="center" style="padding-bottom:8px;">
+                    <h1 style="margin:0;font-size:22px;font-weight:700;color:#ffffff;letter-spacing:-0.3px;">
+                      Konfirmasi Email Kamu
+                    </h1>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td align="center" style="padding-bottom:28px;">
+                    <p style="margin:0;font-size:14px;line-height:1.6;color:#a1a1aa;max-width:360px;">
+                      Terima kasih sudah mendaftar di <strong style="color:#e4e4e7;">Pioo 2.0</strong>! Klik tombol di bawah untuk mengaktifkan akunmu dan mulai coding bersama AI.
+                    </p>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td align="center" style="padding-bottom:28px;">
+                    <a href="{{ .ConfirmationURL }}"
+                       style="display:inline-block;background:linear-gradient(135deg,#6366f1,#818cf8);color:#ffffff;font-size:14px;font-weight:600;text-decoration:none;padding:12px 32px;border-radius:12px;letter-spacing:0.2px;">
+                      Konfirmasi Email
+                    </a>
+                  </td>
+                </tr>
+
+                <tr>
+                  <td style="border-top:1px solid #27272a;padding-top:20px;">
+                    <p style="margin:0;font-size:12px;line-height:1.6;color:#71717a;">
+                      Kalau tombol di atas tidak berfungsi, copy dan paste link berikut ke browser kamu:
+                    </p>
+                    <p style="margin:8px 0 0;font-size:12px;line-height:1.6;word-break:break-all;">
+                      <a href="{{ .ConfirmationURL }}" style="color:#818cf8;text-decoration:underline;">{{ .ConfirmationURL }}</a>
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding-top:24px;padding-bottom:8px;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td style="padding-bottom:12px;">
+                    <p style="margin:0;font-size:13px;font-weight:700;color:#e4e4e7;text-align:center;">Pilih model AI sesuai kebutuhanmu</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td>
+                    <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                      <tr>
+                        <td width="48%" valign="top" style="background-color:#18181b;border:1px solid #27272a;border-radius:12px;padding:16px;">
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td style="padding-bottom:10px;">
+                                <span style="display:inline-block;background:linear-gradient(135deg,#6366f1,#818cf8);color:#ffffff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px;letter-spacing:0.3px;">PLUS</span>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#ffffff;">Pioo Plus</p>
+                                <p style="margin:0 0 10px;font-size:11px;color:#a1a1aa;">Model flagship, kualitas terbaik</p>
+                                <p style="margin:0;font-size:11px;line-height:1.9;color:#71717a;">
+                                  &#10003; Analisis mendalam<br>
+                                  &#10003; Thinking mode<br>
+                                  &#10003; Web search<br>
+                                  &#10003; Generate gambar<br>
+                                  &#10003; Vision & file upload
+                                </p>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                        <td width="4%"></td>
+                        <td width="48%" valign="top" style="background-color:#18181b;border:1px solid #27272a;border-radius:12px;padding:16px;">
+                          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td style="padding-bottom:10px;">
+                                <span style="display:inline-block;background-color:#22c55e;color:#ffffff;font-size:11px;font-weight:700;padding:3px 10px;border-radius:6px;letter-spacing:0.3px;">MINI</span>
+                              </td>
+                            </tr>
+                            <tr>
+                              <td>
+                                <p style="margin:0 0 4px;font-size:14px;font-weight:700;color:#ffffff;">Pioo Mini</p>
+                                <p style="margin:0 0 10px;font-size:11px;color:#a1a1aa;">Cepat & ringan, respons instan</p>
+                                <p style="margin:0;font-size:11px;line-height:1.9;color:#71717a;">
+                                  &#10003; Jawaban cepat<br>
+                                  &#10003; Chat ringan<br>
+                                  &#10003; Hemat token<br>
+                                  &#10003; Cocok untuk Q&A<br>
+                                  &#10003; Coding sederhana
+                                </p>
+                              </td>
+                            </tr>
+                          </table>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td align="center" style="padding-top:24px;">
+              <p style="margin:0;font-size:11px;color:#52525b;line-height:1.6;">
+                Email ini dikirim oleh <strong style="color:#71717a;">Pioo 2.0 by PioDev</strong><br>
+                Kamu menerima email ini karena mendaftar di piodev.my.id<br>
+                Jika kamu tidak merasa mendaftar, abaikan email ini.
+              </p>
+            </td>
+          </tr>
+
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

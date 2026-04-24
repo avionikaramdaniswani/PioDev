@@ -1,0 +1,31 @@
+kind = "video"
+previewPath = "/piodev-intro/"
+title = "PioDev Intro"
+version = "1.0.0"
+id = "artifacts/piodev-intro"
+router = "path"
+
+[[integratedSkills]]
+name = "video-js"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/piodev-intro/" ]
+localPort = 24965
+
+[services.development]
+run = "pnpm --filter @workspace/piodev-intro run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/piodev-intro", "run", "build" ]
+publicDir = "artifacts/piodev-intro/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "24965"
+BASE_PATH = "/piodev-intro/"
