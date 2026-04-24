@@ -1,0 +1,51 @@
+Connected!
+2026-04-24T18:44:09.894435Z    _____
+2026-04-24T18:44:09.9023297Z   /  _  \ __________ _________   ____
+2026-04-24T18:44:09.9023415Z  /  /_\  \\___   /  |  \_  __ \_/ __ \
+2026-04-24T18:44:09.9023473Z /    |    \/    /|  |  /|  | \/\  ___/
+2026-04-24T18:44:09.9023494Z \____|__  /_____ \____/ |__|    \___  >
+2026-04-24T18:44:09.9023514Z         \/      \/                  \/
+2026-04-24T18:44:09.9023545Z A P P   S E R V I C E   O N   L I N U X
+2026-04-24T18:44:09.9023564Z
+2026-04-24T18:44:09.9023586Z Documentation    : http://aka.ms/webapp-linux
+2026-04-24T18:44:09.9023625Z NodeJS quickstart: https://aka.ms/node-qs
+2026-04-24T18:44:09.9023649Z NodeJS Version   : v24.13.0
+2026-04-24T18:44:09.902367Z Instance Name    : lw0sdlwk0005D8
+2026-04-24T18:44:09.9023698Z Instance Id      : f0d0c8b578f5821246b4f44e874237a183ca3db1e205f5c7bb4487e2b4136c3e
+2026-04-24T18:44:09.9023717Z
+2026-04-24T18:44:09.9023739Z Note: Any data outside '/home' is not persisted
+2026-04-24T18:44:20.0262143Z  * Starting OpenBSD Secure Shell server sshd
+2026-04-24T18:44:20.1375324Z    ...done.
+2026-04-24T18:44:20.1586029Z WEBSITES_INCLUDE_CLOUD_CERTS is not set to true.
+2026-04-24T18:44:20.2992598Z Updating certificates in /etc/ssl/certs...
+2026-04-24T18:44:53.8492974Z rehash: warning: skipping duplicate certificate in SSLcom-TLS-Root-2022-ECC.pem
+2026-04-24T18:44:53.8493415Z rehash: warning: skipping duplicate certificate in SSLcom-TLS-Root-2022-RSA.pem
+2026-04-24T18:44:55.1570735Z rehash: warning: skipping ca-certificates.crt,it does not contain exactly one certificate or CRL
+2026-04-24T18:44:55.6199813Z 4 added, 0 removed; done.
+2026-04-24T18:44:55.6296222Z Running hooks in /etc/ca-certificates/update.d...
+2026-04-24T18:44:55.7183718Z done.
+2026-04-24T18:44:55.7883001Z CA certificates copied and updated successfully.
+2026-04-24T18:44:56.9643385Z  * Starting periodic command scheduler cron
+2026-04-24T18:44:57.1543157Z    ...done.
+2026-04-24T18:44:58.6994248Z Could not find build manifest file at '/home/site/wwwroot/oryx-manifest.toml'
+2026-04-24T18:44:58.7011738Z Could not find operation ID in manifest. Generating an operation id...
+2026-04-24T18:44:58.7012133Z Build Operation ID: 97f44eff-22a6-4168-8847-1c992c0b78b7
+2026-04-24T18:45:00.275343Z Environment Variables for Application Insight's IPA Codeless Configuration exists..
+2026-04-24T18:45:00.4441737Z Writing output script to '/opt/startup/startup.sh'
+2026-04-24T18:45:00.6761273Z Running #!/bin/sh
+2026-04-24T18:45:00.6763706Z
+2026-04-24T18:45:00.6763781Z # Enter the source directory to make sure the script runs where the user expects
+2026-04-24T18:45:00.6763807Z cd "/home/site/wwwroot"
+2026-04-24T18:45:00.6763827Z
+2026-04-24T18:45:00.676696Z export NODE_PATH=/usr/local/lib/node_modules:$NODE_PATH
+2026-04-24T18:45:00.6767194Z if [ -z "$PORT" ]; then
+2026-04-24T18:45:00.6767222Z 		export PORT=8080
+2026-04-24T18:45:00.6767241Z fi
+2026-04-24T18:45:00.6767261Z
+2026-04-24T18:45:00.676971Z PATH="$PATH:/home/site/wwwroot" pnpm --filter @workspace/piodev run serve
+2026-04-24T18:45:00.7864783Z /opt/startup/startup.sh: 11: pnpm: not found
+2026-04-24T18:51:20.7740599Z    _____
+2026-04-24T18:51:20.7741079Z   /  _  \ __________ _________   ____
+2026-04-24T18:51:20.7741155Z  /  /_\  \\___   /  |  \_  __ \_/ __ \
+2026-04-24T18:51:20.774117Z /    |    \/    /|  |  /|  | \/\  ___/
+2026-04-24T18:51:20.7741185Z \____|__  /_____ \____/ |__|    \___  >
