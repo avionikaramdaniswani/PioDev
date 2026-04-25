@@ -665,7 +665,7 @@ export default function ApiKeysPage() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm"
             onClick={() => setTopUpDialogOpen(false)}
             role="dialog"
             aria-modal="true"
@@ -676,23 +676,23 @@ export default function ApiKeysPage() {
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 8 }}
               transition={{ duration: 0.18, ease: "easeOut" }}
-              className="bg-card border border-border rounded-2xl shadow-2xl max-w-md w-full p-6 relative"
+              className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-md p-5 sm:p-6 relative"
               onClick={(e) => e.stopPropagation()}
             >
               <button
                 onClick={() => setTopUpDialogOpen(false)}
-                className="absolute top-4 right-4 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                className="absolute top-3 right-3 sm:top-4 sm:right-4 p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 aria-label="Tutup"
               >
                 <XIcon className="w-4 h-4" />
               </button>
 
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center text-primary">
-                  <CreditCard className="w-5 h-5" />
+              <div className="flex items-center gap-3 mb-4 pr-8">
+                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-primary/15 flex items-center justify-center text-primary shrink-0">
+                  <CreditCard className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
-                <div>
-                  <h2 id="topup-dialog-title" className="text-lg font-semibold text-foreground leading-tight">
+                <div className="min-w-0">
+                  <h2 id="topup-dialog-title" className="text-base sm:text-lg font-semibold text-foreground leading-tight">
                     Top Up Saldo
                   </h2>
                   <p className="text-xs text-muted-foreground mt-0.5">Belum tersedia.</p>
@@ -700,24 +700,24 @@ export default function ApiKeysPage() {
               </div>
 
               <p className="text-sm text-foreground/90 leading-relaxed mb-5">
-                Payment gateway untuk top up saldo <strong>segera hadir</strong>. Sambil nunggu, kamu bisa coba paket Plus gratis selama 1 bulan dan dapet bonus saldo Rp 75.000 langsung.
+                Payment gateway untuk top up saldo <strong>segera hadir</strong>. Sambil nunggu, kamu bisa coba paket Plus gratis 1 bulan dan dapet bonus saldo Rp 75.000.
               </p>
 
               <div className="flex flex-col-reverse sm:flex-row gap-2">
                 <button
                   onClick={() => setTopUpDialogOpen(false)}
-                  className="flex-1 h-10 rounded-lg text-sm font-medium border border-border bg-background text-foreground hover:bg-muted transition-colors"
+                  className="w-full sm:flex-1 h-10 rounded-lg text-sm font-medium border border-border bg-background text-foreground hover:bg-muted transition-colors"
                 >
                   Tutup
                 </button>
                 <button
                   onClick={handleGoToPlan}
-                  className="flex-1 h-10 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center justify-center gap-1.5"
+                  className="w-full sm:flex-1 h-10 px-3 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap"
                   data-testid="button-goto-trial"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  <span>Ambil Trial 1 Bulan</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <Sparkles className="w-4 h-4 shrink-0" />
+                  <span>Ambil Trial</span>
+                  <ArrowRight className="w-4 h-4 shrink-0" />
                 </button>
               </div>
             </motion.div>
