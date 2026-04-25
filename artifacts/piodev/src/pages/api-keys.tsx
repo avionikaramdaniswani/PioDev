@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Key, Plus, Copy, Trash2, AlertTriangle, Check, ArrowLeft, ArrowRight, Code, Zap, Clock, Sparkles, MessageSquare, Image as ImageIcon, Video, FileText, ScanText, Lock, Lightbulb, AlertCircle, Rocket, BookOpen, Layers, Eye, EyeOff, Loader2, Activity, Pencil, X as XIcon, ShieldAlert, CreditCard } from "lucide-react";
+import { Key, Plus, Copy, Trash2, AlertTriangle, Check, ArrowLeft, ArrowRight, Code, Zap, Clock, Sparkles, MessageSquare, Image as ImageIcon, Video, FileText, ScanText, Lock, Lightbulb, AlertCircle, Rocket, BookOpen, Layers, Eye, EyeOff, Loader2, Activity, Pencil, X as XIcon, CreditCard } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useAuth } from "@/hooks/use-auth";
@@ -188,14 +188,14 @@ export default function ApiKeysPage() {
       const res = await authedFetch(`/api/me/api-keys/${target.id}`, { method: "DELETE" });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        toast({ title: "Gagal revoke key", description: data.error || "Coba lagi sebentar.", variant: "destructive" });
+        toast({ title: "Gagal hapus key", description: data.error || "Coba lagi sebentar.", variant: "destructive" });
         return;
       }
-      toast({ title: "Key di-revoke", description: `"${target.name}" sudah ga aktif lagi.` });
+      toast({ title: "Key dihapus", description: `"${target.name}" udah dihapus permanen.` });
       await load();
       setRevokeTarget(null);
     } catch (e: any) {
-      toast({ title: "Gagal revoke key", description: e?.message || "Coba lagi sebentar.", variant: "destructive" });
+      toast({ title: "Gagal hapus key", description: e?.message || "Coba lagi sebentar.", variant: "destructive" });
     } finally {
       setDeletingId(null);
     }
@@ -614,7 +614,7 @@ export default function ApiKeysPage() {
         )}
       </AnimatePresence>
 
-      {/* Revoke confirm modal */}
+      {/* Hapus confirm modal */}
       <AnimatePresence>
         {revokeTarget && (
           <motion.div
@@ -624,34 +624,20 @@ export default function ApiKeysPage() {
           >
             <motion.div
               initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-background border border-border rounded-2xl p-6 max-w-md w-full"
+              className="bg-background border border-border rounded-2xl p-5 sm:p-6 w-full max-w-sm"
               onClick={(e) => e.stopPropagation()}
               data-testid="modal-revoke"
             >
-              <div className="flex items-start gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
-                  <ShieldAlert className="w-5 h-5 text-destructive" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold">Revoke API key?</h3>
-                  <p className="text-sm text-muted-foreground mt-0.5">
-                    Aplikasi atau script yang masih pakai key ini bakal langsung berhenti jalan.
-                  </p>
-                </div>
-              </div>
-
-              <div className="p-3 rounded-lg bg-muted/60 border border-border mb-2">
-                <p className="text-xs text-muted-foreground mb-1">Key yang akan di-revoke</p>
-                <p className="font-medium text-sm break-words">{revokeTarget.name}</p>
-                <code className="text-[11px] font-mono text-muted-foreground break-all">{revokeTarget.key_prefix}</code>
-              </div>
-              <p className="text-xs text-muted-foreground mb-5">Aksi ini permanen — key yang sama ga bisa diaktifkan ulang.</p>
+              <h3 className="text-base sm:text-lg font-semibold mb-2">Hapus API key?</h3>
+              <p className="text-sm text-muted-foreground mb-5">
+                Key <span className="font-medium text-foreground break-words">"{revokeTarget.name}"</span> bakal dihapus permanen. Aplikasi yang masih pakai key ini bakal langsung berhenti jalan.
+              </p>
 
               <div className="flex gap-2 justify-end">
                 <button
                   onClick={() => setRevokeTarget(null)}
                   disabled={deletingId === revokeTarget.id}
-                  className="px-4 py-2 rounded-lg hover:bg-muted transition disabled:opacity-50"
+                  className="px-4 py-2 rounded-lg text-sm hover:bg-muted transition disabled:opacity-50"
                   data-testid="button-cancel-revoke"
                 >
                   Batal
@@ -659,11 +645,11 @@ export default function ApiKeysPage() {
                 <button
                   onClick={confirmRevoke}
                   disabled={deletingId === revokeTarget.id}
-                  className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground font-medium hover:opacity-90 transition disabled:opacity-50 inline-flex items-center gap-2"
+                  className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground text-sm font-medium hover:opacity-90 transition disabled:opacity-50 inline-flex items-center gap-2"
                   data-testid="button-confirm-revoke"
                 >
                   {deletingId === revokeTarget.id && <Loader2 className="w-4 h-4 animate-spin" />}
-                  {deletingId === revokeTarget.id ? "Merevoke..." : "Ya, revoke"}
+                  {deletingId === revokeTarget.id ? "Menghapus..." : "Hapus"}
                 </button>
               </div>
             </motion.div>
