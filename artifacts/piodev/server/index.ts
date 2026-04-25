@@ -44,9 +44,13 @@ const PLUS_UPGRADE_BONUS_IDR = 75_000;   // bonus sekali saat upgrade ke Plus
 const PRO_UPGRADE_BONUS_IDR  = 125_000;  // bonus sekali saat upgrade ke Pro
 
 // ── Trial Plus (uji coba gratis 1 bulan, sekali per akun) ─────────────────────
-// Bonus saldo trial = sama dengan bonus upgrade Plus berbayar (Rp 75.000), pakai
-// helper `grantTierBonusOnce` sehingga idempotent: kalau user trial dulu lalu
-// nanti upgrade berbayar, ga dapet dobel — cuma sekali per akun.
+// Bonus saldo trial = Rp 75.000 (sama nominal dengan bonus upgrade berbayar).
+// Pake ledger type SEPARATE 'bonus_plus_trial' supaya GAK ngeblok bonus upgrade
+// berbayar nanti — user yang trial → nanti beli paket Plus berbayar TETEP dapet
+// bonus 75k lagi via 'bonus_plus_upgrade'. Total maksimum: 150k per user (75k
+// trial + 75k upgrade berbayar). Re-claim trial dicegah oleh kolom
+// `profiles.trial_claimed_at` (bukan oleh idempotency cek ledger).
+const PLUS_TRIAL_BONUS_IDR    = 75_000;  // bonus saldo saat klaim trial
 const PLUS_TRIAL_DURATION_DAYS = 30;     // durasi trial
 
 function tokensToIdr(tokens: number): number {
@@ -769,15 +773,14 @@ app.post("/api/premium/claim-trial", requireAuth, async (req, res) => {
     return;
   }
 
-  // 4. Kasih bonus saldo Plus (Rp 75.000) — sama kayak upgrade berbayar.
-  //    Pake helper idempotent supaya user yang trial → expired → beli berbayar nanti
-  //    cuma dapet bonus ini sekali (gak dobel).
+  // 4. Kasih bonus saldo Rp 75.000 via type 'bonus_plus_trial' (terpisah dari
+  //    'bonus_plus_upgrade' supaya nanti user yg upgrade ke Plus berbayar TETEP
+  //    dapet bonus 75k lagi). Trial cuma sekali per akun (di-enforce oleh kolom
+  //    trial_claimed_at), jadi gak ada risiko dobel di sisi trial.
   let bonusGranted = false;
-  let bonusAmount = 0;
   try {
-    const result = await grantTierBonusOnce(userId, "plus", { source: "claim_trial" });
-    bonusGranted = result.granted;
-    bonusAmount = result.amount;
+    await addCredit(userId, PLUS_TRIAL_BONUS_IDR, "bonus_plus_trial", { source: "claim_trial" });
+    bonusGranted = true;
   } catch (e) {
     console.error("[claim-trial] bonus credit failed:", e);
   }
@@ -788,7 +791,7 @@ app.post("/api/premium/claim-trial", requireAuth, async (req, res) => {
     premium_expires_at: expiresAt.toISOString(),
     trial_claimed_at: now.toISOString(),
     bonus_granted: bonusGranted,
-    bonus_amount_idr: bonusAmount,
+    bonus_amount_idr: bonusGranted ? PLUS_TRIAL_BONUS_IDR : 0,
     duration_days: PLUS_TRIAL_DURATION_DAYS,
   });
 });

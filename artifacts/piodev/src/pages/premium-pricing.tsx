@@ -257,7 +257,7 @@ export default function PremiumPricingPage() {
               </li>
               <li className="flex items-start gap-2.5">
                 <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" strokeWidth={2.5} />
-                <span>Bonus saldo <strong>Rp 75.000</strong> langsung masuk (cuma sekali per akun)</span>
+                <span>Bonus saldo <strong>Rp 75.000</strong> langsung masuk</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" strokeWidth={2.5} />
