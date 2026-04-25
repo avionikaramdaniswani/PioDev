@@ -110,6 +110,49 @@ async function main() {
       FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
   `, "CREATE TRIGGER");
 
+  // ============================================================
+  // Credit balance system (Plus only)
+  // - credit_balance_idr: persistent saldo (no daily reset)
+  // - credit_transactions: ledger untuk audit trail
+  // ============================================================
+  await runSql(`
+    ALTER TABLE public.profiles
+    ADD COLUMN IF NOT EXISTS credit_balance_idr INTEGER NOT NULL DEFAULT 0;
+  `, "ADD COLUMN credit_balance_idr");
+
+  await runSql(`
+    CREATE TABLE IF NOT EXISTS public.credit_transactions (
+      id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+      user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+      amount_idr INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      metadata JSONB,
+      created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+    );
+  `, "CREATE TABLE credit_transactions");
+
+  await runSql(`
+    CREATE INDEX IF NOT EXISTS credit_tx_user_idx
+    ON public.credit_transactions(user_id, created_at DESC);
+  `, "CREATE INDEX credit_tx_user_idx");
+
+  await runSql(`
+    ALTER TABLE public.credit_transactions ENABLE ROW LEVEL SECURITY;
+  `, "ENABLE RLS credit_transactions");
+
+  await runSql(`
+    DO $$ BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_policies
+        WHERE tablename = 'credit_transactions'
+          AND policyname = 'Users view own credit transactions'
+      ) THEN
+        CREATE POLICY "Users view own credit transactions" ON public.credit_transactions
+          FOR SELECT USING (auth.uid() = user_id);
+      END IF;
+    END $$;
+  `, "RLS policy credit_transactions select");
+
   console.log("== Migration complete ==");
 }
 

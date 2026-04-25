@@ -56,7 +56,6 @@ export default function PremiumPricingPage() {
         "Akses model dasar",
         "7 gambar AI per hari",
         "3 video AI per bulan",
-        "API key untuk developer",
       ],
       cta: !isPremium
         ? { label: "Paket Saat Ini", disabled: true }
@@ -76,7 +75,8 @@ export default function PremiumPricingPage() {
         "25 gambar AI per hari",
         "12 video AI per bulan",
         "Prioritas saat server sibuk",
-        "API key dengan kuota Plus",
+        "API key untuk developer",
+        "Bonus saldo Rp 100.000 saat upgrade",
       ],
       cta: isPremium
         ? { label: "Paket Aktif", disabled: true }

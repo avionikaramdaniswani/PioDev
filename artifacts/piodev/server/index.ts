@@ -19,10 +19,21 @@ const FREE_IMAGE_LIMIT    = 7;
 const PREMIUM_IMAGE_LIMIT = 25;
 
 // ── Limit khusus akses lewat API key (terpisah dari pemakaian web) ─────────────
-const API_DAILY_TOKEN_LIMIT = 200_000;
-const API_DAILY_IMAGE_LIMIT = 50;
-const API_DAILY_VIDEO_LIMIT = 10;
+// Tetap dipake untuk request_count (rate limiting per hari) — bukan untuk billing.
 const API_DAILY_REQUEST_LIMIT = 1_000;
+
+// ── Credit system (BYOK API) — saldo IDR persistent, no daily reset ────────────
+// Konversi: 2 token = Rp 1 (cost = ceil(tokens / 2))
+const IDR_PER_TOKEN_NUM = 1;
+const IDR_PER_TOKEN_DEN = 2;
+const IMAGE_COST_IDR = 4_000;     // per gambar
+const VIDEO_COST_IDR = 50_000;    // per video
+const PLUS_UPGRADE_BONUS_IDR = 100_000; // bonus sekali saat upgrade ke Plus
+
+function tokensToIdr(tokens: number): number {
+  if (!tokens || tokens <= 0) return 0;
+  return Math.ceil((tokens * IDR_PER_TOKEN_NUM) / IDR_PER_TOKEN_DEN);
+}
 
 const DASHSCOPE_BASE = "https://dashscope-intl.aliyuncs.com";
 const DASHSCOPE_COMPATIBLE_BASE = `${DASHSCOPE_BASE}/compatible-mode/v1`;
@@ -719,7 +730,14 @@ app.patch("/api/admin/premium-applications/:id/approve", requireAuth, requireAdm
     is_premium: true,
     premium_expires_at: oneMonthFromNow(),
   }).eq("id", app.user_id);
-  res.json({ ok: true });
+
+  // Bonus saldo credit Rp 100.000 — hanya sekali per user (idempotent)
+  const bonusGranted = await grantPlusBonusOnce(app.user_id, {
+    source: "premium_application_approve",
+    application_id: id,
+  });
+
+  res.json({ ok: true, bonus_granted: bonusGranted, bonus_amount_idr: PLUS_UPGRADE_BONUS_IDR });
 });
 
 // PATCH /api/admin/premium-applications/:id/reject
@@ -764,7 +782,14 @@ app.patch("/api/admin/users/:id/premium", requireAuth, requireAdmin, async (req,
   const updatePayload = { is_premium: !!is_premium, premium_expires_at: expiresAt };
   const { error } = await supabaseAdmin.from("profiles").update(updatePayload).eq("id", id);
   if (error) { res.status(500).json({ error: error.message }); return; }
-  res.json({ ok: true });
+
+  // Saat admin toggle premium ON → coba grant bonus (skip kalau user udah pernah dapat)
+  let bonusGranted = false;
+  if (is_premium) {
+    bonusGranted = await grantPlusBonusOnce(id, { source: "admin_toggle_premium" });
+  }
+
+  res.json({ ok: true, bonus_granted: bonusGranted });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -915,6 +940,82 @@ async function bumpApiUsage(userId: string, fields: { tokens?: number; images?: 
     video_count: current.video_count + (fields.videos ?? 0),
     request_count: current.request_count + (fields.requests ?? 1),
   }, { onConflict: "user_id,date" });
+}
+
+// ── Credit system helpers ──────────────────────────────────────────────────────
+// Saldo persistent di profiles.credit_balance_idr (no daily reset).
+// Setiap perubahan di-log ke credit_transactions sebagai audit trail.
+//
+// NOTE: Read-modify-write tanpa lock — race condition mungkin terjadi pada burst
+// concurrent requests dari satu user. Untuk skala sekarang OK; nanti kalau perlu,
+// pindah ke Postgres function dengan UPDATE ... RETURNING untuk atomic.
+async function getCreditBalance(userId: string): Promise<number> {
+  try {
+    const { data } = await supabaseAdmin
+      .from("profiles")
+      .select("credit_balance_idr")
+      .eq("id", userId)
+      .single();
+    return data?.credit_balance_idr ?? 0;
+  } catch {
+    return 0;
+  }
+}
+
+async function addCredit(userId: string, amountIdr: number, type: string, metadata?: any): Promise<number> {
+  if (!amountIdr || amountIdr <= 0) return await getCreditBalance(userId);
+  const current = await getCreditBalance(userId);
+  const next = current + amountIdr;
+  try {
+    await supabaseAdmin.from("profiles").update({ credit_balance_idr: next }).eq("id", userId);
+    await supabaseAdmin.from("credit_transactions").insert({
+      user_id: userId,
+      amount_idr: amountIdr,
+      type,
+      metadata: metadata ?? null,
+    });
+  } catch (e) {
+    console.error("[addCredit] failed:", e);
+  }
+  return next;
+}
+
+async function deductCredit(userId: string, amountIdr: number, type: string, metadata?: any): Promise<number> {
+  if (!amountIdr || amountIdr <= 0) return await getCreditBalance(userId);
+  const current = await getCreditBalance(userId);
+  const next = Math.max(0, current - amountIdr);
+  try {
+    await supabaseAdmin.from("profiles").update({ credit_balance_idr: next }).eq("id", userId);
+    await supabaseAdmin.from("credit_transactions").insert({
+      user_id: userId,
+      amount_idr: -amountIdr,
+      type,
+      metadata: metadata ?? null,
+    });
+  } catch (e) {
+    console.error("[deductCredit] failed:", e);
+  }
+  return next;
+}
+
+// Grant bonus Plus upgrade — hanya sekali per user (idempotent).
+// Cek dari ledger apakah sudah pernah dapat bonus_plus_upgrade.
+async function grantPlusBonusOnce(userId: string, sourceMetadata?: any): Promise<boolean> {
+  try {
+    const { data: existing } = await supabaseAdmin
+      .from("credit_transactions")
+      .select("id")
+      .eq("user_id", userId)
+      .eq("type", "bonus_plus_upgrade")
+      .limit(1)
+      .maybeSingle();
+    if (existing) return false;
+  } catch {
+    // Kalau tabel belum ada (migration belum jalan), skip aja
+    return false;
+  }
+  await addCredit(userId, PLUS_UPGRADE_BONUS_IDR, "bonus_plus_upgrade", sourceMetadata ?? null);
+  return true;
 }
 
 // ── GET /api/me/api-keys — list semua key user (tanpa value asli) ────────────
@@ -1074,18 +1175,65 @@ app.delete("/api/me/api-keys/:id", requireAuth, async (req, res) => {
   res.json({ success: true });
 });
 
-// ── GET /api/me/api-usage — pemakaian API hari ini + limit ───────────────────
+// ── GET /api/me/api-usage — pemakaian API hari ini (untuk stats) ─────────────
+// Catatan: dengan sistem credit, limits.tokens/images/videos sudah ga relevan
+// (saldo IDR yang menentukan). Tetep di-return untuk backward compat di UI lama.
 app.get("/api/me/api-usage", requireAuth, async (req, res) => {
   const userId = (req as any).userId;
   const usage = await getApiUsage(userId);
   res.json({
     usage,
     limits: {
-      tokens: API_DAILY_TOKEN_LIMIT,
-      images: API_DAILY_IMAGE_LIMIT,
-      videos: API_DAILY_VIDEO_LIMIT,
+      tokens: 0,
+      images: 0,
+      videos: 0,
       requests: API_DAILY_REQUEST_LIMIT,
     },
+  });
+});
+
+// ── GET /api/me/credit — saldo credit + 20 transaksi terakhir ────────────────
+app.get("/api/me/credit", requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("credit_balance_idr, is_premium, premium_expires_at, role")
+    .eq("id", userId)
+    .single();
+  const isAdmin = profile?.role === "admin";
+  const isPremium = isAdmin || isPremiumActive(profile ?? {});
+
+  let transactions: any[] = [];
+  try {
+    const { data: txs } = await supabaseAdmin
+      .from("credit_transactions")
+      .select("id, amount_idr, type, metadata, created_at")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(20);
+    transactions = txs ?? [];
+  } catch { /* tabel mungkin belum ada (migration belum jalan) */ }
+
+  res.json({
+    balance_idr: (profile as any)?.credit_balance_idr ?? 0,
+    is_premium: isPremium,
+    is_admin: isAdmin,
+    transactions,
+    pricing: {
+      idr_per_token_num: IDR_PER_TOKEN_NUM,
+      idr_per_token_den: IDR_PER_TOKEN_DEN,
+      image_idr: IMAGE_COST_IDR,
+      video_idr: VIDEO_COST_IDR,
+      plus_bonus_idr: PLUS_UPGRADE_BONUS_IDR,
+    },
+  });
+});
+
+// ── POST /api/me/credit/top-up — placeholder, segera hadir ───────────────────
+app.post("/api/me/credit/top-up", requireAuth, async (_req, res) => {
+  res.status(503).json({
+    error: "Top up saldo sedang dikembangkan. Segera hadir!",
+    coming_soon: true,
   });
 });
 
@@ -1134,11 +1282,21 @@ app.post("/v1/chat/completions", requireApiKey, async (req, res) => {
   const userId = (req as any).apiUserId;
   const isAdmin = (req as any).apiIsAdmin;
 
-  const usage = await getApiUsage(userId);
-  if (!isAdmin && usage.total_tokens >= API_DAILY_TOKEN_LIMIT) {
-    res.status(429).json({ error: { message: `Daily token limit reached (${API_DAILY_TOKEN_LIMIT.toLocaleString()}). Try again tomorrow.`, type: "rate_limit_error" } });
-    return;
+  // Credit check: harus punya saldo (admin bypass)
+  if (!isAdmin) {
+    const balance = await getCreditBalance(userId);
+    if (balance <= 0) {
+      res.status(429).json({ error: {
+        message: "Saldo credit habis. Silakan top up untuk lanjut menggunakan API.",
+        type: "insufficient_credit",
+        balance_idr: balance,
+      } });
+      return;
+    }
   }
+
+  // Rate limit harian (request_count) tetap aktif untuk anti-abuse
+  const usage = await getApiUsage(userId);
   if (!isAdmin && usage.request_count >= API_DAILY_REQUEST_LIMIT) {
     res.status(429).json({ error: { message: `Daily request limit reached (${API_DAILY_REQUEST_LIMIT}).`, type: "rate_limit_error" } });
     return;
@@ -1193,20 +1351,39 @@ app.post("/v1/chat/completions", requireApiKey, async (req, res) => {
     } catch { /**/ }
     res.end();
     bumpApiUsage(userId, { tokens: totalTokens, requests: 1 }).catch(() => {});
+    if (!isAdmin) {
+      const cost = tokensToIdr(totalTokens);
+      if (cost > 0) deductCredit(userId, cost, "usage_chat", { tokens: totalTokens, model: body.model, stream: true }).catch(() => {});
+    }
   } else {
     const text = await upstream.text();
     res.send(text);
     let tokens = 0;
     try { tokens = extractTokensFromResponse(JSON.parse(text)); } catch { /**/ }
     bumpApiUsage(userId, { tokens, requests: 1 }).catch(() => {});
+    if (!isAdmin) {
+      const cost = tokensToIdr(tokens);
+      if (cost > 0) deductCredit(userId, cost, "usage_chat", { tokens, model: body.model, stream: false }).catch(() => {});
+    }
   }
 });
 
 // ── POST /v1/embeddings — embeddings ─────────────────────────────────────────
 app.post("/v1/embeddings", requireApiKey, async (req, res) => {
   const userId = (req as any).apiUserId;
+  const isAdmin = (req as any).apiIsAdmin;
+
+  // Credit check
+  if (!isAdmin) {
+    const balance = await getCreditBalance(userId);
+    if (balance <= 0) {
+      res.status(429).json({ error: { message: "Saldo credit habis.", type: "insufficient_credit", balance_idr: balance } });
+      return;
+    }
+  }
+
   const usage = await getApiUsage(userId);
-  if (usage.request_count >= API_DAILY_REQUEST_LIMIT) {
+  if (!isAdmin && usage.request_count >= API_DAILY_REQUEST_LIMIT) {
     res.status(429).json({ error: { message: "Daily request limit reached.", type: "rate_limit_error" } });
     return;
   }
@@ -1221,6 +1398,10 @@ app.post("/v1/embeddings", requireApiKey, async (req, res) => {
     let tokens = 0;
     try { tokens = extractTokensFromResponse(JSON.parse(text)); } catch { /**/ }
     bumpApiUsage(userId, { tokens, requests: 1 }).catch(() => {});
+    if (!isAdmin) {
+      const cost = tokensToIdr(tokens);
+      if (cost > 0) deductCredit(userId, cost, "usage_embedding", { tokens }).catch(() => {});
+    }
   } catch {
     res.status(502).json({ error: { message: "Upstream error", type: "api_error" } });
   }
@@ -1232,10 +1413,17 @@ app.post("/v1/images/generations", requireApiKey, async (req, res) => {
   const userId = (req as any).apiUserId;
   const isAdmin = (req as any).apiIsAdmin;
 
-  const usage = await getApiUsage(userId);
-  if (!isAdmin && usage.image_count >= API_DAILY_IMAGE_LIMIT) {
-    res.status(429).json({ error: { message: `Daily image limit reached (${API_DAILY_IMAGE_LIMIT}).`, type: "rate_limit_error" } });
-    return;
+  // Credit check: harus ada minimal 1 image worth saldo (admin bypass)
+  if (!isAdmin) {
+    const balance = await getCreditBalance(userId);
+    if (balance < IMAGE_COST_IDR) {
+      res.status(429).json({ error: {
+        message: `Saldo credit kurang. Butuh minimal Rp ${IMAGE_COST_IDR.toLocaleString("id-ID")} per gambar.`,
+        type: "insufficient_credit",
+        balance_idr: balance,
+      } });
+      return;
+    }
   }
 
   const body = parseBody(req);
@@ -1306,6 +1494,10 @@ app.post("/v1/images/generations", requireApiKey, async (req, res) => {
     data,
   });
   bumpApiUsage(userId, { images: data.length, requests: 1 }).catch(() => {});
+  if (!isAdmin && data.length > 0) {
+    const cost = IMAGE_COST_IDR * data.length;
+    deductCredit(userId, cost, "usage_image", { count: data.length, model }).catch(() => {});
+  }
 });
 
 // ── POST /v1/videos/generations — video generation ───────────────────────────
@@ -1313,10 +1505,17 @@ app.post("/v1/videos/generations", requireApiKey, async (req, res) => {
   const userId = (req as any).apiUserId;
   const isAdmin = (req as any).apiIsAdmin;
 
-  const usage = await getApiUsage(userId);
-  if (!isAdmin && usage.video_count >= API_DAILY_VIDEO_LIMIT) {
-    res.status(429).json({ error: { message: `Daily video limit reached (${API_DAILY_VIDEO_LIMIT}).`, type: "rate_limit_error" } });
-    return;
+  // Credit check: butuh minimal 1 video worth saldo
+  if (!isAdmin) {
+    const balance = await getCreditBalance(userId);
+    if (balance < VIDEO_COST_IDR) {
+      res.status(429).json({ error: {
+        message: `Saldo credit kurang. Butuh minimal Rp ${VIDEO_COST_IDR.toLocaleString("id-ID")} per video.`,
+        type: "insufficient_credit",
+        balance_idr: balance,
+      } });
+      return;
+    }
   }
 
   const body = parseBody(req);
@@ -1364,6 +1563,9 @@ app.post("/v1/videos/generations", requireApiKey, async (req, res) => {
     message: "Video sedang di-generate. Poll GET /v1/videos/generations/{task_id} untuk cek status.",
   });
   bumpApiUsage(userId, { videos: 1, requests: 1 }).catch(() => {});
+  if (!isAdmin) {
+    deductCredit(userId, VIDEO_COST_IDR, "usage_video", { task_id: taskId, model }).catch(() => {});
+  }
 });
 
 // ── GET /v1/videos/generations/:taskId — poll status video ───────────────────
@@ -1391,10 +1593,15 @@ app.get("/v1/videos/generations/:taskId", requireApiKey, async (req, res) => {
 // Body: { image: "url-atau-base64-data:image/png;base64,...", prompt?: "..." }
 app.post("/v1/ocr", requireApiKey, async (req, res) => {
   const userId = (req as any).apiUserId;
-  const usage = await getApiUsage(userId);
-  if (usage.total_tokens >= API_DAILY_TOKEN_LIMIT) {
-    res.status(429).json({ error: { message: "Daily token limit reached.", type: "rate_limit_error" } });
-    return;
+  const isAdmin = (req as any).apiIsAdmin;
+
+  // Credit check
+  if (!isAdmin) {
+    const balance = await getCreditBalance(userId);
+    if (balance <= 0) {
+      res.status(429).json({ error: { message: "Saldo credit habis.", type: "insufficient_credit", balance_idr: balance } });
+      return;
+    }
   }
 
   const body = parseBody(req);
@@ -1430,6 +1637,10 @@ app.post("/v1/ocr", requireApiKey, async (req, res) => {
     });
     const tokens = extractTokensFromResponse(json);
     bumpApiUsage(userId, { tokens, requests: 1 }).catch(() => {});
+    if (!isAdmin) {
+      const cost = tokensToIdr(tokens);
+      if (cost > 0) deductCredit(userId, cost, "usage_ocr", { tokens, model }).catch(() => {});
+    }
   } catch {
     res.status(502).json({ error: { message: "Upstream error", type: "api_error" } });
   }

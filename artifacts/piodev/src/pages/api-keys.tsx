@@ -24,6 +24,28 @@ type ApiUsage = {
   limits: { tokens: number; images: number; videos: number; requests: number };
 };
 
+type CreditTransaction = {
+  id: string;
+  amount_idr: number;
+  type: string;
+  metadata: any;
+  created_at: string;
+};
+
+type CreditInfo = {
+  balance_idr: number;
+  is_premium: boolean;
+  is_admin: boolean;
+  transactions: CreditTransaction[];
+  pricing: {
+    idr_per_token_num: number;
+    idr_per_token_den: number;
+    image_idr: number;
+    video_idr: number;
+    plus_bonus_idr: number;
+  };
+};
+
 async function authedFetch(path: string, init?: RequestInit) {
   const { data: { session } } = await supabase.auth.getSession();
   return fetch(path, {
@@ -48,6 +70,7 @@ export default function ApiKeysPage() {
 
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [usage, setUsage] = useState<ApiUsage | null>(null);
+  const [credit, setCredit] = useState<CreditInfo | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -81,10 +104,14 @@ export default function ApiKeysPage() {
     setLoading(true);
     setError(null);
     try {
-      const [kRes, uRes] = await Promise.all([
+      const [kRes, uRes, cRes] = await Promise.all([
         authedFetch("/api/me/api-keys"),
         authedFetch("/api/me/api-usage"),
+        authedFetch("/api/me/credit"),
       ]);
+      // Credit info dulu — biar bisa kasih tau gating message yang akurat
+      if (cRes.ok) setCredit(await cRes.json());
+
       if (kRes.status === 403) {
         setError("Fitur API key hanya untuk pengguna Plus. Upgrade ke Plus dulu ya!");
         setLoading(false);
@@ -99,6 +126,13 @@ export default function ApiKeysPage() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function handleTopUp() {
+    toast({
+      title: "Segera Hadir",
+      description: "Top up saldo masih dalam pengembangan. Sabar ya, fitur ini akan tersedia secepatnya!",
+    });
   }
 
   useEffect(() => { if (user?.id) load(); /* eslint-disable-next-line */ }, [user?.id]);
@@ -301,15 +335,17 @@ export default function ApiKeysPage() {
           </div>
         )}
 
-        {/* Usage cards */}
-        {usage && (
+        {/* Saldo Credit */}
+        {credit && !error && (
           <div className="space-y-3 mb-6">
-            <SaldoCard tokensUsed={usage.usage.total_tokens} tokensLimit={usage.limits.tokens} />
-            <div className="grid grid-cols-3 gap-3">
-              <MiniUsageCard icon={ImageIcon} label="Image hari ini" used={usage.usage.image_count} limit={usage.limits.images} color="text-fuchsia-500" />
-              <MiniUsageCard icon={Video} label="Video hari ini" used={usage.usage.video_count} limit={usage.limits.videos} color="text-rose-500" />
-              <MiniUsageCard icon={Activity} label="Request hari ini" used={usage.usage.request_count} limit={usage.limits.requests} color="text-sky-500" />
-            </div>
+            <SaldoCard credit={credit} onTopUp={handleTopUp} />
+            {usage && (
+              <div className="grid grid-cols-3 gap-3">
+                <MiniUsageStat icon={ImageIcon} label="Image hari ini" value={usage.usage.image_count} color="text-fuchsia-500" />
+                <MiniUsageStat icon={Video} label="Video hari ini" value={usage.usage.video_count} color="text-rose-500" />
+                <MiniUsageStat icon={Activity} label="Request hari ini" value={usage.usage.request_count} color="text-sky-500" />
+              </div>
+            )}
           </div>
         )}
 
@@ -697,39 +733,14 @@ function StatusBadge({ tone, children }: { tone: "active" | "info" | "warning"; 
   );
 }
 
-// Konversi: 2 token = Rp 1
-const TOKEN_PER_RP = 2;
+// Konversi: 2 token = Rp 1 (cost = ceil(tokens / 2))
 const formatIdr = (n: number) => `Rp ${Math.max(0, Math.floor(n)).toLocaleString("id-ID")}`;
 
-function useWibCountdown() {
-  const [text, setText] = useState("");
-  useEffect(() => {
-    const tick = () => {
-      const now = Date.now();
-      // WIB midnight = 17:00 UTC sehari sebelumnya. Cari 17:00 UTC berikutnya.
-      const d = new Date();
-      let target = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 17, 0, 0);
-      if (target <= now) target += 24 * 3600 * 1000;
-      const diff = Math.max(0, target - now);
-      const h = Math.floor(diff / 3600000);
-      const m = Math.floor((diff % 3600000) / 60000);
-      const s = Math.floor((diff % 60000) / 1000);
-      setText(`${h}j ${m}m ${s}d`);
-    };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, []);
-  return text;
-}
-
-function SaldoCard({ tokensUsed, tokensLimit }: { tokensUsed: number; tokensLimit: number }) {
-  const balanceUsed = Math.floor(tokensUsed / TOKEN_PER_RP);
-  const balanceLimit = Math.max(1, Math.floor(tokensLimit / TOKEN_PER_RP));
-  const remaining = Math.max(0, balanceLimit - balanceUsed);
-  const pct = Math.min((balanceUsed / balanceLimit) * 100, 100);
-  const lowBalance = pct >= 80;
-  const countdown = useWibCountdown();
+function SaldoCard({ credit, onTopUp }: { credit: CreditInfo; onTopUp: () => void }) {
+  const balance = credit.balance_idr;
+  const isAdmin = credit.is_admin;
+  const isLow = !isAdmin && balance < 5_000;
+  const isEmpty = !isAdmin && balance <= 0;
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/10 via-card to-card p-5" data-testid="card-saldo">
@@ -744,42 +755,59 @@ function SaldoCard({ tokensUsed, tokensLimit }: { tokensUsed: number; tokensLimi
               <Wallet className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="text-sm font-semibold leading-tight">Pio Saldo</p>
-              <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">Saldo simulasi · bukan rupiah asli</p>
+              <p className="text-sm font-semibold leading-tight">Saldo Credit</p>
+              <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
+                Pakai untuk akses PioCode API · tanpa reset harian
+              </p>
             </div>
           </div>
-          <span className="text-[10px] uppercase tracking-wider px-2 py-1 rounded-md bg-primary/15 text-primary font-bold">
-            API · Harian
+          <span className={cn(
+            "text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-bold",
+            isAdmin
+              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+              : "bg-primary/15 text-primary"
+          )}>
+            {isAdmin ? "Admin · Bypass" : "Plus · Aktif"}
           </span>
         </div>
 
         {/* Big nominal */}
         <div className="mb-4">
           <p className="text-3xl md:text-4xl font-bold tracking-tight" data-testid="text-saldo-remaining">
-            {formatIdr(remaining)}
+            {isAdmin ? "Tanpa Batas" : formatIdr(balance)}
           </p>
-          <p className="text-xs text-muted-foreground mt-1">
-            tersisa dari <span className="font-medium text-foreground/80">{formatIdr(balanceLimit)}</span> · terpakai <span className={cn("font-medium", lowBalance ? "text-amber-500" : "text-foreground/80")}>{formatIdr(balanceUsed)}</span>
-          </p>
+          {!isAdmin && (
+            <p className={cn(
+              "text-xs mt-1",
+              isEmpty ? "text-rose-500 font-medium" : isLow ? "text-amber-500 font-medium" : "text-muted-foreground"
+            )}>
+              {isEmpty
+                ? "Saldo habis. Top up untuk lanjut pakai API."
+                : isLow
+                ? "Saldo menipis — pertimbangkan top up segera."
+                : "Saldo akan terus menyusut tiap kali API dipakai."}
+            </p>
+          )}
+          {isAdmin && (
+            <p className="text-xs text-muted-foreground mt-1">
+              Akun admin ga di-charge — pemakaian tetap dicatat di log.
+            </p>
+          )}
         </div>
 
-        {/* Progress */}
-        <div className="h-2 rounded-full bg-muted overflow-hidden mb-4">
-          <div
-            className={cn(
-              "h-full transition-all duration-500",
-              lowBalance ? "bg-gradient-to-r from-amber-500 to-rose-500" : "bg-gradient-to-r from-primary to-primary/60"
-            )}
-            style={{ width: `${pct}%` }}
-          />
-        </div>
-
-        {/* Countdown + tariff */}
+        {/* Top up + tariff */}
         <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
-          <div className="flex items-center gap-1.5 text-muted-foreground">
-            <Clock className="w-3.5 h-3.5" />
-            <span>Refill <span className="font-semibold text-foreground tabular-nums">{countdown}</span></span>
-          </div>
+          <button
+            onClick={onTopUp}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary border border-primary/30 hover:bg-primary/15 transition font-medium"
+            data-testid="button-top-up"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Top Up Saldo
+            <span className="ml-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/15">
+              Segera
+            </span>
+          </button>
           <div className="flex items-center gap-1.5 flex-wrap">
             <span className="hidden sm:inline text-muted-foreground">Tarif:</span>
             <span className="px-1.5 py-0.5 rounded bg-muted/70 text-muted-foreground"><MessageSquare className="w-3 h-3 inline mr-0.5 -mt-0.5" />~Rp 250</span>
@@ -792,20 +820,16 @@ function SaldoCard({ tokensUsed, tokensLimit }: { tokensUsed: number; tokensLimi
   );
 }
 
-function MiniUsageCard({ icon: Icon, label, used, limit, color }: { icon: any; label: string; used: number; limit: number; color: string }) {
-  const pct = Math.min((used / limit) * 100, 100);
+function MiniUsageStat({ icon: Icon, label, value, color }: { icon: any; label: string; value: number; color: string }) {
   return (
     <div className="p-3 rounded-xl border border-border bg-card">
       <div className="flex items-center gap-1.5 mb-1.5">
         <Icon className={cn("w-3.5 h-3.5", color)} />
         <p className="text-[11px] text-muted-foreground truncate">{label}</p>
       </div>
-      <p className="text-base font-semibold mb-1.5">
-        {used.toLocaleString()}<span className="text-xs text-muted-foreground font-normal"> / {limit.toLocaleString()}</span>
+      <p className="text-base font-semibold">
+        {value.toLocaleString()}<span className="text-xs text-muted-foreground font-normal"> dipakai</span>
       </p>
-      <div className="h-1 rounded-full bg-muted overflow-hidden">
-        <div className={cn("h-full transition-all", pct > 80 ? "bg-amber-500" : "bg-primary/70")} style={{ width: `${pct}%` }} />
-      </div>
     </div>
   );
 }
