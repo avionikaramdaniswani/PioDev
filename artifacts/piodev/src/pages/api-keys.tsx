@@ -342,10 +342,11 @@ export default function ApiKeysPage() {
           <div className="space-y-3 mb-6">
             <SaldoCard credit={credit} onTopUp={handleTopUp} />
             {usage && (
-              <div className="grid grid-cols-3 gap-3">
-                <MiniUsageStat icon={ImageIcon} label="Image hari ini" value={usage.usage.image_count} color="text-fuchsia-500" />
-                <MiniUsageStat icon={Video} label="Video hari ini" value={usage.usage.video_count} color="text-rose-500" />
-                <MiniUsageStat icon={Activity} label="Request hari ini" value={usage.usage.request_count} color="text-sky-500" />
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-2.5">
+                <MiniUsageStat icon={MessageSquare} label="Token" value={usage.usage.total_tokens} color="text-emerald-500" />
+                <MiniUsageStat icon={Activity} label="Request" value={usage.usage.request_count} color="text-sky-500" />
+                <MiniUsageStat icon={ImageIcon} label="Image" value={usage.usage.image_count} color="text-fuchsia-500" />
+                <MiniUsageStat icon={Video} label="Video" value={usage.usage.video_count} color="text-rose-500" />
               </div>
             )}
           </div>
@@ -782,27 +783,26 @@ function SaldoCard({ credit, onTopUp }: { credit: CreditInfo; onTopUp: () => voi
           ? "Saldo menipis."
           : "Tanpa reset harian."}
       </p>
-
-      {/* Tarif — minimalis di bawah */}
-      <div className="flex items-center gap-3 mt-4 pt-3 border-t border-border text-[11px] text-muted-foreground">
-        <span>Tarif</span>
-        <span className="inline-flex items-center gap-1"><MessageSquare className="w-3 h-3" />~Rp 250</span>
-        <span className="inline-flex items-center gap-1"><ImageIcon className="w-3 h-3" />Rp 4rb</span>
-        <span className="inline-flex items-center gap-1"><Video className="w-3 h-3" />Rp 50rb</span>
-      </div>
     </div>
   );
 }
 
+function formatCompactNumber(n: number): string {
+  if (n < 1_000) return n.toLocaleString("id-ID");
+  if (n < 1_000_000) return `${(n / 1_000).toFixed(n < 10_000 ? 1 : 0).replace(/\.0$/, "")}rb`;
+  return `${(n / 1_000_000).toFixed(n < 10_000_000 ? 1 : 0).replace(/\.0$/, "")}jt`;
+}
+
 function MiniUsageStat({ icon: Icon, label, value, color }: { icon: any; label: string; value: number; color: string }) {
   return (
-    <div className="p-3 rounded-xl border border-border bg-card">
-      <div className="flex items-center gap-1.5 mb-1.5">
-        <Icon className={cn("w-3.5 h-3.5", color)} />
+    <div className="p-2.5 sm:p-3 rounded-xl border border-border bg-card min-w-0">
+      <div className="flex items-center gap-1.5 mb-1">
+        <Icon className={cn("w-3.5 h-3.5 shrink-0", color)} />
         <p className="text-[11px] text-muted-foreground truncate">{label}</p>
       </div>
-      <p className="text-base font-semibold">
-        {value.toLocaleString()}<span className="text-xs text-muted-foreground font-normal"> dipakai</span>
+      <p className="text-base sm:text-lg font-semibold tabular-nums leading-tight" title={value.toLocaleString("id-ID")}>
+        {formatCompactNumber(value)}
+        <span className="text-[10px] text-muted-foreground font-normal ml-1">hari ini</span>
       </p>
     </div>
   );
