@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, Lock, Check, Eye, EyeOff, Sun, Moon, Menu, X, BarChart2, Sparkles, Star, Zap, ImageIcon, Clapperboard, ChevronRight, MessageSquare, Shield, Mail } from "lucide-react";
+import { User, Lock, Check, Eye, EyeOff, Sun, Moon, Menu, X, BarChart2, Sparkles, Star, Zap, ImageIcon, Clapperboard, ChevronRight, Shield, Mail } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
 import { useChat } from "@/hooks/use-chat";
@@ -11,13 +11,12 @@ import { cn } from "@/lib/utils";
 import { useShowTokenUsage, useTokenUsageData } from "@/hooks/use-token-usage";
 import { usePersonalization } from "@/hooks/use-personalization";
 
-type Section = "profil" | "personalisasi" | "statistik" | "plus";
+type Section = "profil" | "personalisasi" | "penggunaan";
 
 const navItems: { id: Section; label: string; icon: typeof User }[] = [
   { id: "profil", label: "Profil", icon: User },
   { id: "personalisasi", label: "Personalisasi", icon: Sparkles },
-  { id: "statistik", label: "Statistik", icon: BarChart2 },
-  { id: "plus", label: "Plus", icon: Star },
+  { id: "penggunaan", label: "Penggunaan", icon: BarChart2 },
 ];
 
 export default function Settings() {
@@ -51,7 +50,7 @@ export default function Settings() {
   const [usageSummaryLoading, setUsageSummaryLoading] = useState(false);
 
   useEffect(() => {
-    if (activeSection !== "plus") return;
+    if (activeSection !== "penggunaan") return;
     let cancelled = false;
     setUsageSummaryLoading(true);
     (async () => {
@@ -619,163 +618,37 @@ export default function Settings() {
                 </div>
               )}
 
-              {activeSection === "statistik" && (
-                <div className="space-y-8">
-                  <div>
-                    <h2 className="hidden md:block text-lg font-semibold text-foreground mb-1">Statistik Penggunaan</h2>
-                    <p className="hidden md:block text-sm text-muted-foreground mb-8">Rekap penggunaan selama percakapan dengan Pioo 2.0.</p>
-                    {statsLoading && (
-                      <div className="text-xs text-muted-foreground/60 mb-4 flex items-center gap-1.5">
-                        <span className="inline-block w-2 h-2 rounded-full bg-primary/40 animate-pulse" />
-                        Memuat statistik...
-                      </div>
-                    )}
-
-                    {/* Ringkasan chat & pesan */}
-                    <div className="grid grid-cols-2 gap-3 mb-6">
-                      <div className="p-4 rounded-xl border border-border bg-card flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                          <MessageSquare className="w-4 h-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-2xl font-bold text-foreground tabular-nums">{chats.length}</p>
-                          <p className="text-xs text-muted-foreground">Percakapan</p>
-                        </div>
-                      </div>
-                      <div className="p-4 rounded-xl border border-border bg-card flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                          <BarChart2 className="w-4 h-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-2xl font-bold text-foreground tabular-nums">
-                            {chats.reduce((sum, c) => sum + c.messages.length, 0)}
-                          </p>
-                          <p className="text-xs text-muted-foreground">Total pesan</p>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Toggle tampilkan token per pesan */}
-                    <div className="flex items-center justify-between p-4 rounded-xl border border-border bg-card mb-6">
-                      <div>
-                        <p className="text-sm font-medium text-foreground">Tampilkan token per pesan</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">Tampilkan jumlah token di bawah setiap respons AI</p>
-                      </div>
-                      <button
-                        onClick={toggleTokenUsage}
-                        className={cn(
-                          "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none",
-                          showTokenUsage ? "bg-primary" : "bg-input"
-                        )}
-                      >
-                        <span className={cn(
-                          "pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg transition-transform",
-                          showTokenUsage ? "translate-x-5" : "translate-x-0"
-                        )} />
-                      </button>
-                    </div>
-
-                    {/* Ringkasan */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8">
-                      {[
-                        { label: "Hari ini", usage: todayUsage },
-                        { label: "7 hari terakhir", usage: weekUsage },
-                        { label: "30 hari terakhir", usage: monthUsage },
-                      ].map(({ label, usage }) => (
-                        <div key={label} className="p-4 rounded-xl border border-border bg-card space-y-1.5">
-                          <p className="text-xs text-muted-foreground font-medium">{label}</p>
-                          <p className="text-2xl font-bold text-foreground tabular-nums">
-                            {usage.totalTokens > 0 ? usage.totalTokens.toLocaleString() : "—"}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {usage.totalTokens > 0 ? `${usage.messages} pesan` : "belum ada data"}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Bar chart 7 hari */}
-                    <div>
-                      <p className="text-sm font-medium text-foreground mb-4">Penggunaan 7 Hari Terakhir</p>
-                      {daily7.every(d => d.usage.totalTokens === 0) ? (
-                        <div className="flex items-center justify-center h-32 rounded-xl border border-dashed border-border text-sm text-muted-foreground">
-                          Belum ada data. Mulai ngobrol dengan Pioo 2.0!
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          {(() => {
-                            const max = Math.max(...daily7.map(d => d.usage.totalTokens), 1);
-                            return daily7.map(({ date, usage }) => {
-                              const pct = Math.round((usage.totalTokens / max) * 100);
-                              const label = new Date(date + "T00:00:00").toLocaleDateString("id-ID", { weekday: "short", day: "numeric", month: "short" });
-                              return (
-                                <div key={date} className="flex items-center gap-3">
-                                  <span className="text-xs text-muted-foreground w-24 shrink-0">{label}</span>
-                                  <div className="flex-1 h-5 bg-muted rounded-full overflow-hidden">
-                                    <div
-                                      className="h-full bg-primary/70 rounded-full transition-all"
-                                      style={{ width: `${pct}%` }}
-                                    />
-                                  </div>
-                                  <span className="text-xs text-muted-foreground tabular-nums w-20 text-right shrink-0">
-                                    {usage.totalTokens > 0 ? usage.totalTokens.toLocaleString() : "—"}
-                                  </span>
-                                </div>
-                              );
-                            });
-                          })()}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Detail breakdown */}
-                    {weekUsage.totalTokens > 0 && (
-                      <div className="mt-8 p-4 rounded-xl border border-border bg-card space-y-3">
-                        <p className="text-sm font-medium text-foreground">Detail 7 Hari</p>
-                        <div className="grid grid-cols-2 gap-2 text-sm">
-                          <div className="text-muted-foreground">Token prompt (input)</div>
-                          <div className="text-foreground text-right tabular-nums">{weekUsage.promptTokens.toLocaleString()}</div>
-                          <div className="text-muted-foreground">Token completion (output)</div>
-                          <div className="text-foreground text-right tabular-nums">{weekUsage.completionTokens.toLocaleString()}</div>
-                          <div className="text-muted-foreground font-medium">Total token</div>
-                          <div className="text-foreground text-right tabular-nums font-medium">{weekUsage.totalTokens.toLocaleString()}</div>
-                          <div className="text-muted-foreground">Jumlah pesan</div>
-                          <div className="text-foreground text-right tabular-nums">{weekUsage.messages}</div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-
-              {activeSection === "plus" && (
+              {activeSection === "penggunaan" && (
                 <div className="space-y-6">
+                  {/* Page heading */}
                   <div className="hidden md:block">
-                    <h2 className="text-lg font-semibold text-foreground mb-1">Penggunaan Akun</h2>
-                    <p className="text-sm text-muted-foreground mb-6">Status Plus dan kuota pemakaianmu hari ini.</p>
+                    <h2 className="text-lg font-semibold text-foreground mb-1">Penggunaan</h2>
+                    <p className="text-sm text-muted-foreground">Status akun, sisa kuota, dan riwayat pemakaian.</p>
                   </div>
 
                   {usageSummaryLoading || !usageSummary ? (
-                    <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">Memuat data...</div>
+                    <div className="flex items-center justify-center py-16 text-muted-foreground text-sm">
+                      <span className="inline-block w-2 h-2 rounded-full bg-primary/40 animate-pulse mr-2" />
+                      Memuat data...
+                    </div>
                   ) : (
                     <>
-                      {/* Status Plus */}
+                      {/* Status tier */}
                       <div className={cn(
-                        "rounded-2xl border p-5",
+                        "rounded-2xl border p-5 sm:p-6",
                         usageSummary.isPremium
                           ? "border-amber-500/25 bg-amber-500/5"
                           : "border-border bg-card"
                       )}>
-                        <div className="flex items-start justify-between gap-4">
-                          <div className="flex items-center gap-3">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-3 min-w-0">
                             <div className={cn(
                               "w-10 h-10 rounded-xl flex items-center justify-center shrink-0",
                               usageSummary.isPremium ? "bg-amber-500/15" : "bg-muted"
                             )}>
                               <Star className={cn("w-5 h-5", usageSummary.isPremium ? "text-amber-500 fill-amber-500/30" : "text-muted-foreground")} />
                             </div>
-                            <div>
+                            <div className="min-w-0">
                               <div className="flex items-center gap-2">
                                 <span className="text-sm font-semibold text-foreground">
                                   {usageSummary.isAdmin
@@ -787,26 +660,26 @@ export default function Settings() {
                                     : "Free"}
                                 </span>
                                 {usageSummary.isPremium && !usageSummary.isAdmin && (
-                                  <span className="text-xs px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 font-medium">
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 font-bold tracking-wide">
                                     {usageSummary.tier === "pro" ? "PRO" : "PLUS"}
                                   </span>
                                 )}
                               </div>
                               {usageSummary.isPremium && usageSummary.premiumExpiresAt && !usageSummary.isAdmin ? (
-                                <p className="text-xs text-muted-foreground mt-0.5">
+                                <p className="text-xs text-muted-foreground mt-0.5 truncate">
                                   Berakhir {new Date(usageSummary.premiumExpiresAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
                                 </p>
                               ) : !usageSummary.isPremium ? (
-                                <p className="text-xs text-muted-foreground mt-0.5">Upgrade untuk kuota lebih besar</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">Upgrade buat kuota lebih besar</p>
                               ) : null}
                             </div>
                           </div>
                           {!usageSummary.isPremium && (
                             <button
                               onClick={() => navigate("/premium")}
-                              className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 font-medium hover:underline shrink-0"
+                              className="shrink-0 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold transition-colors"
                             >
-                              Lihat Paket
+                              Upgrade
                               <ChevronRight className="w-3.5 h-3.5" />
                             </button>
                           )}
@@ -814,100 +687,119 @@ export default function Settings() {
                       </div>
 
                       {/* Kuota Hari Ini */}
-                      <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
-                        <h3 className="text-sm font-semibold text-foreground">Kuota Hari Ini</h3>
+                      <div className="rounded-2xl border border-border bg-card p-5 sm:p-6 space-y-5">
+                        <h3 className="text-sm font-semibold text-foreground">Sisa kuota</h3>
 
-                        {/* Token */}
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between text-sm">
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <Zap className="w-3.5 h-3.5" />
-                              <span>Token chat</span>
+                        {[
+                          {
+                            icon: Zap,
+                            label: "Token chat",
+                            sub: "Reset tiap hari",
+                            used: usageSummary.token.used,
+                            limit: usageSummary.token.limit,
+                            display: `${usageSummary.token.used.toLocaleString("id-ID")} / ${usageSummary.token.limit >= 9_999_000 ? "∞" : (usageSummary.token.limit / 1000).toFixed(0) + "K"}`,
+                          },
+                          {
+                            icon: ImageIcon,
+                            label: "Gambar",
+                            sub: "Reset tiap hari",
+                            used: usageSummary.image.used,
+                            limit: usageSummary.image.limit,
+                            display: `${usageSummary.image.used} / ${usageSummary.image.limit >= 9999 ? "∞" : usageSummary.image.limit}`,
+                          },
+                          {
+                            icon: Clapperboard,
+                            label: "Kredit video",
+                            sub: "Reset tiap bulan",
+                            used: usageSummary.video.max - usageSummary.video.credits,
+                            limit: Math.max(usageSummary.video.max, 1),
+                            display: `${usageSummary.video.credits} / ${usageSummary.video.max >= 999 ? "∞" : usageSummary.video.max} sisa`,
+                          },
+                        ].map(({ icon: Icon, label, sub, used, limit, display }) => (
+                          <div key={label} className="space-y-1.5">
+                            <div className="flex items-center justify-between gap-2 text-sm">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                <span className="text-foreground font-medium">{label}</span>
+                                <span className="text-xs text-muted-foreground hidden sm:inline">· {sub}</span>
+                              </div>
+                              <span className="text-foreground tabular-nums font-medium text-xs sm:text-sm shrink-0">{display}</span>
                             </div>
-                            <span className="text-foreground tabular-nums font-medium">
-                              {usageSummary.token.used.toLocaleString("id-ID")} / {usageSummary.token.limit >= 9_999_000 ? "∞" : (usageSummary.token.limit / 1000).toFixed(0) + "K"}
-                            </span>
-                          </div>
-                          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                            <div
-                              className={cn("h-full rounded-full transition-all", usageSummary.isPremium ? "bg-amber-500" : "bg-primary")}
-                              style={{ width: `${Math.min(100, (usageSummary.token.used / usageSummary.token.limit) * 100)}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Gambar */}
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between text-sm">
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <ImageIcon className="w-3.5 h-3.5" />
-                              <span>Gambar hari ini</span>
+                            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                              <div
+                                className={cn("h-full rounded-full transition-all", usageSummary.isPremium ? "bg-amber-500" : "bg-primary")}
+                                style={{ width: `${Math.min(100, (used / limit) * 100)}%` }}
+                              />
                             </div>
-                            <span className="text-foreground tabular-nums font-medium">
-                              {usageSummary.image.used} / {usageSummary.image.limit >= 9999 ? "∞" : usageSummary.image.limit}
-                            </span>
                           </div>
-                          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                            <div
-                              className={cn("h-full rounded-full transition-all", usageSummary.isPremium ? "bg-amber-500" : "bg-primary")}
-                              style={{ width: `${Math.min(100, (usageSummary.image.used / usageSummary.image.limit) * 100)}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Video Credits */}
-                        <div className="space-y-1.5">
-                          <div className="flex items-center justify-between text-sm">
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <Clapperboard className="w-3.5 h-3.5" />
-                              <span>Kredit video (bulan ini)</span>
-                            </div>
-                            <span className="text-foreground tabular-nums font-medium">
-                              {usageSummary.video.credits} / {usageSummary.video.max >= 999 ? "∞" : usageSummary.video.max}
-                            </span>
-                          </div>
-                          <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                            <div
-                              className={cn("h-full rounded-full transition-all", usageSummary.isPremium ? "bg-amber-500" : "bg-primary")}
-                              style={{ width: `${Math.min(100, ((usageSummary.video.max - usageSummary.video.credits) / Math.max(usageSummary.video.max, 1)) * 100)}%` }}
-                            />
-                          </div>
-                        </div>
+                        ))}
                       </div>
 
-                      {/* Benefit Plus */}
-                      <div className="rounded-2xl border border-border bg-card p-5 space-y-4">
-                        <h3 className="text-sm font-semibold text-foreground">Keuntungan Plus</h3>
-                        <div className="space-y-3">
-                          {[
-                            { icon: Zap, label: "360.000 token/hari", sub: "6× lebih banyak dari Free (60K)", plus: true },
-                            { icon: ImageIcon, label: "25 gambar/hari", sub: "vs 7 untuk Free", plus: true },
-                            { icon: Clapperboard, label: "12 kredit video/bulan", sub: "vs 3 untuk Free", plus: true },
-                            { icon: Star, label: "Akses semua model", sub: "Model Plus & Coder eksklusif", plus: true },
-                            { icon: Star, label: "Badge Plus di header", sub: "Tampil berbeda dari pengguna Free", plus: true },
-                          ].map(({ icon: Icon, label, sub }) => (
-                            <div key={label} className="flex items-start gap-3">
-                              <div className="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center shrink-0 mt-0.5">
-                                <Icon className="w-3.5 h-3.5 text-amber-500" />
-                              </div>
-                              <div>
-                                <p className="text-sm font-medium text-foreground">{label}</p>
-                                <p className="text-xs text-muted-foreground">{sub}</p>
-                              </div>
-                              <Check className="w-4 h-4 text-amber-500 ml-auto shrink-0 mt-0.5" />
-                            </div>
-                          ))}
+                      {/* Riwayat 7 hari */}
+                      <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="text-sm font-semibold text-foreground">7 hari terakhir</h3>
+                          {weekUsage.totalTokens > 0 && (
+                            <span className="text-xs text-muted-foreground tabular-nums">
+                              {weekUsage.totalTokens.toLocaleString("id-ID")} token · {weekUsage.messages} pesan
+                            </span>
+                          )}
                         </div>
 
-                        {!usageSummary.isPremium && (
-                          <button
-                            onClick={() => navigate("/premium")}
-                            className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors"
-                          >
-                            <Star className="w-4 h-4" />
-                            Lihat Paket Plus & Pro
-                          </button>
+                        {statsLoading ? (
+                          <div className="flex items-center justify-center h-32 text-xs text-muted-foreground">
+                            <span className="inline-block w-2 h-2 rounded-full bg-primary/40 animate-pulse mr-2" />
+                            Memuat...
+                          </div>
+                        ) : daily7.every(d => d.usage.totalTokens === 0) ? (
+                          <div className="flex items-center justify-center h-32 text-sm text-muted-foreground">
+                            Belum ada data minggu ini
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {(() => {
+                              const max = Math.max(...daily7.map(d => d.usage.totalTokens), 1);
+                              return daily7.map(({ date, usage }) => {
+                                const pct = Math.round((usage.totalTokens / max) * 100);
+                                const label = new Date(date + "T00:00:00").toLocaleDateString("id-ID", { weekday: "short", day: "numeric" });
+                                return (
+                                  <div key={date} className="flex items-center gap-3">
+                                    <span className="text-xs text-muted-foreground w-16 shrink-0">{label}</span>
+                                    <div className="flex-1 h-2 bg-muted rounded-full overflow-hidden">
+                                      <div
+                                        className="h-full bg-primary/70 rounded-full transition-all"
+                                        style={{ width: `${pct}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-xs text-muted-foreground tabular-nums w-16 text-right shrink-0">
+                                      {usage.totalTokens > 0 ? usage.totalTokens.toLocaleString("id-ID") : "—"}
+                                    </span>
+                                  </div>
+                                );
+                              });
+                            })()}
+                          </div>
                         )}
+                      </div>
+
+                      {/* Preferensi tampilan */}
+                      <div className="flex items-center justify-between gap-3 px-1 pt-2">
+                        <div className="min-w-0">
+                          <p className="text-sm text-foreground">Tampilkan token per pesan</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">Munculkan hitungan token di bawah respons AI.</p>
+                        </div>
+                        <button
+                          onClick={toggleTokenUsage}
+                          className={cn(
+                            "relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus-visible:outline-none",
+                            showTokenUsage ? "bg-primary" : "bg-input"
+                          )}
+                        >
+                          <span className={cn(
+                            "pointer-events-none block h-5 w-5 rounded-full bg-background shadow-lg transition-transform",
+                            showTokenUsage ? "translate-x-5" : "translate-x-0"
+                          )} />
+                        </button>
                       </div>
                     </>
                   )}
