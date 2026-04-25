@@ -10,10 +10,14 @@ CREATE TABLE IF NOT EXISTS public.api_keys (
   name TEXT NOT NULL,
   key_hash TEXT NOT NULL UNIQUE,
   key_prefix TEXT NOT NULL,
+  key_encrypted TEXT, -- AES-256-GCM ciphertext (base64). NULL = key lama, ga bisa di-reveal.
   created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
   last_used_at TIMESTAMPTZ,
   revoked_at TIMESTAMPTZ
 );
+
+-- Tambah kolom kalau tabel udah ada dari versi sebelumnya
+ALTER TABLE public.api_keys ADD COLUMN IF NOT EXISTS key_encrypted TEXT;
 
 CREATE INDEX IF NOT EXISTS api_keys_user_id_idx ON public.api_keys(user_id);
 CREATE INDEX IF NOT EXISTS api_keys_key_hash_idx ON public.api_keys(key_hash);

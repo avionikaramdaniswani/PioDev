@@ -773,6 +773,49 @@ app.patch("/api/admin/users/:id/premium", requireAuth, requireAdmin, async (req,
 
 const API_KEY_PREFIX = "pio-sk-";
 
+// ── Master key buat enkripsi API key user (AES-256-GCM) ──────────────────────
+// Disimpen di env var API_KEY_ENCRYPTION_SECRET. Kalo gak ada → reveal disabled,
+// tapi sistem tetep jalan (key cuma bisa dilihat sekali pas dibuat).
+const ENCRYPTION_SECRET_RAW = process.env.API_KEY_ENCRYPTION_SECRET;
+let ENCRYPTION_KEY: Buffer | null = null;
+if (ENCRYPTION_SECRET_RAW) {
+  try {
+    const decoded = Buffer.from(ENCRYPTION_SECRET_RAW, "base64");
+    ENCRYPTION_KEY =
+      decoded.length === 32
+        ? decoded
+        : crypto.createHash("sha256").update(ENCRYPTION_SECRET_RAW).digest();
+  } catch {
+    ENCRYPTION_KEY = crypto.createHash("sha256").update(ENCRYPTION_SECRET_RAW).digest();
+  }
+}
+
+function encryptApiKey(plain: string): string | null {
+  if (!ENCRYPTION_KEY) return null;
+  const iv = crypto.randomBytes(12);
+  const cipher = crypto.createCipheriv("aes-256-gcm", ENCRYPTION_KEY, iv);
+  const ct = Buffer.concat([cipher.update(plain, "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return Buffer.concat([iv, tag, ct]).toString("base64");
+}
+
+function decryptApiKey(stored: string): string | null {
+  if (!ENCRYPTION_KEY) return null;
+  try {
+    const buf = Buffer.from(stored, "base64");
+    if (buf.length < 28) return null;
+    const iv = buf.subarray(0, 12);
+    const tag = buf.subarray(12, 28);
+    const ct = buf.subarray(28);
+    const decipher = crypto.createDecipheriv("aes-256-gcm", ENCRYPTION_KEY, iv);
+    decipher.setAuthTag(tag);
+    const plain = Buffer.concat([decipher.update(ct), decipher.final()]);
+    return plain.toString("utf8");
+  } catch {
+    return null;
+  }
+}
+
 function generateApiKey(): { full: string; hash: string; prefix: string } {
   const random = crypto.randomBytes(36).toString("base64url");
   const full = `${API_KEY_PREFIX}${random}`;
@@ -879,11 +922,57 @@ app.get("/api/me/api-keys", requireAuth, async (req, res) => {
   const userId = (req as any).userId;
   const { data, error } = await supabaseAdmin
     .from("api_keys")
-    .select("id, name, key_prefix, created_at, last_used_at, revoked_at")
+    .select("id, name, key_prefix, created_at, last_used_at, revoked_at, key_encrypted")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
   if (error) { res.status(500).json({ error: error.message }); return; }
-  res.json({ keys: data ?? [] });
+  // Jangan kirim ciphertext ke client — cuma flag boolean apakah bisa di-reveal
+  const keys = (data ?? []).map((k: any) => ({
+    id: k.id,
+    name: k.name,
+    key_prefix: k.key_prefix,
+    created_at: k.created_at,
+    last_used_at: k.last_used_at,
+    revoked_at: k.revoked_at,
+    revealable: !!k.key_encrypted && !!ENCRYPTION_KEY,
+  }));
+  res.json({ keys });
+});
+
+// ── GET /api/me/api-keys/:id/reveal — tampilkan key full (decrypted) ─────────
+app.get("/api/me/api-keys/:id/reveal", requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+  const { id } = req.params;
+  if (!ENCRYPTION_KEY) {
+    res.status(503).json({ error: "Fitur reveal belum aktif di server. Hubungi admin." });
+    return;
+  }
+  const { data, error } = await supabaseAdmin
+    .from("api_keys")
+    .select("id, user_id, key_encrypted, revoked_at")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .single();
+  if (error || !data) {
+    res.status(404).json({ error: "Key tidak ditemukan." });
+    return;
+  }
+  if (data.revoked_at) {
+    res.status(410).json({ error: "Key sudah di-revoke." });
+    return;
+  }
+  if (!data.key_encrypted) {
+    res.status(409).json({
+      error: "Key ini dibuat sebelum fitur reveal aktif. Bikin key baru kalau mau bisa dilihat ulang.",
+    });
+    return;
+  }
+  const plain = decryptApiKey(data.key_encrypted);
+  if (!plain) {
+    res.status(500).json({ error: "Gagal decrypt. Master secret mungkin berubah." });
+    return;
+  }
+  res.json({ key: plain });
 });
 
 // ── POST /api/me/api-keys — buat key baru (cuma untuk user Plus/Admin) ───────
@@ -922,15 +1011,29 @@ app.post("/api/me/api-keys", requireAuth, async (req, res) => {
   }
 
   const { full, hash, prefix } = generateApiKey();
+  const encrypted = encryptApiKey(full); // null kalau ENCRYPTION_KEY belum di-set
   const { data, error } = await supabaseAdmin
     .from("api_keys")
-    .insert({ user_id: userId, name, key_hash: hash, key_prefix: prefix })
+    .insert({
+      user_id: userId,
+      name,
+      key_hash: hash,
+      key_prefix: prefix,
+      key_encrypted: encrypted,
+    })
     .select("id, name, key_prefix, created_at")
     .single();
   if (error) { res.status(500).json({ error: error.message }); return; }
 
-  // Kirim full key SEKALI aja — user wajib copy sekarang
-  res.json({ ...data, key: full, warning: "Simpan key ini sekarang. Kamu ga akan bisa lihat lagi." });
+  // Kirim full key + flag bisa di-reveal lagi nanti atau enggak
+  res.json({
+    ...data,
+    key: full,
+    revealable: !!encrypted,
+    warning: encrypted
+      ? "Copy sekarang biar gampang. Kamu juga bisa lihat lagi nanti dari halaman ini."
+      : "Simpan key ini sekarang. Kamu ga akan bisa lihat lagi.",
+  });
 });
 
 // ── DELETE /api/me/api-keys/:id — revoke key ─────────────────────────────────

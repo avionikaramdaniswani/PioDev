@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Key, Plus, Copy, Trash2, AlertTriangle, Check, ArrowLeft, Code, Zap, Clock, Sparkles, MessageSquare, Image as ImageIcon, Video, FileText, ScanText, Lock, Lightbulb, AlertCircle, Rocket, BookOpen, Layers } from "lucide-react";
+import { Key, Plus, Copy, Trash2, AlertTriangle, Check, ArrowLeft, Code, Zap, Clock, Sparkles, MessageSquare, Image as ImageIcon, Video, FileText, ScanText, Lock, Lightbulb, AlertCircle, Rocket, BookOpen, Layers, Eye, EyeOff, Loader2 } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useAuth } from "@/hooks/use-auth";
@@ -15,6 +15,7 @@ type ApiKey = {
   created_at: string;
   last_used_at: string | null;
   revoked_at: string | null;
+  revealable?: boolean;
 };
 
 type ApiUsage = {
@@ -57,6 +58,11 @@ export default function ApiKeysPage() {
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"keys" | "docs">("keys");
+
+  // Reveal state per key id: full plaintext key (kalo lagi ditampilin)
+  const [revealed, setRevealed] = useState<Record<string, string>>({});
+  const [revealingId, setRevealingId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!authLoading && !isAuthenticated) navigate("/login");
@@ -127,6 +133,46 @@ export default function ApiKeysPage() {
     await navigator.clipboard.writeText(text);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  }
+
+  async function handleReveal(id: string) {
+    // Toggle: kalau udah revealed, sembunyiin
+    if (revealed[id]) {
+      setRevealed((p) => {
+        const next = { ...p };
+        delete next[id];
+        return next;
+      });
+      return;
+    }
+    setRevealingId(id);
+    try {
+      const res = await authedFetch(`/api/me/api-keys/${id}/reveal`);
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Gagal menampilkan key");
+        return;
+      }
+      setRevealed((p) => ({ ...p, [id]: data.key }));
+      // Auto-copy ke clipboard kayak Gemini
+      try {
+        await navigator.clipboard.writeText(data.key);
+        setCopiedId(id);
+        setTimeout(() => setCopiedId(null), 2000);
+      } catch { /* clipboard mungkin di-block */ }
+    } catch (e: any) {
+      setError(e?.message || "Gagal menampilkan key");
+    } finally {
+      setRevealingId(null);
+    }
+  }
+
+  async function handleCopyRow(id: string) {
+    const val = revealed[id];
+    if (!val) return;
+    await navigator.clipboard.writeText(val);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
   }
 
   const activeKeys = keys.filter((k) => !k.revoked_at);
@@ -226,24 +272,86 @@ export default function ApiKeysPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {activeKeys.map((k) => (
-                      <tr key={k.id} className="border-t border-border" data-testid={`row-key-${k.id}`}>
-                        <td className="px-4 py-3 font-medium">{k.name}</td>
-                        <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{k.key_prefix}</td>
-                        <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{formatDate(k.created_at)}</td>
-                        <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">{formatDate(k.last_used_at)}</td>
-                        <td className="px-4 py-3 text-right">
-                          <button
-                            onClick={() => handleRevoke(k.id)}
-                            disabled={deletingId === k.id}
-                            className="p-2 rounded-lg hover:bg-destructive/10 text-destructive transition disabled:opacity-50"
-                            data-testid={`button-revoke-${k.id}`}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
+                    {activeKeys.map((k) => {
+                      const isRevealed = !!revealed[k.id];
+                      const isRevealing = revealingId === k.id;
+                      const justCopied = copiedId === k.id;
+                      return (
+                        <tr key={k.id} className="border-t border-border" data-testid={`row-key-${k.id}`}>
+                          <td className="px-4 py-3 font-medium align-top">{k.name}</td>
+                          <td className="px-4 py-3 align-top">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <code
+                                className={cn(
+                                  "font-mono text-xs px-2 py-1 rounded border break-all",
+                                  isRevealed
+                                    ? "bg-primary/5 border-primary/30 text-foreground"
+                                    : "bg-muted/50 border-transparent text-muted-foreground"
+                                )}
+                                data-testid={`text-key-${k.id}`}
+                              >
+                                {isRevealed ? revealed[k.id] : k.key_prefix}
+                              </code>
+
+                              {k.revealable ? (
+                                <>
+                                  <button
+                                    onClick={() => handleReveal(k.id)}
+                                    disabled={isRevealing}
+                                    title={isRevealed ? "Sembunyikan" : "Tampilkan & salin"}
+                                    className="p-1.5 rounded-md hover:bg-muted transition text-muted-foreground hover:text-foreground disabled:opacity-50"
+                                    data-testid={`button-reveal-${k.id}`}
+                                  >
+                                    {isRevealing ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : isRevealed ? (
+                                      <EyeOff className="w-3.5 h-3.5" />
+                                    ) : (
+                                      <Eye className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
+
+                                  {isRevealed && (
+                                    <button
+                                      onClick={() => handleCopyRow(k.id)}
+                                      title="Salin"
+                                      className="p-1.5 rounded-md hover:bg-muted transition text-muted-foreground hover:text-foreground"
+                                      data-testid={`button-copy-${k.id}`}
+                                    >
+                                      {justCopied ? (
+                                        <Check className="w-3.5 h-3.5 text-green-500" />
+                                      ) : (
+                                        <Copy className="w-3.5 h-3.5" />
+                                      )}
+                                    </button>
+                                  )}
+
+                                  {justCopied && !isRevealing && (
+                                    <span className="text-[10px] text-green-500 font-medium">Disalin</span>
+                                  )}
+                                </>
+                              ) : (
+                                <span className="text-[10px] text-muted-foreground/70 italic" title="Key lama, dibuat sebelum fitur reveal aktif. Bikin baru untuk bisa dilihat ulang.">
+                                  legacy
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-4 py-3 text-muted-foreground hidden md:table-cell align-top">{formatDate(k.created_at)}</td>
+                          <td className="px-4 py-3 text-muted-foreground hidden md:table-cell align-top">{formatDate(k.last_used_at)}</td>
+                          <td className="px-4 py-3 text-right align-top">
+                            <button
+                              onClick={() => handleRevoke(k.id)}
+                              disabled={deletingId === k.id}
+                              className="p-2 rounded-lg hover:bg-destructive/10 text-destructive transition disabled:opacity-50"
+                              data-testid={`button-revoke-${k.id}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

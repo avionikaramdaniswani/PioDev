@@ -22,6 +22,7 @@ Platform chatbot AI berbasis React + Supabase.
 - **Personalization** — custom system prompt, persona settings
 - **What's New** — changelog dengan notifikasi badge
 - **Freemium Tier (Penawaran Plus Terbatas)** — verifikasi follow Instagram untuk akses Plus
+- **API Keys (BYOK)** — Plus user generate `pio-sk-...` untuk akses PioDev API dari luar. Key disimpan ter-enkripsi (AES-256-GCM via `API_KEY_ENCRYPTION_SECRET`) → bisa di-reveal & copy ulang kayak Gemini AI Studio. Limit harian terpisah (200K token / 50 image / 10 video / 1000 req).
 
 ## Sistem Hak Akses (Privilege)
 
