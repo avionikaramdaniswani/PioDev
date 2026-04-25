@@ -1,12 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Key, Plus, Copy, Trash2, AlertTriangle, Check, ArrowLeft, Code, Zap, Clock, Sparkles, MessageSquare, Image as ImageIcon, Video, FileText, ScanText, Lock, Lightbulb, AlertCircle, Rocket, BookOpen, Layers, Eye, EyeOff, Loader2, Wallet, Activity } from "lucide-react";
+import { Key, Plus, Copy, Trash2, AlertTriangle, Check, ArrowLeft, Code, Zap, Clock, Sparkles, MessageSquare, Image as ImageIcon, Video, FileText, ScanText, Lock, Lightbulb, AlertCircle, Rocket, BookOpen, Layers, Eye, EyeOff, Loader2, Wallet, Activity, Pencil, X as XIcon, ShieldAlert } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 type ApiKey = {
   id: string;
@@ -64,6 +65,14 @@ export default function ApiKeysPage() {
   const [revealingId, setRevealingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  // Inline rename state
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [savingEditId, setSavingEditId] = useState<string | null>(null);
+
+  // Revoke confirm modal state
+  const [revokeTarget, setRevokeTarget] = useState<ApiKey | null>(null);
+
   useEffect(() => {
     if (!authLoading && !isAuthenticated) navigate("/login");
   }, [authLoading, isAuthenticated, navigate]);
@@ -104,34 +113,97 @@ export default function ApiKeysPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "Gagal buat key");
+        const msg = data.error || "Gagal buat key";
+        setError(msg);
+        toast({ title: "Gagal buat key", description: msg, variant: "destructive" });
         setCreating(false);
         return;
       }
       setCreatedKey(data.key);
       setNewKeyName("");
+      toast({ title: "Key berhasil dibuat", description: "Jangan lupa simpan key-nya ya." });
       await load();
     } catch (e: any) {
-      setError(e.message || "Gagal buat key");
+      const msg = e.message || "Gagal buat key";
+      setError(msg);
+      toast({ title: "Gagal buat key", description: msg, variant: "destructive" });
     } finally {
       setCreating(false);
     }
   }
 
-  async function handleRevoke(id: string) {
-    if (!confirm("Yakin mau revoke key ini? Aplikasi yang masih pakai bakal langsung berhenti.")) return;
-    setDeletingId(id);
+  function askRevoke(k: ApiKey) {
+    setRevokeTarget(k);
+  }
+
+  async function confirmRevoke() {
+    if (!revokeTarget) return;
+    const target = revokeTarget;
+    setDeletingId(target.id);
     try {
-      await authedFetch(`/api/me/api-keys/${id}`, { method: "DELETE" });
+      const res = await authedFetch(`/api/me/api-keys/${target.id}`, { method: "DELETE" });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast({ title: "Gagal revoke key", description: data.error || "Coba lagi sebentar.", variant: "destructive" });
+        return;
+      }
+      toast({ title: "Key di-revoke", description: `"${target.name}" sudah ga aktif lagi.` });
       await load();
+      setRevokeTarget(null);
+    } catch (e: any) {
+      toast({ title: "Gagal revoke key", description: e?.message || "Coba lagi sebentar.", variant: "destructive" });
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  function startRename(k: ApiKey) {
+    setEditingId(k.id);
+    setEditName(k.name);
+  }
+
+  function cancelRename() {
+    setEditingId(null);
+    setEditName("");
+  }
+
+  async function saveRename(id: string) {
+    const name = editName.trim();
+    if (!name) {
+      toast({ title: "Nama ga boleh kosong", variant: "destructive" });
+      return;
+    }
+    const current = keys.find((k) => k.id === id);
+    if (current && current.name === name) {
+      cancelRename();
+      return;
+    }
+    setSavingEditId(id);
+    try {
+      const res = await authedFetch(`/api/me/api-keys/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({ name }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast({ title: "Gagal ganti nama", description: data.error || "Coba lagi.", variant: "destructive" });
+        return;
+      }
+      // Optimistic update
+      setKeys((prev) => prev.map((k) => (k.id === id ? { ...k, name } : k)));
+      toast({ title: "Nama key diperbarui" });
+      cancelRename();
+    } catch (e: any) {
+      toast({ title: "Gagal ganti nama", description: e?.message || "Coba lagi.", variant: "destructive" });
+    } finally {
+      setSavingEditId(null);
     }
   }
 
   async function copyKey(text: string) {
     await navigator.clipboard.writeText(text);
     setCopied(true);
+    toast({ title: "Key disalin ke clipboard" });
     setTimeout(() => setCopied(false), 2000);
   }
 
@@ -150,7 +222,9 @@ export default function ApiKeysPage() {
       const res = await authedFetch(`/api/me/api-keys/${id}/reveal`);
       const data = await res.json();
       if (!res.ok) {
-        setError(data.error || "Gagal menampilkan key");
+        const msg = data.error || "Gagal menampilkan key";
+        setError(msg);
+        toast({ title: "Gagal menampilkan key", description: msg, variant: "destructive" });
         return;
       }
       setRevealed((p) => ({ ...p, [id]: data.key }));
@@ -158,10 +232,13 @@ export default function ApiKeysPage() {
       try {
         await navigator.clipboard.writeText(data.key);
         setCopiedId(id);
+        toast({ title: "Key disalin", description: "Langsung tempel di tempat yang kamu butuh." });
         setTimeout(() => setCopiedId(null), 2000);
       } catch { /* clipboard mungkin di-block */ }
     } catch (e: any) {
-      setError(e?.message || "Gagal menampilkan key");
+      const msg = e?.message || "Gagal menampilkan key";
+      setError(msg);
+      toast({ title: "Gagal menampilkan key", description: msg, variant: "destructive" });
     } finally {
       setRevealingId(null);
     }
@@ -172,6 +249,7 @@ export default function ApiKeysPage() {
     if (!val) return;
     await navigator.clipboard.writeText(val);
     setCopiedId(id);
+    toast({ title: "Key disalin" });
     setTimeout(() => setCopiedId(null), 2000);
   }
 
@@ -278,9 +356,42 @@ export default function ApiKeysPage() {
                       const isRevealed = !!revealed[k.id];
                       const isRevealing = revealingId === k.id;
                       const justCopied = copiedId === k.id;
+                      const isEditing = editingId === k.id;
+                      const isSavingEdit = savingEditId === k.id;
+                      const neverUsed = !k.last_used_at;
                       return (
                         <tr key={k.id} className="border-t border-border" data-testid={`row-key-${k.id}`}>
-                          <td className="px-4 py-3 font-medium align-top">{k.name}</td>
+                          <td className="px-4 py-3 align-top">
+                            {isEditing ? (
+                              <RenameInput
+                                value={editName}
+                                onChange={setEditName}
+                                onSave={() => saveRename(k.id)}
+                                onCancel={cancelRename}
+                                saving={isSavingEdit}
+                                testId={`input-rename-${k.id}`}
+                              />
+                            ) : (
+                              <div className="flex items-start gap-2 group/name">
+                                <div className="flex flex-col gap-1 min-w-0">
+                                  <span className="font-medium break-words" data-testid={`text-key-name-${k.id}`}>{k.name}</span>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <StatusBadge tone="active">Aktif</StatusBadge>
+                                    {neverUsed && <StatusBadge tone="info">Belum dipakai</StatusBadge>}
+                                    {!k.revealable && <StatusBadge tone="warning">Legacy</StatusBadge>}
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() => startRename(k)}
+                                  title="Ganti nama"
+                                  className="opacity-0 group-hover/name:opacity-100 focus:opacity-100 p-1 rounded-md hover:bg-muted transition text-muted-foreground hover:text-foreground"
+                                  data-testid={`button-rename-${k.id}`}
+                                >
+                                  <Pencil className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            )}
+                          </td>
                           <td className="px-4 py-3 align-top">
                             <div className="flex items-center gap-1.5 flex-wrap">
                               <code
@@ -332,23 +443,24 @@ export default function ApiKeysPage() {
                                     <span className="text-[10px] text-green-500 font-medium">Disalin</span>
                                   )}
                                 </>
-                              ) : (
-                                <span className="text-[10px] text-muted-foreground/70 italic" title="Key lama, dibuat sebelum fitur reveal aktif. Bikin baru untuk bisa dilihat ulang.">
-                                  legacy
-                                </span>
-                              )}
+                              ) : null}
                             </div>
                           </td>
                           <td className="px-4 py-3 text-muted-foreground hidden md:table-cell align-top">{formatDate(k.created_at)}</td>
                           <td className="px-4 py-3 text-muted-foreground hidden md:table-cell align-top">{formatDate(k.last_used_at)}</td>
                           <td className="px-4 py-3 text-right align-top">
                             <button
-                              onClick={() => handleRevoke(k.id)}
+                              onClick={() => askRevoke(k)}
                               disabled={deletingId === k.id}
+                              title="Revoke key"
                               className="p-2 rounded-lg hover:bg-destructive/10 text-destructive transition disabled:opacity-50"
                               data-testid={`button-revoke-${k.id}`}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              {deletingId === k.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
                             </button>
                           </td>
                         </tr>
@@ -444,7 +556,129 @@ export default function ApiKeysPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Revoke confirm modal */}
+      <AnimatePresence>
+        {revokeTarget && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4"
+            onClick={() => { if (deletingId !== revokeTarget.id) setRevokeTarget(null); }}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-background border border-border rounded-2xl p-6 max-w-md w-full"
+              onClick={(e) => e.stopPropagation()}
+              data-testid="modal-revoke"
+            >
+              <div className="flex items-start gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-destructive/10 flex items-center justify-center shrink-0">
+                  <ShieldAlert className="w-5 h-5 text-destructive" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold">Revoke API key?</h3>
+                  <p className="text-sm text-muted-foreground mt-0.5">
+                    Aplikasi atau script yang masih pakai key ini bakal langsung berhenti jalan.
+                  </p>
+                </div>
+              </div>
+
+              <div className="p-3 rounded-lg bg-muted/60 border border-border mb-2">
+                <p className="text-xs text-muted-foreground mb-1">Key yang akan di-revoke</p>
+                <p className="font-medium text-sm break-words">{revokeTarget.name}</p>
+                <code className="text-[11px] font-mono text-muted-foreground break-all">{revokeTarget.key_prefix}</code>
+              </div>
+              <p className="text-xs text-muted-foreground mb-5">Aksi ini permanen — key yang sama ga bisa diaktifkan ulang.</p>
+
+              <div className="flex gap-2 justify-end">
+                <button
+                  onClick={() => setRevokeTarget(null)}
+                  disabled={deletingId === revokeTarget.id}
+                  className="px-4 py-2 rounded-lg hover:bg-muted transition disabled:opacity-50"
+                  data-testid="button-cancel-revoke"
+                >
+                  Batal
+                </button>
+                <button
+                  onClick={confirmRevoke}
+                  disabled={deletingId === revokeTarget.id}
+                  className="px-4 py-2 rounded-lg bg-destructive text-destructive-foreground font-medium hover:opacity-90 transition disabled:opacity-50 inline-flex items-center gap-2"
+                  data-testid="button-confirm-revoke"
+                >
+                  {deletingId === revokeTarget.id && <Loader2 className="w-4 h-4 animate-spin" />}
+                  {deletingId === revokeTarget.id ? "Merevoke..." : "Ya, revoke"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
+  );
+}
+
+// ── Inline rename input ──────────────────────────────────────────────────────
+function RenameInput({
+  value, onChange, onSave, onCancel, saving, testId,
+}: {
+  value: string;
+  onChange: (s: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  saving: boolean;
+  testId?: string;
+}) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { inputRef.current?.focus(); inputRef.current?.select(); }, []);
+
+  return (
+    <div className="flex items-center gap-1">
+      <input
+        ref={inputRef}
+        type="text"
+        value={value}
+        maxLength={80}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") { e.preventDefault(); onSave(); }
+          if (e.key === "Escape") { e.preventDefault(); onCancel(); }
+        }}
+        disabled={saving}
+        className="px-2 py-1 rounded-md border border-primary/40 bg-background text-sm font-medium w-full max-w-[200px] focus:outline-none focus:ring-2 focus:ring-primary/30"
+        data-testid={testId}
+      />
+      <button
+        onClick={onSave}
+        disabled={saving}
+        title="Simpan"
+        className="p-1.5 rounded-md text-green-600 hover:bg-green-500/10 transition disabled:opacity-50"
+      >
+        {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+      </button>
+      <button
+        onClick={onCancel}
+        disabled={saving}
+        title="Batal"
+        className="p-1.5 rounded-md text-muted-foreground hover:bg-muted transition disabled:opacity-50"
+      >
+        <XIcon className="w-3.5 h-3.5" />
+      </button>
+    </div>
+  );
+}
+
+// ── Status badge ─────────────────────────────────────────────────────────────
+function StatusBadge({ tone, children }: { tone: "active" | "info" | "warning"; children: React.ReactNode }) {
+  const styles: Record<string, string> = {
+    active: "bg-green-500/10 text-green-600 dark:text-green-400 ring-green-500/20",
+    info: "bg-sky-500/10 text-sky-600 dark:text-sky-400 ring-sky-500/20",
+    warning: "bg-amber-500/10 text-amber-600 dark:text-amber-400 ring-amber-500/20",
+  };
+  return (
+    <span className={cn("inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ring-1 ring-inset", styles[tone])}>
+      {tone === "active" && <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />}
+      {children}
+    </span>
   );
 }
 

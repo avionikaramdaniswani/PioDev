@@ -48,11 +48,11 @@ export default defineConfig({
       deny: ["**/.*"],
     },
     proxy: {
-      "/api": {
+      "^/api/": {
         target: `http://localhost:${process.env.SERVER_PORT ?? 3099}`,
         changeOrigin: false,
       },
-      "/v1": {
+      "^/v1/": {
         target: `http://localhost:${process.env.SERVER_PORT ?? 3099}`,
         changeOrigin: false,
       },

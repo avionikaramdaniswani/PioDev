@@ -1036,6 +1036,31 @@ app.post("/api/me/api-keys", requireAuth, async (req, res) => {
   });
 });
 
+// ── PATCH /api/me/api-keys/:id — update nama key ─────────────────────────────
+app.patch("/api/me/api-keys/:id", requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+  const { id } = req.params;
+  const body = req.body || {};
+  const rawName = typeof body.name === "string" ? body.name.trim() : "";
+  if (!rawName) {
+    res.status(400).json({ error: "Nama tidak boleh kosong." });
+    return;
+  }
+  const name = rawName.slice(0, 80);
+
+  const { data, error } = await supabaseAdmin
+    .from("api_keys")
+    .update({ name })
+    .eq("id", id)
+    .eq("user_id", userId)
+    .is("revoked_at", null)
+    .select("id, name")
+    .single();
+  if (error) { res.status(500).json({ error: error.message }); return; }
+  if (!data) { res.status(404).json({ error: "Key tidak ditemukan." }); return; }
+  res.json({ success: true, key: data });
+});
+
 // ── DELETE /api/me/api-keys/:id — revoke key ─────────────────────────────────
 app.delete("/api/me/api-keys/:id", requireAuth, async (req, res) => {
   const userId = (req as any).userId;
