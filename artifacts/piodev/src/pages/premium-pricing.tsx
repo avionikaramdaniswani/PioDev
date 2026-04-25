@@ -99,8 +99,8 @@ export default function PremiumPricingPage() {
       id: "pro",
       name: "Pro",
       tagline: "Untuk tim & profesional",
-      price: "Segera",
-      priceSuffix: "hadir",
+      price: "—",
+      priceSuffix: "Sedang dikembangkan",
       icon: <Crown className="w-5 h-5" />,
       accent: "violet",
       comingSoon: true,
@@ -134,21 +134,13 @@ export default function PremiumPricingPage() {
       <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-10 sm:py-16">
         {/* Hero */}
         <div className="text-center mb-10 sm:mb-14">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium mb-4">
-            <Sparkles className="w-3.5 h-3.5" />
-            Pilih paket yang cocok untukmu
-          </div>
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground mb-3">
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
             Paket yang tumbuh bersamamu
           </h1>
-          <p className="text-muted-foreground text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
-            Mulai gratis, naik level kapan saja. Tidak ada kontrak jangka panjang —
-            kamu bisa berhenti atau ganti paket kapan pun.
-          </p>
         </div>
 
         {/* Tiers */}
-        <div className="grid grid-cols-3 gap-3 sm:gap-5 max-w-5xl mx-auto pt-4">
+        <div className="grid grid-cols-3 gap-3 sm:gap-5 max-w-5xl mx-auto items-stretch">
           {tiers.map((t) => (
             <TierCard key={t.id} tier={t} />
           ))}
@@ -182,30 +174,34 @@ function TierCard({ tier }: { tier: Tier }) {
     : tier.accent === "violet" ? "bg-violet-500 text-white"
     : "bg-muted text-muted-foreground";
 
+  const topBadgeText =
+    tier.badge ?? (tier.comingSoon ? "Segera" : null);
+  const topBadgeStyle =
+    tier.badge ? accentBadge
+    : tier.comingSoon ? "bg-muted text-muted-foreground"
+    : "";
+
   return (
     <div
       className={cn(
-        "relative rounded-2xl border bg-card flex flex-col px-4 sm:px-5 pb-4 sm:pb-5",
+        "relative rounded-2xl border bg-card flex flex-col p-4 sm:p-5",
         tier.highlight
-          ? "pt-7 sm:pt-8 border-amber-500/40 dark:border-amber-400/40 shadow-lg shadow-amber-500/10 ring-1 " + accentRing
-          : "pt-4 sm:pt-5 border-border",
+          ? "border-amber-500/40 dark:border-amber-400/40 shadow-lg shadow-amber-500/10 ring-1 " + accentRing
+          : "border-border",
         tier.comingSoon && "opacity-90"
       )}
     >
-      {tier.badge && (
-        <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-10">
-          <span className={cn("text-[9px] sm:text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide shadow-sm whitespace-nowrap", accentBadge)}>
-            {tier.badge}
+      {/* Badge slot — semua kartu reserve tinggi yg sama biar sejajar */}
+      <div className="flex items-center justify-center h-5 mb-3">
+        {topBadgeText && (
+          <span className={cn(
+            "text-[9px] sm:text-[10px] font-semibold px-2.5 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap",
+            topBadgeStyle,
+          )}>
+            {topBadgeText}
           </span>
-        </div>
-      )}
-      {tier.comingSoon && (
-        <div className="absolute top-3 right-3 z-10">
-          <span className="text-[9px] sm:text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground uppercase tracking-wide">
-            Segera
-          </span>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* Header */}
       <div className="flex items-center gap-2 mb-1">
