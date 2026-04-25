@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, Lock, Check, Eye, EyeOff, Sun, Moon, Menu, X, BarChart2, Sparkles, Trash2, Star, Zap, ImageIcon, Clapperboard, ChevronRight } from "lucide-react";
+import { User, Lock, Check, Eye, EyeOff, Sun, Moon, Menu, X, BarChart2, Sparkles, Trash2, Star, Zap, ImageIcon, Clapperboard, ChevronRight, MessageSquare, Shield, AlertTriangle, Mail } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
 import { useChat } from "@/hooks/use-chat";
@@ -11,11 +11,10 @@ import { cn } from "@/lib/utils";
 import { useShowTokenUsage, useTokenUsageData } from "@/hooks/use-token-usage";
 import { usePersonalization } from "@/hooks/use-personalization";
 
-type Section = "profil" | "akun" | "personalisasi" | "statistik" | "plus";
+type Section = "profil" | "personalisasi" | "statistik" | "plus";
 
 const navItems: { id: Section; label: string; icon: typeof User }[] = [
   { id: "profil", label: "Profil", icon: User },
-  { id: "akun", label: "Akun", icon: Lock },
   { id: "personalisasi", label: "Personalisasi", icon: Sparkles },
   { id: "statistik", label: "Statistik", icon: BarChart2 },
   { id: "plus", label: "Plus", icon: Star },
@@ -247,22 +246,45 @@ export default function Settings() {
             <div className="max-w-2xl mx-auto px-4 sm:px-8 py-8">
 
               {activeSection === "profil" && (
-                <div className="space-y-8">
-                  <div>
-                    <h2 className="hidden md:block text-lg font-semibold text-foreground mb-1">Profil</h2>
-                    <p className="hidden md:block text-sm text-muted-foreground mb-8">Informasi akun yang ditampilkan di aplikasi.</p>
+                <div className="space-y-6">
+                  {/* Page heading (desktop only) */}
+                  <div className="hidden md:block">
+                    <h2 className="text-lg font-semibold text-foreground mb-1">Profil & Akun</h2>
+                    <p className="text-sm text-muted-foreground">Informasi akun, keamanan, dan pengelolaan data kamu.</p>
+                  </div>
 
-                    <div className="flex items-center gap-4 mb-8 pb-8 border-b border-border">
-                      <div className="w-14 h-14 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-lg font-bold shrink-0 select-none">
-                        {name.trim()
-                          ? name.trim().split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
-                          : user.initials}
+                  {/* Hero: avatar + identitas */}
+                  <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+                    <div className="flex items-center gap-4">
+                      <div className="relative shrink-0">
+                        <div className="w-16 h-16 sm:w-[68px] sm:h-[68px] rounded-full bg-gradient-to-br from-primary to-primary/70 text-primary-foreground flex items-center justify-center text-xl font-bold select-none shadow-sm">
+                          {name.trim()
+                            ? name.trim().split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2)
+                            : user.initials}
+                        </div>
+                        {isAdmin && (
+                          <span className="absolute -bottom-1 -right-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-primary text-primary-foreground border-2 border-card">
+                            ADMIN
+                          </span>
+                        )}
                       </div>
-                      <div>
-                        <p className="text-sm font-medium text-foreground">{name || user.name}</p>
-                        <p className="text-xs text-muted-foreground mt-0.5">{user.email}</p>
+                      <div className="min-w-0 flex-1">
+                        <p className="text-base font-semibold text-foreground truncate">{name || user.name}</p>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5">
+                          <Mail className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">{user.email}</span>
+                        </div>
                       </div>
                     </div>
+                  </div>
+
+                  {/* Card: Informasi Profil */}
+                  <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+                    <div className="flex items-center gap-2 mb-1">
+                      <User className="w-4 h-4 text-muted-foreground" />
+                      <h3 className="text-sm font-semibold text-foreground">Informasi Profil</h3>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-5">Nama yang ditampilkan di aplikasi.</p>
 
                     <div className="space-y-5">
                       <div>
@@ -283,7 +305,7 @@ export default function Settings() {
                           type="email"
                           value={user.email || ""}
                           disabled
-                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-muted text-muted-foreground text-sm cursor-not-allowed"
+                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-muted/60 text-muted-foreground text-sm cursor-not-allowed"
                         />
                         <p className="text-xs text-muted-foreground mt-1.5">Email tidak dapat diubah.</p>
                       </div>
@@ -299,7 +321,7 @@ export default function Settings() {
                               : "bg-primary text-primary-foreground hover:bg-primary/90"
                           )}
                         >
-                          {nameSaving ? "Menyimpan..." : "Simpan"}
+                          {nameSaving ? "Menyimpan..." : "Simpan perubahan"}
                         </button>
                         {nameSuccess && (
                           <span className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400">
@@ -308,6 +330,134 @@ export default function Settings() {
                           </span>
                         )}
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Card: Keamanan Akun */}
+                  <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Shield className="w-4 h-4 text-muted-foreground" />
+                      <h3 className="text-sm font-semibold text-foreground">Keamanan Akun</h3>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-5">Perbarui password untuk menjaga akunmu tetap aman.</p>
+
+                    <div className="space-y-5">
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-1.5">Password baru</label>
+                        <div className="relative">
+                          <input
+                            type={showNew ? "text" : "password"}
+                            value={newPassword}
+                            onChange={(e) => { setNewPassword(e.target.value); setPwError(""); setPwSuccess(false); }}
+                            className="w-full px-4 py-2.5 pr-11 rounded-xl border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition"
+                            placeholder="Minimal 6 karakter"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowNew(!showNew)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-foreground mb-1.5">Konfirmasi password baru</label>
+                        <div className="relative">
+                          <input
+                            type={showConfirm ? "text" : "password"}
+                            value={confirmPassword}
+                            onChange={(e) => { setConfirmPassword(e.target.value); setPwError(""); setPwSuccess(false); }}
+                            className="w-full px-4 py-2.5 pr-11 rounded-xl border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition"
+                            placeholder="Ulangi password baru"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirm(!showConfirm)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+
+                      {pwError && <p className="text-xs text-red-500">{pwError}</p>}
+
+                      <div className="flex flex-wrap items-center gap-3 pt-1">
+                        <button
+                          onClick={handleSavePassword}
+                          disabled={pwSaving || !newPassword || !confirmPassword}
+                          className={cn(
+                            "inline-flex items-center gap-2 px-5 py-2 rounded-xl text-sm font-medium transition-all",
+                            pwSaving || !newPassword || !confirmPassword
+                              ? "bg-muted text-muted-foreground cursor-not-allowed"
+                              : "bg-primary text-primary-foreground hover:bg-primary/90"
+                          )}
+                        >
+                          <Lock className="w-4 h-4" />
+                          {pwSaving ? "Menyimpan..." : "Perbarui password"}
+                        </button>
+                        {pwSuccess && (
+                          <span className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400">
+                            <Check className="w-4 h-4" />
+                            Password berhasil diubah
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Card: Zona Bahaya */}
+                  <div className="rounded-2xl border border-red-500/25 bg-red-500/[0.04] p-5 sm:p-6">
+                    <div className="flex items-center gap-2 mb-1">
+                      <AlertTriangle className="w-4 h-4 text-red-500" />
+                      <h3 className="text-sm font-semibold text-foreground">Zona Bahaya</h3>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-5">Tindakan di bawah ini bersifat permanen dan tidak bisa dikembalikan.</p>
+
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-xl border border-red-500/20 bg-background/50">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground flex items-center gap-2">
+                          <Trash2 className="w-4 h-4 text-red-500 shrink-0" />
+                          Hapus semua percakapan
+                        </p>
+                        <p className="text-xs text-muted-foreground mt-1 ml-6">
+                          {chats.length > 0
+                            ? `${chats.length} percakapan akan dihapus permanen.`
+                            : "Belum ada percakapan untuk dihapus."}
+                        </p>
+                      </div>
+                      {!confirmDeleteAll ? (
+                        <button
+                          onClick={() => setConfirmDeleteAll(true)}
+                          disabled={chats.length === 0}
+                          className="shrink-0 px-4 py-2 rounded-xl text-sm font-medium border border-red-500/30 text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                          Hapus semua
+                        </button>
+                      ) : (
+                        <div className="flex items-center gap-2 shrink-0">
+                          <button
+                            onClick={() => setConfirmDeleteAll(false)}
+                            className="px-3 py-2 rounded-xl text-sm font-medium border border-border text-muted-foreground hover:bg-muted transition-colors"
+                          >
+                            Batal
+                          </button>
+                          <button
+                            onClick={async () => {
+                              setIsDeletingAll(true);
+                              await deleteAllChats();
+                              setIsDeletingAll(false);
+                              setConfirmDeleteAll(false);
+                            }}
+                            disabled={isDeletingAll}
+                            className="px-3 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-700 text-white transition-colors disabled:opacity-60"
+                          >
+                            {isDeletingAll ? "Menghapus..." : "Ya, hapus"}
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -611,124 +761,6 @@ export default function Settings() {
                 </div>
               )}
 
-              {activeSection === "akun" && (
-                <div className="space-y-8">
-                  <div>
-                    <h2 className="hidden md:block text-lg font-semibold text-foreground mb-1">Keamanan Akun</h2>
-                    <p className="hidden md:block text-sm text-muted-foreground mb-8">Perbarui password akun kamu.</p>
-
-                    <div className="space-y-5">
-                      <div>
-                        <label className="block text-sm font-medium text-foreground mb-1.5">Password baru</label>
-                        <div className="relative">
-                          <input
-                            type={showNew ? "text" : "password"}
-                            value={newPassword}
-                            onChange={(e) => { setNewPassword(e.target.value); setPwError(""); setPwSuccess(false); }}
-                            className="w-full px-4 py-2.5 pr-11 rounded-xl border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition"
-                            placeholder="Minimal 6 karakter"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowNew(!showNew)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                          >
-                            {showNew ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-foreground mb-1.5">Konfirmasi password baru</label>
-                        <div className="relative">
-                          <input
-                            type={showConfirm ? "text" : "password"}
-                            value={confirmPassword}
-                            onChange={(e) => { setConfirmPassword(e.target.value); setPwError(""); setPwSuccess(false); }}
-                            className="w-full px-4 py-2.5 pr-11 rounded-xl border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition"
-                            placeholder="Ulangi password baru"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowConfirm(!showConfirm)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                          >
-                            {showConfirm ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                        </div>
-                      </div>
-
-                      {pwError && <p className="text-xs text-red-500">{pwError}</p>}
-
-                      <div className="flex flex-wrap items-center gap-3 pt-1">
-                        <button
-                          onClick={handleSavePassword}
-                          disabled={pwSaving || !newPassword || !confirmPassword}
-                          className={cn(
-                            "px-5 py-2 rounded-xl text-sm font-medium transition-all",
-                            pwSaving || !newPassword || !confirmPassword
-                              ? "bg-muted text-muted-foreground cursor-not-allowed"
-                              : "bg-primary text-primary-foreground hover:bg-primary/90"
-                          )}
-                        >
-                          {pwSaving ? "Menyimpan..." : "Simpan Password"}
-                        </button>
-                        {pwSuccess && (
-                          <span className="flex items-center gap-1.5 text-sm text-green-600 dark:text-green-400">
-                            <Check className="w-4 h-4" />
-                            Password berhasil diubah
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Danger zone */}
-                  <div className="border border-red-500/20 rounded-xl p-5 bg-red-500/5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-semibold text-foreground flex items-center gap-2">
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                          Hapus semua percakapan
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Semua riwayat chat akan dihapus permanen. Tidak bisa dikembalikan.
-                        </p>
-                      </div>
-                      {!confirmDeleteAll ? (
-                        <button
-                          onClick={() => setConfirmDeleteAll(true)}
-                          disabled={chats.length === 0}
-                          className="shrink-0 px-4 py-2 rounded-xl text-sm font-medium border border-red-500/30 text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          Hapus semua
-                        </button>
-                      ) : (
-                        <div className="flex items-center gap-2 shrink-0">
-                          <button
-                            onClick={() => setConfirmDeleteAll(false)}
-                            className="px-3 py-2 rounded-xl text-sm font-medium border border-border text-muted-foreground hover:bg-muted transition-colors"
-                          >
-                            Batal
-                          </button>
-                          <button
-                            onClick={async () => {
-                              setIsDeletingAll(true);
-                              await deleteAllChats();
-                              setIsDeletingAll(false);
-                              setConfirmDeleteAll(false);
-                            }}
-                            disabled={isDeletingAll}
-                            className="px-3 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-700 text-white transition-colors disabled:opacity-60"
-                          >
-                            {isDeletingAll ? "Menghapus..." : "Ya, hapus"}
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {activeSection === "plus" && (
                 <div className="space-y-6">
