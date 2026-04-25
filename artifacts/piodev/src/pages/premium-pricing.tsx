@@ -3,24 +3,18 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { usePremium } from "@/hooks/use-premium";
 import { useTheme } from "@/hooks/use-theme";
-import {
-  ArrowLeft, Check, Sparkles, Zap, Star, Loader2,
-  Crown, Image as ImageIcon, Video, MessageSquare, Cpu, Key as KeyIcon,
-} from "lucide-react";
+import { ArrowLeft, Check, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Tier = {
   id: "free" | "plus" | "pro";
   name: string;
+  badge?: string;
   tagline: string;
   price: string;
-  priceSuffix?: string;
-  pricePrefix?: string;
-  badge?: string;
-  icon: React.ReactNode;
-  accent: "muted" | "amber" | "violet";
-  features: { icon: React.ReactNode; text: string; bold?: boolean }[];
-  cta: { label: string; disabled?: boolean; onClick?: () => void; variant: "outline" | "primary" | "soft" };
+  priceSuffix: string;
+  features: string[];
+  cta: { label: string; disabled?: boolean; onClick?: () => void; primary?: boolean };
   highlight?: boolean;
   comingSoon?: boolean;
 };
@@ -56,68 +50,61 @@ export default function PremiumPricingPage() {
       name: "Gratis",
       tagline: "Mulai eksplorasi PioCode",
       price: "Rp 0",
-      priceSuffix: "/ bulan",
-      icon: <Zap className="w-5 h-5" />,
-      accent: "muted",
+      priceSuffix: "selamanya",
       features: [
-        { icon: <MessageSquare className="w-3.5 h-3.5" />, text: "60.000 token/hari", bold: true },
-        { icon: <Cpu className="w-3.5 h-3.5" />, text: "Akses model dasar (Mini)" },
-        { icon: <ImageIcon className="w-3.5 h-3.5" />, text: "7 gambar AI per hari" },
-        { icon: <Video className="w-3.5 h-3.5" />, text: "3 video AI per bulan" },
-        { icon: <KeyIcon className="w-3.5 h-3.5" />, text: "API key untuk developer" },
+        "60.000 token per hari",
+        "Akses model dasar",
+        "7 gambar AI per hari",
+        "3 video AI per bulan",
+        "API key untuk developer",
       ],
       cta: !isPremium
-        ? { label: "Paket Saat Ini", disabled: true, variant: "outline" }
-        : { label: "Paket Dasar", disabled: true, variant: "outline" },
+        ? { label: "Paket Saat Ini", disabled: true }
+        : { label: "Paket Dasar", disabled: true },
     },
     {
       id: "plus",
       name: "Plus",
-      tagline: "Untuk pengguna aktif & power user",
+      badge: "Populer",
+      tagline: "Untuk pengguna aktif",
       price: "Gratis",
       priceSuffix: "promo terbatas",
-      pricePrefix: "✨",
-      badge: "Paling Populer",
-      icon: <Sparkles className="w-5 h-5" />,
-      accent: "amber",
       highlight: true,
       features: [
-        { icon: <MessageSquare className="w-3.5 h-3.5" />, text: "360.000 token/hari (6× lebih banyak)", bold: true },
-        { icon: <Cpu className="w-3.5 h-3.5" />, text: "Semua model premium (Pro & Reasoning)" },
-        { icon: <ImageIcon className="w-3.5 h-3.5" />, text: "25 gambar AI per hari" },
-        { icon: <Video className="w-3.5 h-3.5" />, text: "12 video AI per bulan" },
-        { icon: <Star className="w-3.5 h-3.5" />, text: "Prioritas saat server sibuk" },
-        { icon: <KeyIcon className="w-3.5 h-3.5" />, text: "API key dengan kuota Plus" },
+        "360.000 token per hari",
+        "Semua model premium",
+        "25 gambar AI per hari",
+        "12 video AI per bulan",
+        "Prioritas saat server sibuk",
+        "API key dengan kuota Plus",
       ],
       cta: isPremium
-        ? { label: "Paket Aktif", disabled: true, variant: "soft" }
+        ? { label: "Paket Aktif", disabled: true }
         : hasPending
-        ? { label: "Aplikasi Diproses…", disabled: false, variant: "outline", onClick: () => setLocation("/premium/apply") }
-        : { label: "Dapatkan Plus", variant: "primary", onClick: () => setLocation("/premium/apply") },
+        ? { label: "Aplikasi Diproses…", onClick: () => setLocation("/premium/apply") }
+        : { label: "Dapatkan Plus", primary: true, onClick: () => setLocation("/premium/apply") },
     },
     {
       id: "pro",
       name: "Pro",
+      badge: "Segera",
       tagline: "Untuk tim & profesional",
       price: "—",
-      priceSuffix: "Sedang dikembangkan",
-      icon: <Crown className="w-5 h-5" />,
-      accent: "violet",
+      priceSuffix: "sedang dikembangkan",
       comingSoon: true,
       features: [
-        { icon: <MessageSquare className="w-3.5 h-3.5" />, text: "Token tanpa batas wajar", bold: true },
-        { icon: <Cpu className="w-3.5 h-3.5" />, text: "Akses model frontier terbaru" },
-        { icon: <ImageIcon className="w-3.5 h-3.5" />, text: "Generate gambar tak terbatas" },
-        { icon: <Video className="w-3.5 h-3.5" />, text: "Video HD hingga 60 detik" },
-        { icon: <Star className="w-3.5 h-3.5" />, text: "Dukungan prioritas 1-on-1" },
+        "Token tanpa batas wajar",
+        "Model frontier terbaru",
+        "Gambar AI tak terbatas",
+        "Video HD hingga 60 detik",
+        "Dukungan prioritas 1-on-1",
       ],
-      cta: { label: "Beri Tahu Aku", disabled: true, variant: "outline" },
+      cta: { label: "Beri Tahu Aku", disabled: true },
     },
   ];
 
   return (
     <div className={cn("min-h-dvh bg-background text-foreground flex flex-col", isDark ? "dark" : "")}>
-      {/* Header */}
       <header className="sticky top-0 z-10 backdrop-blur-md bg-background/80 border-b border-border">
         <div className="max-w-6xl mx-auto flex items-center gap-3 px-4 py-4">
           <button
@@ -131,27 +118,17 @@ export default function PremiumPricingPage() {
         </div>
       </header>
 
-      <main className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 py-10 sm:py-16">
-        {/* Hero */}
-        <div className="text-center mb-10 sm:mb-14">
+      <main className="flex-1 max-w-5xl mx-auto w-full px-4 sm:px-6 py-12 sm:py-16">
+        <div className="text-center mb-12">
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
             Paket yang tumbuh bersamamu
           </h1>
         </div>
 
-        {/* Tiers */}
-        <div className="grid grid-cols-3 gap-3 sm:gap-5 max-w-5xl mx-auto items-stretch">
+        <div className="grid grid-cols-3 gap-4 sm:gap-5 items-stretch">
           {tiers.map((t) => (
             <TierCard key={t.id} tier={t} />
           ))}
-        </div>
-
-        {/* Footer note */}
-        <div className="mt-12 text-center">
-          <p className="text-xs text-muted-foreground max-w-md mx-auto leading-relaxed">
-            Semua paket termasuk akses penuh ke fitur chat utama, riwayat percakapan,
-            dan pengaturan profil. Kuota direset setiap hari pada pukul 00:00 WIB.
-          </p>
         </div>
       </main>
     </div>
@@ -159,68 +136,38 @@ export default function PremiumPricingPage() {
 }
 
 function TierCard({ tier }: { tier: Tier }) {
-  const accentRing =
-    tier.accent === "amber" ? "ring-amber-500/40 dark:ring-amber-400/40"
-    : tier.accent === "violet" ? "ring-violet-500/30 dark:ring-violet-400/30"
-    : "ring-border";
-
-  const accentBg =
-    tier.accent === "amber" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-    : tier.accent === "violet" ? "bg-violet-500/10 text-violet-600 dark:text-violet-400"
-    : "bg-muted text-muted-foreground";
-
-  const accentBadge =
-    tier.accent === "amber" ? "bg-gradient-to-r from-amber-500 to-orange-500 text-white"
-    : tier.accent === "violet" ? "bg-violet-500 text-white"
-    : "bg-muted text-muted-foreground";
-
-  const topBadgeText =
-    tier.badge ?? (tier.comingSoon ? "Segera" : null);
-  const topBadgeStyle =
-    tier.badge ? accentBadge
-    : tier.comingSoon ? "bg-muted text-muted-foreground"
-    : "";
-
   return (
     <div
       className={cn(
-        "relative rounded-2xl border bg-card flex flex-col p-4 sm:p-5",
-        tier.highlight
-          ? "border-amber-500/40 dark:border-amber-400/40 shadow-lg shadow-amber-500/10 ring-1 " + accentRing
-          : "border-border",
-        tier.comingSoon && "opacity-90"
+        "rounded-2xl border bg-card p-5 sm:p-6 flex flex-col",
+        tier.highlight ? "border-foreground/70 dark:border-foreground/50" : "border-border",
+        tier.comingSoon && "opacity-70",
       )}
     >
-      {/* Badge slot — semua kartu reserve tinggi yg sama biar sejajar */}
-      <div className="flex items-center justify-center h-5 mb-3">
-        {topBadgeText && (
-          <span className={cn(
-            "text-[9px] sm:text-[10px] font-semibold px-2.5 py-0.5 rounded-full uppercase tracking-wide whitespace-nowrap",
-            topBadgeStyle,
-          )}>
-            {topBadgeText}
+      {/* Name + badge */}
+      <div className="flex items-center gap-2 mb-1.5 min-h-[24px]">
+        <h3 className="text-base sm:text-lg font-semibold text-foreground">{tier.name}</h3>
+        {tier.badge && (
+          <span
+            className={cn(
+              "text-[10px] font-medium px-1.5 py-0.5 rounded-md uppercase tracking-wide",
+              tier.highlight
+                ? "bg-foreground text-background"
+                : "bg-muted text-muted-foreground",
+            )}
+          >
+            {tier.badge}
           </span>
         )}
       </div>
-
-      {/* Header */}
-      <div className="flex items-center gap-2 mb-1">
-        <div className={cn("w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0", accentBg)}>
-          {tier.icon}
-        </div>
-        <h3 className="text-base sm:text-lg font-bold text-foreground">{tier.name}</h3>
-      </div>
-      <p className="text-[11px] sm:text-xs text-muted-foreground mb-4 leading-snug">{tier.tagline}</p>
+      <p className="text-xs text-muted-foreground mb-5">{tier.tagline}</p>
 
       {/* Price */}
-      <div className="mb-4">
-        <div className="flex items-baseline gap-1">
-          {tier.pricePrefix && <span className="text-sm sm:text-base">{tier.pricePrefix}</span>}
-          <span className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{tier.price}</span>
+      <div className="mb-5">
+        <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight leading-none">
+          {tier.price}
         </div>
-        {tier.priceSuffix && (
-          <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">{tier.priceSuffix}</p>
-        )}
+        <p className="text-xs text-muted-foreground mt-1.5">{tier.priceSuffix}</p>
       </div>
 
       {/* CTA */}
@@ -228,42 +175,22 @@ function TierCard({ tier }: { tier: Tier }) {
         onClick={tier.cta.onClick}
         disabled={tier.cta.disabled}
         className={cn(
-          "w-full h-10 sm:h-11 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-1.5 mb-5 px-2",
-          tier.cta.variant === "primary" &&
-            "bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-md shadow-amber-500/20",
-          tier.cta.variant === "soft" &&
-            "bg-amber-500/10 text-amber-600 dark:text-amber-400 cursor-default",
-          tier.cta.variant === "outline" &&
-            "border border-border bg-background text-foreground hover:bg-muted",
-          tier.cta.disabled && "cursor-not-allowed opacity-70 hover:bg-background"
+          "w-full h-10 rounded-lg text-sm font-medium transition-colors mb-6 px-3",
+          tier.cta.primary
+            ? "bg-foreground text-background hover:bg-foreground/90"
+            : "border border-border bg-background text-foreground hover:bg-muted",
+          tier.cta.disabled && "cursor-not-allowed opacity-60 hover:bg-background",
         )}
       >
-        {tier.cta.variant === "primary" && <Sparkles className="w-3.5 h-3.5 shrink-0" />}
-        {tier.cta.variant === "soft" && <Check className="w-3.5 h-3.5 shrink-0" />}
-        <span className="truncate">{tier.cta.label}</span>
+        <span className="truncate block">{tier.cta.label}</span>
       </button>
 
-      {/* Divider */}
-      <div className="border-t border-border mb-3" />
-
       {/* Features */}
-      <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2.5">
-        Yang kamu dapat
-      </p>
-      <ul className="space-y-2 flex-1">
+      <ul className="space-y-2.5 flex-1">
         {tier.features.map((f, i) => (
-          <li key={i} className="flex items-start gap-2">
-            <div className={cn(
-              "w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5",
-              tier.accent === "amber" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-              : tier.accent === "violet" ? "bg-violet-500/10 text-violet-600 dark:text-violet-400"
-              : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-            )}>
-              <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3" strokeWidth={3} />
-            </div>
-            <span className={cn("text-xs sm:text-sm leading-snug", f.bold ? "text-foreground font-medium" : "text-muted-foreground")}>
-              {f.text}
-            </span>
+          <li key={i} className="flex items-start gap-2.5 text-xs sm:text-sm text-muted-foreground leading-relaxed">
+            <Check className="w-3.5 h-3.5 text-foreground/70 shrink-0 mt-0.5" strokeWidth={2.5} />
+            <span>{f}</span>
           </li>
         ))}
       </ul>
