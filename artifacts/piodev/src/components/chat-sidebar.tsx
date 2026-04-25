@@ -506,20 +506,18 @@ export function ChatSidebar({
                   <span className="ml-auto text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded-full">Baru</span>
                 )}
               </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => navigate("/premium")}
-                className="gap-2 cursor-pointer text-amber-600 dark:text-amber-400 focus:text-amber-700 dark:focus:text-amber-300"
-              >
+              <DropdownMenuItem onClick={() => navigate("/settings")} className="gap-2 cursor-pointer">
+                <Settings className="w-4 h-4" />
+                <span>Pengaturan</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => navigate("/premium")} className="gap-2 cursor-pointer">
                 <Sparkles className="w-4 h-4" />
                 <span>Upgrade Akun</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate("/api-keys")} className="gap-2 cursor-pointer">
                 <Key className="w-4 h-4" />
                 <span>API Keys</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/settings")} className="gap-2 cursor-pointer">
-                <Settings className="w-4 h-4" />
-                <span>Pengaturan</span>
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={logout} className="gap-2 cursor-pointer text-red-500 focus:text-red-500">
