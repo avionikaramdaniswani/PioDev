@@ -23,7 +23,7 @@ const navItems: { id: Section; label: string; icon: typeof User }[] = [
 
 export default function Settings() {
   const [, navigate] = useLocation();
-  const { user, logout } = useAuth();
+  const { user, logout, isAdmin } = useAuth();
   const { theme, toggleTheme } = useTheme();
   const { show: showTokenUsage, toggle: toggleTokenUsage } = useShowTokenUsage();
 
@@ -114,6 +114,7 @@ export default function Settings() {
     deleteChat,
     updateChatTitle,
     logout,
+    isAdmin,
   };
 
   return (
