@@ -24,6 +24,7 @@ type Tier = {
   priceSuffix: string;
   features: string[];
   cta: { label: string; disabled?: boolean; onClick?: () => void; primary?: boolean };
+  secondaryCta?: { label: string; disabled?: boolean; onClick?: () => void };
   highlight?: boolean;
   comingSoon?: boolean;
 };
@@ -38,6 +39,10 @@ export default function PremiumPricingPage() {
 
   const handleBuy = useCallback((tierName: "Plus" | "Pro") => {
     showToast(`Payment gateway untuk paket ${tierName} segera hadir. Tunggu update ya!`);
+  }, [showToast]);
+
+  const handleFreeTrial = useCallback(() => {
+    showToast("Uji coba gratis 1 bulan segera tersedia. Tunggu update ya!");
   }, [showToast]);
 
   useEffect(() => {
@@ -100,6 +105,10 @@ export default function PremiumPricingPage() {
         : isProActive
         ? { label: "Sudah Pakai Pro", disabled: true }
         : { label: "Pilih & Beli Sekarang", primary: true, onClick: () => handleBuy("Plus") },
+      secondaryCta:
+        isAdmin || isPlusActive || isProActive
+          ? undefined
+          : { label: "Ambil Gratis Uji Coba 1 Bulan", onClick: handleFreeTrial },
     },
     {
       id: "pro",
@@ -244,7 +253,7 @@ function TierCard({ tier }: { tier: Tier }) {
         disabled={tier.cta.disabled}
         data-testid={`button-cta-${tier.id}`}
         className={cn(
-          "w-full h-10 rounded-lg text-sm font-medium transition-all mb-6 px-3",
+          "w-full h-10 rounded-lg text-sm font-medium transition-all px-3",
           tier.cta.primary
             ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm shadow-primary/20"
             : isPlus
@@ -257,6 +266,24 @@ function TierCard({ tier }: { tier: Tier }) {
       >
         <span className="truncate block">{tier.cta.label}</span>
       </button>
+
+      {/* Secondary CTA (mis. uji coba gratis) */}
+      {tier.secondaryCta && (
+        <button
+          onClick={tier.secondaryCta.onClick}
+          disabled={tier.secondaryCta.disabled}
+          data-testid={`button-secondary-cta-${tier.id}`}
+          className={cn(
+            "w-full h-10 rounded-lg text-sm font-medium transition-all px-3 mt-2",
+            "border border-dashed border-primary/40 bg-transparent text-primary hover:bg-primary/10",
+            tier.secondaryCta.disabled && "cursor-not-allowed opacity-60 hover:bg-transparent",
+          )}
+        >
+          <span className="truncate block">{tier.secondaryCta.label}</span>
+        </button>
+      )}
+
+      <div className="mb-6" />
 
       {/* Features */}
       <ul className="space-y-2.5 flex-1">
