@@ -1,0 +1,27 @@
+All done. Server jalan bersih, no new TypeScript errors, dan dokumentasi sudah di-update.
+
+Yang udah berubah:
+
+Pricing page (/premium) — Tombol Plus & Pro sekarang "Pilih & Beli Sekarang". Pas diklik munculin toast di tengah-bawah layar: "Payment gateway untuk paket Plus/Pro segera hadir. Tunggu update ya!" Toast otomatis hilang setelah ~3 detik.
+
+Flow "Klaim Plus via IG" dihapus total:
+
+Halaman /premium/apply → file & route dihapus.
+Hook apply() di use-premium → dihapus.
+Banner "Plus Terbatas — Follow IG kami" di Chat → diganti jadi "Upgrade ke Plus / Pro · mulai Rp 10.000/bln" dengan tombol "Lihat Paket".
+Notifikasi "Aplikasi Plus Terbatas kamu sedang direview" di Chat → dihapus.
+Copy "Klaim Plus gratis lewat Instagram" / "Klaim Plus" / "Klaim Plus Gratis Sekarang" di Settings → diganti jadi "Upgrade untuk kuota lebih besar" / "Lihat Paket" / "Lihat Paket Plus & Pro".
+Tab admin "Plus Terbatas" (yang nampilin daftar aplikasi pending dengan screenshot IG, tombol Setujui/Tolak) → dihapus.
+Hook use-admin → fungsi fetchPremiumApplications, approveApplication, rejectApplication, dan state-nya dihapus. Type PremiumApplication masih di-export tapi cuma sebagai legacy stub (tanpa rusakin import luar).
+Server endpoint application — semua endpoint berikut sekarang return HTTP 410 Gone dengan pesan "Fitur klaim Plus via Instagram sudah berakhir. Silakan beli paket di /premium." (stub-nya saya pertahankan supaya browser yang masih buka halaman lama gak crash):
+
+POST /api/premium/upload-screenshots
+POST /api/premium/apply
+GET /api/admin/premium-applications
+PATCH /api/admin/premium-applications/:id/approve
+PATCH /api/admin/premium-applications/:id/reject
+Admin tetap bisa kasih Plus/Pro manual lewat tombol di tab Pengguna (panggil PATCH /api/admin/users/:id/premium yang udah ada).
+
+Catatan: Tabel premium_applications di Supabase masih saya tinggal (gak di-drop) supaya data historis tetap aman. Kalau mau bersihin total nanti tinggal bilang, saya buatin migration drop-nya.
+
+Selanjutnya, aku bisa nyiapin integrasi payment gateway (misalnya Midtrans atau Xendit Snap) supaya tombol "Pilih & Beli Sekarang" beneran proses pembayaran dan auto-aktifin tier saat sukses. Mau aku mulai?
