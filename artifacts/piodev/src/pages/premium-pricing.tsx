@@ -136,24 +136,49 @@ export default function PremiumPricingPage() {
 }
 
 function TierCard({ tier }: { tier: Tier }) {
+  // Per-tier color tokens
+  const isPlus = tier.id === "plus";
+  const isPro = tier.id === "pro";
+
+  const cardClasses = isPlus
+    ? "border-primary/50 bg-gradient-to-b from-primary/[0.06] to-transparent shadow-lg shadow-primary/10"
+    : isPro
+    ? "border-amber-500/30 dark:border-amber-400/25"
+    : "border-border";
+
+  const badgeClasses = isPlus
+    ? "bg-primary text-primary-foreground"
+    : isPro
+    ? "bg-amber-500/15 text-amber-600 dark:bg-amber-400/15 dark:text-amber-400"
+    : "bg-muted text-muted-foreground";
+
+  const checkClasses = isPlus
+    ? "text-primary"
+    : isPro
+    ? "text-amber-600 dark:text-amber-400"
+    : "text-foreground/60";
+
   return (
     <div
       className={cn(
-        "rounded-2xl border bg-card p-5 sm:p-6 flex flex-col",
-        tier.highlight ? "border-foreground/70 dark:border-foreground/50" : "border-border",
-        tier.comingSoon && "opacity-70",
+        "rounded-2xl border bg-card p-5 sm:p-6 flex flex-col transition-shadow",
+        cardClasses,
+        tier.comingSoon && "opacity-80",
       )}
     >
       {/* Name + badge */}
       <div className="flex items-center gap-2 mb-1.5 min-h-[24px]">
-        <h3 className="text-base sm:text-lg font-semibold text-foreground">{tier.name}</h3>
+        <h3 className={cn(
+          "text-base sm:text-lg font-semibold",
+          isPlus ? "text-primary" : "text-foreground",
+        )}>
+          {tier.name}
+        </h3>
         {tier.badge && (
           <span
             className={cn(
-              "text-[10px] font-medium px-1.5 py-0.5 rounded-md uppercase tracking-wide",
-              tier.highlight
-                ? "bg-foreground text-background"
-                : "bg-muted text-muted-foreground",
+              "text-[10px] font-semibold px-1.5 py-0.5 rounded-md uppercase tracking-wide",
+              badgeClasses,
             )}
           >
             {tier.badge}
@@ -175,9 +200,11 @@ function TierCard({ tier }: { tier: Tier }) {
         onClick={tier.cta.onClick}
         disabled={tier.cta.disabled}
         className={cn(
-          "w-full h-10 rounded-lg text-sm font-medium transition-colors mb-6 px-3",
+          "w-full h-10 rounded-lg text-sm font-medium transition-all mb-6 px-3",
           tier.cta.primary
-            ? "bg-foreground text-background hover:bg-foreground/90"
+            ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm shadow-primary/20"
+            : isPlus
+            ? "border border-primary/40 bg-primary/10 text-primary hover:bg-primary/15"
             : "border border-border bg-background text-foreground hover:bg-muted",
           tier.cta.disabled && "cursor-not-allowed opacity-60 hover:bg-background",
         )}
@@ -189,7 +216,7 @@ function TierCard({ tier }: { tier: Tier }) {
       <ul className="space-y-2.5 flex-1">
         {tier.features.map((f, i) => (
           <li key={i} className="flex items-start gap-2.5 text-xs sm:text-sm text-muted-foreground leading-relaxed">
-            <Check className="w-3.5 h-3.5 text-foreground/70 shrink-0 mt-0.5" strokeWidth={2.5} />
+            <Check className={cn("w-3.5 h-3.5 shrink-0 mt-0.5", checkClasses)} strokeWidth={2.5} />
             <span>{f}</span>
           </li>
         ))}
