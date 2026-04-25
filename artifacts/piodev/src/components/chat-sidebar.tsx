@@ -511,7 +511,7 @@ export function ChatSidebar({
                 className="gap-2 cursor-pointer text-amber-600 dark:text-amber-400 focus:text-amber-700 dark:focus:text-amber-300"
               >
                 <Sparkles className="w-4 h-4" />
-                <span>Upgrade ke Plus</span>
+                <span>Upgrade Akun</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate("/api-keys")} className="gap-2 cursor-pointer">
                 <Key className="w-4 h-4" />

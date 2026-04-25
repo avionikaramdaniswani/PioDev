@@ -169,7 +169,7 @@ export default function PremiumApplyPage() {
 
       {/* Header */}
       <header className="flex items-center gap-3 px-4 py-4 border-b border-border max-w-lg mx-auto w-full">
-        <button onClick={() => setLocation("/chat")} className="p-2 rounded-lg hover:bg-muted transition-colors">
+        <button onClick={() => setLocation("/premium")} className="p-2 rounded-lg hover:bg-muted transition-colors">
           <ArrowLeft className="w-5 h-5" />
         </button>
         <span className="font-semibold text-sm">Penawaran Plus Terbatas</span>
