@@ -148,7 +148,7 @@ export default function PremiumPricingPage() {
         </div>
 
         {/* Tiers */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6 max-w-5xl mx-auto">
+        <div className="grid grid-cols-3 gap-3 sm:gap-5 max-w-5xl mx-auto">
           {tiers.map((t) => (
             <TierCard key={t.id} tier={t} />
           ))}
@@ -185,7 +185,7 @@ function TierCard({ tier }: { tier: Tier }) {
   return (
     <div
       className={cn(
-        "relative rounded-2xl border bg-card p-6 flex flex-col",
+        "relative rounded-2xl border bg-card p-4 sm:p-5 flex flex-col",
         tier.highlight
           ? "border-amber-500/40 dark:border-amber-400/40 shadow-lg shadow-amber-500/10 ring-1 " + accentRing
           : "border-border",
@@ -194,36 +194,36 @@ function TierCard({ tier }: { tier: Tier }) {
     >
       {tier.badge && (
         <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-          <span className={cn("text-[10px] font-semibold px-3 py-1 rounded-full uppercase tracking-wide shadow-sm", accentBadge)}>
+          <span className={cn("text-[9px] sm:text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide shadow-sm whitespace-nowrap", accentBadge)}>
             {tier.badge}
           </span>
         </div>
       )}
       {tier.comingSoon && (
-        <div className="absolute top-4 right-4">
-          <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground uppercase tracking-wide">
+        <div className="absolute top-3 right-3">
+          <span className="text-[9px] sm:text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground uppercase tracking-wide">
             Segera
           </span>
         </div>
       )}
 
       {/* Header */}
-      <div className="flex items-center gap-2.5 mb-1">
-        <div className={cn("w-9 h-9 rounded-xl flex items-center justify-center", accentBg)}>
+      <div className="flex items-center gap-2 mb-1">
+        <div className={cn("w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center shrink-0", accentBg)}>
           {tier.icon}
         </div>
-        <h3 className="text-lg font-bold text-foreground">{tier.name}</h3>
+        <h3 className="text-base sm:text-lg font-bold text-foreground">{tier.name}</h3>
       </div>
-      <p className="text-xs text-muted-foreground mb-5">{tier.tagline}</p>
+      <p className="text-[11px] sm:text-xs text-muted-foreground mb-4 leading-snug">{tier.tagline}</p>
 
       {/* Price */}
-      <div className="mb-5">
-        <div className="flex items-baseline gap-1.5">
-          {tier.pricePrefix && <span className="text-base">{tier.pricePrefix}</span>}
-          <span className="text-3xl font-bold text-foreground tracking-tight">{tier.price}</span>
+      <div className="mb-4">
+        <div className="flex items-baseline gap-1">
+          {tier.pricePrefix && <span className="text-sm sm:text-base">{tier.pricePrefix}</span>}
+          <span className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight">{tier.price}</span>
         </div>
         {tier.priceSuffix && (
-          <p className="text-xs text-muted-foreground mt-0.5">{tier.priceSuffix}</p>
+          <p className="text-[11px] sm:text-xs text-muted-foreground mt-0.5">{tier.priceSuffix}</p>
         )}
       </div>
 
@@ -232,7 +232,7 @@ function TierCard({ tier }: { tier: Tier }) {
         onClick={tier.cta.onClick}
         disabled={tier.cta.disabled}
         className={cn(
-          "w-full h-11 rounded-xl text-sm font-semibold transition-all flex items-center justify-center gap-1.5 mb-6",
+          "w-full h-10 sm:h-11 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center justify-center gap-1.5 mb-5 px-2",
           tier.cta.variant === "primary" &&
             "bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 shadow-md shadow-amber-500/20",
           tier.cta.variant === "soft" &&
@@ -242,30 +242,30 @@ function TierCard({ tier }: { tier: Tier }) {
           tier.cta.disabled && "cursor-not-allowed opacity-70 hover:bg-background"
         )}
       >
-        {tier.cta.variant === "primary" && <Sparkles className="w-3.5 h-3.5" />}
-        {tier.cta.variant === "soft" && <Check className="w-3.5 h-3.5" />}
-        {tier.cta.label}
+        {tier.cta.variant === "primary" && <Sparkles className="w-3.5 h-3.5 shrink-0" />}
+        {tier.cta.variant === "soft" && <Check className="w-3.5 h-3.5 shrink-0" />}
+        <span className="truncate">{tier.cta.label}</span>
       </button>
 
       {/* Divider */}
-      <div className="border-t border-border mb-4" />
+      <div className="border-t border-border mb-3" />
 
       {/* Features */}
-      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+      <p className="text-[10px] sm:text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2.5">
         Yang kamu dapat
       </p>
-      <ul className="space-y-2.5 flex-1">
+      <ul className="space-y-2 flex-1">
         {tier.features.map((f, i) => (
-          <li key={i} className="flex items-start gap-2.5">
+          <li key={i} className="flex items-start gap-2">
             <div className={cn(
-              "w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5",
+              "w-4 h-4 sm:w-5 sm:h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5",
               tier.accent === "amber" ? "bg-amber-500/10 text-amber-600 dark:text-amber-400"
               : tier.accent === "violet" ? "bg-violet-500/10 text-violet-600 dark:text-violet-400"
               : "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
             )}>
-              <Check className="w-3 h-3" strokeWidth={3} />
+              <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3" strokeWidth={3} />
             </div>
-            <span className={cn("text-sm leading-relaxed", f.bold ? "text-foreground font-medium" : "text-muted-foreground")}>
+            <span className={cn("text-xs sm:text-sm leading-snug", f.bold ? "text-foreground font-medium" : "text-muted-foreground")}>
               {f.text}
             </span>
           </li>
