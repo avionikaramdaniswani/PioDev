@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
-import { Plus, Settings, LogOut, MessageSquare, Trash2, Terminal, Pencil, Search, X, MoreHorizontal, Star, Menu, Shield, Newspaper, Video, Key } from "lucide-react";
+import { Plus, Settings, LogOut, MessageSquare, Trash2, Pencil, Search, X, MoreHorizontal, Star, Menu, Shield, Newspaper, Video, Key } from "lucide-react";
+import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import {
@@ -332,7 +333,7 @@ export function ChatSidebar({
       {/* Header */}
       <div className="px-3 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2 font-bold text-lg text-sidebar-foreground px-1">
-          <Terminal className="w-5 h-5 text-primary" />
+          <Logo size={20} />
           PioDev
         </div>
         {onCollapse && (

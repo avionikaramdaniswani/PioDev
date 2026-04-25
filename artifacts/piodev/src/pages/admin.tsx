@@ -20,10 +20,11 @@ import {
 import {
   LayoutDashboard, Users, ArrowLeft, Search,
   Shield, ShieldOff, Trash2, RefreshCw,
-  Zap, MessageSquare, TrendingUp, Terminal, Newspaper, Plus,
+  Zap, MessageSquare, TrendingUp, Newspaper, Plus,
   Star, StarOff, Check, X, ExternalLink, Loader2, Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Logo } from "@/components/logo";
 
 type Section = "ringkasan" | "pengguna" | "changelog" | "premium";
 
@@ -824,9 +825,7 @@ export default function AdminPage() {
       <aside className="hidden md:flex flex-col w-56 shrink-0 border-r border-border bg-sidebar">
         {/* Brand */}
         <div className="px-4 py-4 flex items-center gap-2 border-b border-sidebar-border">
-          <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
-            <Terminal className="w-4 h-4 text-primary" />
-          </div>
+          <Logo size={28} />
           <div>
             <div className="text-sm font-semibold text-sidebar-foreground leading-tight">PioDev Admin</div>
             <div className="text-[10px] text-sidebar-foreground/50">Dashboard</div>

@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
 import { Terminal, Sparkles, ArrowRight } from "lucide-react";
+import { Logo } from "@/components/logo";
 
 export default function LandingPage() {
   const { isAuthenticated } = useAuth();
@@ -25,9 +26,7 @@ export default function LandingPage() {
       {/* Navbar */}
       <nav className="relative z-10 flex items-center justify-between px-6 sm:px-10 py-5 max-w-6xl mx-auto">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-gradient-to-br from-primary to-indigo-400 rounded-lg flex items-center justify-center">
-            <Terminal className="w-4 h-4 text-white" />
-          </div>
+          <Logo size={32} />
           <span className="font-bold text-lg tracking-tight">PioDev</span>
         </div>
         <div className="flex items-center gap-2">

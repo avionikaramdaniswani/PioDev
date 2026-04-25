@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Terminal, ArrowLeft, Mail, ArrowRight, Sun, Moon, Loader2 } from "lucide-react";
+import { ArrowLeft, Mail, ArrowRight, Sun, Moon, Loader2 } from "lucide-react";
+import { Logo } from "@/components/logo";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
 import { supabase } from "@/lib/supabase";
@@ -48,9 +49,7 @@ export default function ForgotPassword() {
       >
         {/* Logo */}
         <div className="flex items-center gap-2 mb-8">
-          <div className="w-8 h-8 bg-gradient-to-br from-primary to-indigo-400 rounded-lg flex items-center justify-center">
-            <Terminal className="w-4 h-4 text-white" />
-          </div>
+          <Logo size={32} />
           <span className="font-bold text-foreground tracking-tight">PioDev</span>
         </div>
 

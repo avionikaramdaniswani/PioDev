@@ -1,6 +1,7 @@
 import { Link } from "wouter";
 import { motion } from "framer-motion";
-import { Mail, ArrowLeft, Terminal } from "lucide-react";
+import { Mail, ArrowLeft } from "lucide-react";
+import { Logo } from "@/components/logo";
 import { useTheme } from "@/hooks/use-theme";
 import { Sun, Moon } from "lucide-react";
 
@@ -17,9 +18,7 @@ export default function CheckEmail() {
         </div>
 
         <div className="relative z-10 flex items-center gap-2.5">
-          <div className="w-8 h-8 bg-gradient-to-br from-primary to-indigo-400 rounded-lg flex items-center justify-center">
-            <Terminal className="w-4 h-4 text-white" />
-          </div>
+          <Logo size={32} />
           <span className="text-white font-bold tracking-tight">PioDev</span>
         </div>
 
@@ -54,9 +53,7 @@ export default function CheckEmail() {
             className="w-full max-w-sm text-center"
           >
             <div className="flex items-center gap-2 mb-8 lg:hidden justify-center">
-              <div className="w-8 h-8 bg-gradient-to-br from-primary to-indigo-400 rounded-lg flex items-center justify-center">
-                <Terminal className="w-4 h-4 text-white" />
-              </div>
+              <Logo size={32} />
               <span className="font-bold text-foreground tracking-tight">PioDev</span>
             </div>
 
