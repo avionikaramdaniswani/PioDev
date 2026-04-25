@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, Lock, Check, Eye, EyeOff, Sun, Moon, Menu, X, BarChart2, Sparkles, Trash2, Star, Zap, ImageIcon, Clapperboard, ChevronRight, MessageSquare, Shield, AlertTriangle, Mail } from "lucide-react";
+import { User, Lock, Check, Eye, EyeOff, Sun, Moon, Menu, X, BarChart2, Sparkles, Star, Zap, ImageIcon, Clapperboard, ChevronRight, MessageSquare, Shield, Mail } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
 import { useChat } from "@/hooks/use-chat";
@@ -408,57 +408,39 @@ export default function Settings() {
                     </div>
                   </div>
 
-                  {/* Card: Zona Bahaya */}
-                  <div className="rounded-2xl border border-red-500/25 bg-red-500/[0.04] p-5 sm:p-6">
-                    <div className="flex items-center gap-2 mb-1">
-                      <AlertTriangle className="w-4 h-4 text-red-500" />
-                      <h3 className="text-sm font-semibold text-foreground">Zona Bahaya</h3>
-                    </div>
-                    <p className="text-xs text-muted-foreground mb-5">Tindakan di bawah ini bersifat permanen dan tidak bisa dikembalikan.</p>
-
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-xl border border-red-500/20 bg-background/50">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-foreground flex items-center gap-2">
-                          <Trash2 className="w-4 h-4 text-red-500 shrink-0" />
-                          Hapus semua percakapan
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1 ml-6">
-                          {chats.length > 0
-                            ? `${chats.length} percakapan akan dihapus permanen.`
-                            : "Belum ada percakapan untuk dihapus."}
-                        </p>
-                      </div>
-                      {!confirmDeleteAll ? (
+                  {/* Hapus semua chat */}
+                  <div className="flex items-center justify-between gap-3 pt-2">
+                    <p className="text-sm text-muted-foreground">Hapus semua percakapan</p>
+                    {!confirmDeleteAll ? (
+                      <button
+                        onClick={() => setConfirmDeleteAll(true)}
+                        disabled={chats.length === 0}
+                        className="text-sm font-medium text-red-500 hover:underline disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline"
+                      >
+                        Hapus
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-3">
                         <button
-                          onClick={() => setConfirmDeleteAll(true)}
-                          disabled={chats.length === 0}
-                          className="shrink-0 px-4 py-2 rounded-xl text-sm font-medium border border-red-500/30 text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                          onClick={() => setConfirmDeleteAll(false)}
+                          className="text-sm text-muted-foreground hover:text-foreground"
                         >
-                          Hapus semua
+                          Batal
                         </button>
-                      ) : (
-                        <div className="flex items-center gap-2 shrink-0">
-                          <button
-                            onClick={() => setConfirmDeleteAll(false)}
-                            className="px-3 py-2 rounded-xl text-sm font-medium border border-border text-muted-foreground hover:bg-muted transition-colors"
-                          >
-                            Batal
-                          </button>
-                          <button
-                            onClick={async () => {
-                              setIsDeletingAll(true);
-                              await deleteAllChats();
-                              setIsDeletingAll(false);
-                              setConfirmDeleteAll(false);
-                            }}
-                            disabled={isDeletingAll}
-                            className="px-3 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-700 text-white transition-colors disabled:opacity-60"
-                          >
-                            {isDeletingAll ? "Menghapus..." : "Ya, hapus"}
-                          </button>
-                        </div>
-                      )}
-                    </div>
+                        <button
+                          onClick={async () => {
+                            setIsDeletingAll(true);
+                            await deleteAllChats();
+                            setIsDeletingAll(false);
+                            setConfirmDeleteAll(false);
+                          }}
+                          disabled={isDeletingAll}
+                          className="text-sm font-medium text-red-500 hover:underline disabled:opacity-60"
+                        >
+                          {isDeletingAll ? "Menghapus..." : "Ya, hapus"}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
