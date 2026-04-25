@@ -27,6 +27,7 @@ export type PremiumApplication = {
   created_at: string;
   reviewed_at: string | null;
 };
+// ^ DEPRECATED — Plus IG-application flow removed. Type retained only so external imports don't break.
 
 export type AdminStats = {
   totalUsers: number;
@@ -50,7 +51,6 @@ export function useAdmin() {
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [stats, setStats] = useState<AdminStats | null>(null);
   const [dailyUsage, setDailyUsage] = useState<DailyUsage[]>([]);
-  const [premiumApplications, setPremiumApplications] = useState<PremiumApplication[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -137,43 +137,10 @@ export function useAdmin() {
     } catch { /**/ }
   }, []);
 
-  const fetchPremiumApplications = useCallback(async () => {
-    try {
-      const res = await fetch("/api/admin/premium-applications", { headers: await authHeader() });
-      if (!res.ok) return;
-      const data = await res.json();
-      setPremiumApplications(data.applications || []);
-    } catch { /**/ }
-  }, []);
-
-  const approveApplication = useCallback(async (id: string, tier: "plus" | "pro" = "plus") => {
-    const res = await fetch(`/api/admin/premium-applications/${id}/approve`, {
-      method: "PATCH",
-      headers: { ...(await authHeader()), "Content-Type": "application/json" },
-      body: JSON.stringify({ tier }),
-    });
-    if (!res.ok) throw new Error((await res.json()).error || "Gagal approve");
-    setPremiumApplications((prev) =>
-      prev.map((a) => a.id === id ? { ...a, status: "approved" as const, reviewed_at: new Date().toISOString() } : a)
-    );
-  }, []);
-
-  const rejectApplication = useCallback(async (id: string, note: string) => {
-    const res = await fetch(`/api/admin/premium-applications/${id}/reject`, {
-      method: "PATCH",
-      headers: { ...(await authHeader()), "Content-Type": "application/json" },
-      body: JSON.stringify({ note }),
-    });
-    if (!res.ok) throw new Error((await res.json()).error || "Gagal reject");
-    setPremiumApplications((prev) =>
-      prev.map((a) => a.id === id ? { ...a, status: "rejected" as const, rejection_note: note, reviewed_at: new Date().toISOString() } : a)
-    );
-  }, []);
-
   return {
-    users, stats, dailyUsage, premiumApplications,
+    users, stats, dailyUsage,
     isLoading, error,
-    fetchUsers, fetchStats, fetchDailyUsage, fetchPremiumApplications,
-    updateRole, updatePremium, deleteUser, approveApplication, rejectApplication,
+    fetchUsers, fetchStats, fetchDailyUsage,
+    updateRole, updatePremium, deleteUser,
   };
 }

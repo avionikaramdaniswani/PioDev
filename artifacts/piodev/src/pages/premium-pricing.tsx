@@ -1,10 +1,19 @@
-import { useEffect } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { usePremium } from "@/hooks/use-premium";
 import { useTheme } from "@/hooks/use-theme";
-import { ArrowLeft, Check, Loader2 } from "lucide-react";
+import { ArrowLeft, Check, Loader2, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+function useInlineToast() {
+  const [toast, setToast] = useState<string | null>(null);
+  const show = useCallback((msg: string) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3200);
+  }, []);
+  return { toast, show };
+}
 
 type Tier = {
   id: "free" | "plus" | "pro";
@@ -25,6 +34,11 @@ export default function PremiumPricingPage() {
   const isDark = theme === "dark";
   const [, setLocation] = useLocation();
   const { status, isLoading } = usePremium(user?.id);
+  const { toast, show: showToast } = useInlineToast();
+
+  const handleBuy = useCallback((tierName: "Plus" | "Pro") => {
+    showToast(`Payment gateway untuk paket ${tierName} segera hadir. Tunggu update ya!`);
+  }, [showToast]);
 
   useEffect(() => {
     if (!user) setLocation("/login");
@@ -44,8 +58,6 @@ export default function PremiumPricingPage() {
   const isPlusActive = userTier === "plus" && !isAdmin;
   const isProActive  = userTier === "pro"  && !isAdmin;
   const isPremium = status.isPremium || isAdmin;
-  const appStatus = status.application?.status;
-  const hasPending = appStatus === "pending";
 
   const tiers: Tier[] = [
     {
@@ -87,9 +99,7 @@ export default function PremiumPricingPage() {
         ? { label: "Paket Aktif", disabled: true }
         : isProActive
         ? { label: "Sudah Pakai Pro", disabled: true }
-        : hasPending
-        ? { label: "Aplikasi Diproses…", onClick: () => setLocation("/premium/apply") }
-        : { label: "Dapatkan Plus", primary: true, onClick: () => setLocation("/premium/apply") },
+        : { label: "Pilih & Beli Sekarang", primary: true, onClick: () => handleBuy("Plus") },
     },
     {
       id: "pro",
@@ -111,7 +121,7 @@ export default function PremiumPricingPage() {
         ? { label: "Admin · Bypass", disabled: true }
         : isProActive
         ? { label: "Paket Aktif", disabled: true }
-        : { label: "Segera Hadir", disabled: true },
+        : { label: "Pilih & Beli Sekarang", onClick: () => handleBuy("Pro") },
     },
   ];
 
@@ -146,6 +156,23 @@ export default function PremiumPricingPage() {
           ))}
         </div>
       </main>
+
+      {/* Toast — payment gateway segera hadir */}
+      <div
+        className={cn(
+          "fixed bottom-6 left-1/2 -translate-x-1/2 z-50 transition-all duration-300 pointer-events-none",
+          toast ? "opacity-100 translate-y-0" : "opacity-0 translate-y-3",
+        )}
+        role="status"
+        aria-live="polite"
+      >
+        {toast && (
+          <div className="flex items-center gap-2.5 px-4 py-3 rounded-xl bg-foreground text-background shadow-lg max-w-[90vw]">
+            <CreditCard className="w-4 h-4 shrink-0" />
+            <span className="text-sm font-medium">{toast}</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

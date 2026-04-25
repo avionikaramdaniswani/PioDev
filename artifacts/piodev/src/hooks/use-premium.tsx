@@ -8,14 +8,6 @@ export type PremiumStatus = {
   isAdmin: boolean;
   tier: Tier;
   premiumExpiresAt: string | null;
-  application: {
-    id: string;
-    instagram: string;
-    status: "pending" | "approved" | "rejected";
-    rejection_note: string;
-    created_at: string;
-    tier?: Tier;
-  } | null;
 };
 
 async function authHeader() {
@@ -39,21 +31,5 @@ export function usePremium(userId: string | undefined) {
 
   useEffect(() => { fetchStatus(); }, [fetchStatus]);
 
-  const apply = useCallback(async (instagram: string): Promise<{ ok: boolean; error?: string }> => {
-    try {
-      const res = await fetch("/api/premium/apply", {
-        method: "POST",
-        headers: { ...(await authHeader()), "Content-Type": "application/json" },
-        body: JSON.stringify({ instagram }),
-      });
-      const data = await res.json();
-      if (!res.ok) return { ok: false, error: data.error };
-      await fetchStatus();
-      return { ok: true };
-    } catch {
-      return { ok: false, error: "Terjadi kesalahan. Coba lagi." };
-    }
-  }, [fetchStatus]);
-
-  return { status, isLoading, apply, refetch: fetchStatus };
+  return { status, isLoading, refetch: fetchStatus };
 }

@@ -19,7 +19,6 @@ import AdminPage from "@/pages/admin";
 import WhatsNewPage from "@/pages/whats-new";
 import CheckEmail from "@/pages/check-email";
 import VideoStudio from "@/pages/video-studio";
-import PremiumApplyPage from "@/pages/premium-apply";
 import PremiumPricingPage from "@/pages/premium-pricing";
 import ResetPassword from "@/pages/reset-password";
 import ApiKeysPage from "@/pages/api-keys";
@@ -40,7 +39,6 @@ function Router() {
       <Route path="/check-email" component={CheckEmail} />
       <Route path="/video-studio" component={VideoStudio} />
       <Route path="/premium" component={PremiumPricingPage} />
-      <Route path="/premium/apply" component={PremiumApplyPage} />
       <Route path="/reset-password" component={ResetPassword} />
       <Route path="/api-keys" component={ApiKeysPage} />
       <Route component={NotFound} />

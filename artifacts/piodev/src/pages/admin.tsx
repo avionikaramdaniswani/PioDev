@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
-import { useAdmin, type AdminUser, type PremiumApplication } from "@/hooks/use-admin";
+import { useAdmin, type AdminUser } from "@/hooks/use-admin";
 import { supabase } from "@/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -21,18 +21,17 @@ import {
   LayoutDashboard, Users, ArrowLeft, Search,
   Shield, ShieldOff, Trash2, RefreshCw,
   Zap, MessageSquare, TrendingUp, Newspaper, Plus,
-  Star, StarOff, Check, X, ExternalLink, Loader2, Calendar,
+  Star, StarOff, Check, Loader2, Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/logo";
 
-type Section = "ringkasan" | "pengguna" | "changelog" | "premium";
+type Section = "ringkasan" | "pengguna" | "changelog";
 
 const NAV_ITEMS: { id: Section; label: string; icon: React.ElementType }[] = [
   { id: "ringkasan",  label: "Ringkasan",  icon: LayoutDashboard },
   { id: "pengguna",   label: "Pengguna",   icon: Users },
   { id: "changelog",  label: "What's New", icon: Newspaper },
-  { id: "premium",    label: "Plus Terbatas", icon: Star },
 ];
 
 function useToast() {
@@ -589,201 +588,13 @@ function SectionChangelog({ showToast }: { showToast: (msg: string, ok: boolean)
   );
 }
 
-const STATUS_STYLE: Record<string, string> = {
-  pending:  "bg-yellow-500/15 text-yellow-600 border-yellow-500/20",
-  approved: "bg-green-500/15 text-green-600 border-green-500/20",
-  rejected: "bg-red-500/15 text-red-500 border-red-500/20",
-};
-const STATUS_LABEL: Record<string, string> = {
-  pending: "Menunggu", approved: "Disetujui", rejected: "Ditolak",
-};
-
-function SectionPremium({
-  applications, onApprove, onReject, showToast,
-}: {
-  applications: PremiumApplication[];
-  onApprove: (id: string) => Promise<void>;
-  onReject: (id: string, note: string) => Promise<void>;
-  showToast: (msg: string, ok: boolean) => void;
-}) {
-  const [loadingId, setLoadingId] = useState<string | null>(null);
-  const [rejectingId, setRejectingId] = useState<string | null>(null);
-  const [rejectNote, setRejectNote] = useState("");
-  const pending   = applications.filter((a) => a.status === "pending");
-  const processed = applications.filter((a) => a.status !== "pending");
-
-  function startReject(id: string) {
-    setRejectingId(id);
-    setRejectNote("");
-  }
-
-  function cancelReject() {
-    setRejectingId(null);
-    setRejectNote("");
-  }
-
-  async function handleApprove(id: string) {
-    setLoadingId(id);
-    try {
-      await onApprove(id);
-      showToast("Aplikasi disetujui!", true);
-    } catch (e: any) {
-      showToast(e.message, false);
-    } finally {
-      setLoadingId(null);
-    }
-  }
-
-  async function handleReject(id: string) {
-    setLoadingId(id);
-    try {
-      await onReject(id, rejectNote);
-      showToast("Aplikasi ditolak.", false);
-      setRejectingId(null);
-      setRejectNote("");
-    } catch (e: any) {
-      showToast(e.message, false);
-    } finally {
-      setLoadingId(null);
-    }
-  }
-
-  function formatDate(iso: string) {
-    return new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
-  }
-
-  return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-base font-semibold text-foreground mb-1">Penawaran Plus Terbatas</h2>
-        <p className="text-sm text-muted-foreground">
-          {pending.length} menunggu review · {applications.filter(a => a.status === "approved").length} disetujui
-        </p>
-      </div>
-
-      {/* Pending */}
-      <div>
-        <h3 className="text-sm font-medium text-foreground mb-3">Menunggu Review ({pending.length})</h3>
-        {pending.length === 0 ? (
-          <div className="rounded-xl border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-            Tidak ada aplikasi yang menunggu review.
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {pending.map((app) => (
-              <div key={app.id} className="rounded-xl border border-border bg-card overflow-hidden">
-                <div className="flex items-center gap-4 px-4 py-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-foreground text-sm truncate">{app.email || app.user_id}</div>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-xs text-muted-foreground">@{app.instagram}</span>
-                      <a href={`https://instagram.com/${app.instagram}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors">
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </div>
-                    <div className="text-[11px] text-muted-foreground/60 mt-0.5">{formatDate(app.created_at)}</div>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    {rejectingId === app.id ? (
-                      <button onClick={cancelReject} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-muted text-muted-foreground hover:bg-muted/80 transition-colors">
-                        Batal
-                      </button>
-                    ) : (
-                      <button onClick={() => startReject(app.id)} disabled={loadingId === app.id} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-red-500/10 text-red-500 hover:bg-red-500/20 transition-colors disabled:opacity-50">
-                        <X className="w-3 h-3" /> Tolak
-                      </button>
-                    )}
-                    <button onClick={() => handleApprove(app.id)} disabled={loadingId === app.id || rejectingId === app.id} className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium bg-green-500/10 text-green-600 hover:bg-green-500/20 transition-colors disabled:opacity-50">
-                      <Check className="w-3 h-3" /> Setujui
-                    </button>
-                  </div>
-                </div>
-                {rejectingId === app.id && (
-                  <div className="border-t border-red-500/20 bg-red-500/5 px-4 py-3 flex flex-col gap-2">
-                    <label className="text-xs font-medium text-red-500">Alasan penolakan (opsional)</label>
-                    <textarea
-                      value={rejectNote}
-                      onChange={(e) => setRejectNote(e.target.value)}
-                      placeholder="Contoh: Screenshot tidak jelas, belum follow kedua akun..."
-                      rows={2}
-                      autoFocus
-                      className="w-full rounded-lg border border-red-500/20 bg-background text-sm px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500/20 placeholder:text-muted-foreground resize-none"
-                    />
-                    <button
-                      onClick={() => handleReject(app.id)}
-                      disabled={loadingId === app.id}
-                      className="self-end flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50"
-                    >
-                      {loadingId === app.id ? <Loader2 className="w-3 h-3 animate-spin" /> : <X className="w-3 h-3" />}
-                      Konfirmasi Tolak
-                    </button>
-                  </div>
-                )}
-                {(app.screenshot_url || app.screenshot_url_2) && (
-                  <div className="border-t border-border grid grid-cols-2 divide-x divide-border">
-                    {[
-                      { url: app.screenshot_url, label: "not.funn_" },
-                      { url: app.screenshot_url_2, label: "tiarafrtm" },
-                    ].map(({ url, label }) =>
-                      url ? (
-                        <a key={label} href={url} target="_blank" rel="noopener noreferrer" className="relative block hover:opacity-90 transition-opacity group">
-                          <img src={url} alt={`Screenshot @${label}`} className="w-full max-h-44 object-cover object-top" />
-                          <span className="absolute bottom-1.5 left-1.5 bg-black/60 text-white text-[10px] px-1.5 py-0.5 rounded font-mono">@{label}</span>
-                        </a>
-                      ) : (
-                        <div key={label} className="flex items-center justify-center text-xs text-muted-foreground p-4">Tidak ada</div>
-                      )
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Processed */}
-      {processed.length > 0 && (
-        <div>
-          <h3 className="text-sm font-medium text-foreground mb-3">Riwayat ({processed.length})</h3>
-          <div className="space-y-2">
-            {processed.map((app) => (
-              <div key={app.id} className="rounded-xl border border-border bg-card/50 overflow-hidden">
-                <div className="flex items-center gap-4 px-4 py-3">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-foreground text-sm truncate">{app.email || app.user_id}</div>
-                    <div className="flex items-center gap-1.5 mt-0.5">
-                      <span className="text-xs text-muted-foreground">@{app.instagram}</span>
-                      <a href={`https://instagram.com/${app.instagram}`} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 transition-colors">
-                        <ExternalLink className="w-3 h-3" />
-                      </a>
-                    </div>
-                  </div>
-                  <span className={cn("text-[10px] font-semibold px-2 py-0.5 rounded-full border shrink-0", STATUS_STYLE[app.status])}>
-                    {STATUS_LABEL[app.status]}
-                  </span>
-                </div>
-                {app.status === "rejected" && app.rejection_note && (
-                  <div className="border-t border-red-500/15 bg-red-500/5 px-4 py-2.5">
-                    <p className="text-xs text-red-500/80"><span className="font-semibold">Alasan:</span> {app.rejection_note}</p>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function AdminPage() {
   const { user, isAdmin, isLoading: authLoading } = useAuth();
   const [, setLocation] = useLocation();
   const {
-    users, stats, dailyUsage, premiumApplications, isLoading, error,
-    fetchUsers, fetchStats, fetchDailyUsage, fetchPremiumApplications,
-    updateRole, updatePremium, deleteUser, approveApplication, rejectApplication,
+    users, stats, dailyUsage, isLoading, error,
+    fetchUsers, fetchStats, fetchDailyUsage,
+    updateRole, updatePremium, deleteUser,
   } = useAdmin();
 
   const [activeSection, setActiveSection] = useState<Section>("ringkasan");
@@ -801,7 +612,6 @@ export default function AdminPage() {
     fetchUsers();
     fetchStats();
     fetchDailyUsage();
-    fetchPremiumApplications();
   }, [isAdmin]);
 
   async function handleToggleRole(u: AdminUser) {
@@ -860,7 +670,6 @@ export default function AdminPage() {
     fetchUsers();
     fetchStats();
     fetchDailyUsage();
-    fetchPremiumApplications();
   }
 
   if (authLoading || !isAdmin) return null;
@@ -971,14 +780,6 @@ export default function AdminPage() {
           )}
           {activeSection === "changelog" && (
             <SectionChangelog showToast={showToast} />
-          )}
-          {activeSection === "premium" && (
-            <SectionPremium
-              applications={premiumApplications}
-              onApprove={approveApplication}
-              onReject={rejectApplication}
-              showToast={showToast}
-            />
           )}
         </main>
 

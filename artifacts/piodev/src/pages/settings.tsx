@@ -777,7 +777,7 @@ export default function Settings() {
                                   Berakhir {new Date(usageSummary.premiumExpiresAt).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
                                 </p>
                               ) : !usageSummary.isPremium ? (
-                                <p className="text-xs text-muted-foreground mt-0.5">Klaim Plus gratis lewat Instagram</p>
+                                <p className="text-xs text-muted-foreground mt-0.5">Upgrade untuk kuota lebih besar</p>
                               ) : null}
                             </div>
                           </div>
@@ -786,7 +786,7 @@ export default function Settings() {
                               onClick={() => navigate("/premium")}
                               className="flex items-center gap-1 text-xs text-amber-600 dark:text-amber-400 font-medium hover:underline shrink-0"
                             >
-                              Klaim Plus
+                              Lihat Paket
                               <ChevronRight className="w-3.5 h-3.5" />
                             </button>
                           )}
@@ -885,7 +885,7 @@ export default function Settings() {
                             className="w-full mt-2 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors"
                           >
                             <Star className="w-4 h-4" />
-                            Klaim Plus Gratis Sekarang
+                            Lihat Paket Plus & Pro
                           </button>
                         )}
                       </div>

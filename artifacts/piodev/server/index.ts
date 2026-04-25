@@ -668,11 +668,10 @@ app.delete("/api/video-jobs", requireAuth, async (req, res) => {
 
 // ── Premium Applications ───────────────────────────────────────────────────────
 
-// GET /api/premium/status — cek status aplikasi premium user sendiri
+// GET /api/premium/status — info tier user sendiri
 app.get("/api/premium/status", requireAuth, async (req, res) => {
   const userId = (req as any).userId;
   const { data: profile } = await supabaseAdmin.from("profiles").select("is_premium, premium_expires_at, role, tier").eq("id", userId).single();
-  const { data: application } = await supabaseAdmin.from("premium_applications").select("*").eq("user_id", userId).maybeSingle();
   const isAdmin = profile?.role === "admin";
   const tier = getTier(profile);
   res.json({
@@ -680,146 +679,27 @@ app.get("/api/premium/status", requireAuth, async (req, res) => {
     isAdmin,
     tier,
     premiumExpiresAt: profile?.premium_expires_at ?? null,
-    application: application ?? null,
   });
 });
 
-// POST /api/premium/upload-screenshots — upload via server (service role key)
+// ── Endpoint flow "Apply Plus via IG screenshot" sudah DIHAPUS (event promo gratis selesai) ──
+// Endpoint berikut dipertahankan TAPI sekarang return 410 Gone supaya client lama gak crash:
+// - POST /api/premium/upload-screenshots
+// - POST /api/premium/apply
+// - GET /api/admin/premium-applications
+// - PATCH /api/admin/premium-applications/:id/approve
+// - PATCH /api/admin/premium-applications/:id/reject
+const APPLY_GONE = (_req: any, res: any) => res.status(410).json({
+  error: "Fitur klaim Plus via Instagram sudah berakhir. Silakan beli paket di /premium.",
+});
+app.post("/api/premium/upload-screenshots", requireAuth, APPLY_GONE);
+app.post("/api/premium/apply", requireAuth, APPLY_GONE);
+app.get("/api/admin/premium-applications", requireAuth, requireAdmin, APPLY_GONE);
+app.patch("/api/admin/premium-applications/:id/approve", requireAuth, requireAdmin, APPLY_GONE);
+app.patch("/api/admin/premium-applications/:id/reject", requireAuth, requireAdmin, APPLY_GONE);
+
+// Multer instance untuk POST /v1/files (file upload generic, max 5MB)
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 5 * 1024 * 1024 } });
-app.post("/api/premium/upload-screenshots", requireAuth, upload.fields([{ name: "ss1", maxCount: 1 }, { name: "ss2", maxCount: 1 }]), async (req, res) => {
-  const userId = (req as any).userId;
-  const files = req.files as Record<string, Express.Multer.File[]>;
-  const ts = Date.now();
-  const results: { url1: string; url2: string } = { url1: "", url2: "" };
-
-  for (const [key, dest] of [["ss1", "url1"], ["ss2", "url2"]] as const) {
-    const file = files?.[key]?.[0];
-    if (!file) continue;
-    const ext = (file.originalname.split(".").pop() ?? "jpg").toLowerCase();
-    const fileName = `${userId}-${ts}-${key}.${ext}`;
-    const { error } = await supabaseAdmin.storage
-      .from("premium-screenshots")
-      .upload(fileName, file.buffer, { contentType: file.mimetype, upsert: true });
-    if (!error) {
-      const { data } = supabaseAdmin.storage.from("premium-screenshots").getPublicUrl(fileName);
-      results[dest] = data.publicUrl;
-    }
-  }
-
-  res.json(results);
-});
-
-// POST /api/premium/apply — kirim aplikasi premium
-app.post("/api/premium/apply", requireAuth, async (req, res) => {
-  const userId = (req as any).userId;
-  let body: any = {};
-  try {
-    const raw = req.body instanceof Buffer ? req.body.toString("utf8") : req.body;
-    body = typeof raw === "string" ? JSON.parse(raw) : raw;
-  } catch { /**/ }
-
-  const instagram = (body.instagram || "").trim().replace(/^@/, "");
-  const screenshot_url = (body.screenshot_url || "").trim();
-  const screenshot_url_2 = (body.screenshot_url_2 || "").trim();
-  if (!instagram) { res.status(400).json({ error: "Username Instagram wajib diisi." }); return; }
-
-  // Cek apakah sudah punya aplikasi
-  const [{ data: existing }, { data: profile }] = await Promise.all([
-    supabaseAdmin.from("premium_applications").select("id, status").eq("user_id", userId).maybeSingle(),
-    supabaseAdmin.from("profiles").select("is_premium, premium_expires_at").eq("id", userId).single(),
-  ]);
-
-  if (existing) {
-    if (existing.status === "approved") {
-      // Kalau Plus-nya masih aktif, tolak
-      if (isPremiumActive(profile ?? {})) {
-        res.status(400).json({ error: "Akunmu sudah premium!" }); return;
-      }
-      // Plus sudah expired → boleh ajukan ulang
-    }
-    if (existing.status === "pending") { res.status(400).json({ error: "Aplikasimu sedang dalam review." }); return; }
-    // rejected atau expired approved → boleh apply ulang
-    const { error } = await supabaseAdmin.from("premium_applications")
-      .update({ instagram, screenshot_url, screenshot_url_2, status: "pending", reviewed_at: null })
-      .eq("user_id", userId);
-    if (error) { res.status(500).json({ error: error.message }); return; }
-    res.json({ ok: true, message: "Aplikasi berhasil dikirim ulang." });
-    return;
-  }
-
-  const { error } = await supabaseAdmin.from("premium_applications").insert({ user_id: userId, instagram, screenshot_url, screenshot_url_2 });
-  if (error) { res.status(500).json({ error: error.message }); return; }
-  res.json({ ok: true, message: "Aplikasi berhasil dikirim!" });
-});
-
-// GET /api/admin/premium-applications — daftar semua aplikasi (admin only)
-app.get("/api/admin/premium-applications", requireAuth, requireAdmin, async (_req, res) => {
-  const { data: apps, error } = await supabaseAdmin
-    .from("premium_applications")
-    .select("*")
-    .order("created_at", { ascending: false });
-  if (error) { res.status(500).json({ error: error.message }); return; }
-
-  // Gabungkan dengan email user
-  const { data: authUsers } = await supabaseAdmin.auth.admin.listUsers();
-  const emailMap: Record<string, string> = {};
-  (authUsers?.users || []).forEach((u) => { if (u.email) emailMap[u.id] = u.email; });
-
-  const result = (apps || []).map((a: any) => ({ ...a, email: emailMap[a.user_id] ?? "" }));
-  res.json({ applications: result });
-});
-
-// PATCH /api/admin/premium-applications/:id/approve
-// Body opsional: { tier: 'plus' | 'pro' } — default 'plus'.
-app.patch("/api/admin/premium-applications/:id/approve", requireAuth, requireAdmin, async (req, res) => {
-  const { id } = req.params;
-  let body: any = {};
-  try {
-    const raw = req.body instanceof Buffer ? req.body.toString("utf8") : req.body;
-    body = typeof raw === "string" ? JSON.parse(raw) : raw;
-  } catch { /**/ }
-  const requestedTier: Tier = body?.tier === "pro" ? "pro" : "plus";
-
-  const { data: app } = await supabaseAdmin.from("premium_applications").select("user_id").eq("id", id).single();
-  if (!app) { res.status(404).json({ error: "Aplikasi tidak ditemukan." }); return; }
-
-  const now = new Date().toISOString();
-
-  await supabaseAdmin.from("premium_applications")
-    .update({ status: "approved", reviewed_at: now, tier: requestedTier })
-    .eq("id", id);
-  // video_credits tidak perlu diubah — getVideoCredits hitung sisa otomatis dari used count
-  await supabaseAdmin.from("profiles").update({
-    is_premium: true,
-    tier: requestedTier,
-    premium_expires_at: oneMonthFromNow(),
-  }).eq("id", app.user_id);
-
-  // Bonus saldo credit — hanya sekali per tier (idempotent), Plus→Pro dapet selisih
-  const { granted, amount } = await grantTierBonusOnce(app.user_id, requestedTier, {
-    source: "premium_application_approve",
-    application_id: id,
-  });
-
-  res.json({ ok: true, bonus_granted: granted, bonus_amount_idr: amount, tier: requestedTier });
-});
-
-// PATCH /api/admin/premium-applications/:id/reject
-app.patch("/api/admin/premium-applications/:id/reject", requireAuth, requireAdmin, async (req, res) => {
-  const { id } = req.params;
-  let body: any = {};
-  try {
-    const raw = req.body instanceof Buffer ? req.body.toString("utf8") : req.body;
-    body = typeof raw === "string" ? JSON.parse(raw) : raw;
-  } catch { /**/ }
-  const rejection_note = (body.note || "").trim();
-  const now = new Date().toISOString();
-  const { error } = await supabaseAdmin.from("premium_applications")
-    .update({ status: "rejected", reviewed_at: now, rejection_note })
-    .eq("id", id);
-  if (error) { res.status(500).json({ error: error.message }); return; }
-  res.json({ ok: true });
-});
 
 // PATCH /api/admin/users/:id/premium — toggle premium langsung dari tab pengguna
 // Body: { is_premium: boolean, tier?: 'plus'|'pro', days?: number }
