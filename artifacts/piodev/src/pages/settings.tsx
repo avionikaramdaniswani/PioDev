@@ -446,75 +446,94 @@ export default function Settings() {
               )}
 
               {activeSection === "personalisasi" && (
-                <div className="space-y-8">
-                  <div>
-                    <h2 className="hidden md:block text-lg font-semibold text-foreground mb-1">Personalisasi</h2>
-                    <p className="hidden md:block text-sm text-muted-foreground mb-8">Sesuaikan cara Pioo 2.0 berinteraksi denganmu.</p>
+                <div className="space-y-6">
+                  {/* Page heading */}
+                  <div className="hidden md:block">
+                    <h2 className="text-lg font-semibold text-foreground mb-1">Personalisasi</h2>
+                    <p className="text-sm text-muted-foreground">Atur cara Pioo 2.0 ngobrol denganmu. Tersimpan otomatis.</p>
+                  </div>
 
-                    <div className="space-y-6">
+                  {/* Card: Tentang Kamu */}
+                  <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+                    <div className="flex items-center gap-2 mb-1">
+                      <User className="w-4 h-4 text-muted-foreground" />
+                      <h3 className="text-sm font-semibold text-foreground">Tentang Kamu</h3>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-5">Biar AI bisa nyambung sama konteksmu.</p>
 
-                      {/* Nama panggilan */}
+                    <div className="space-y-5">
                       <div>
                         <label className="block text-sm font-medium text-foreground mb-1.5">Nama panggilan</label>
                         <input
                           type="text"
                           value={persona.nickname}
                           onChange={(e) => savePersona({ nickname: e.target.value })}
-                          placeholder="Misal: Pio, Budi, Alex..."
-                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition"
-                        />
-                        <p className="text-xs text-muted-foreground mt-1.5">AI akan menyapamu dengan nama ini.</p>
-                      </div>
-
-                      {/* Role / Pekerjaan */}
-                      <div>
-                        <label className="block text-sm font-medium text-foreground mb-1.5">Role / Pekerjaan</label>
-                        <input
-                          type="text"
-                          value={persona.role}
-                          onChange={(e) => savePersona({ role: e.target.value })}
-                          placeholder="Misal: Frontend Developer, Backend Engineer, Student..."
+                          placeholder="Misal: Pio, Budi, Alex"
                           className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition"
                         />
                       </div>
 
-                      {/* Tech stack */}
-                      <div>
-                        <label className="block text-sm font-medium text-foreground mb-1.5">Tech stack utama</label>
-                        <input
-                          type="text"
-                          value={persona.stack}
-                          onChange={(e) => savePersona({ stack: e.target.value })}
-                          placeholder="Misal: React, TypeScript, Node.js, Python..."
-                          className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition"
-                        />
-                        <p className="text-xs text-muted-foreground mt-1.5">Contoh kode akan disesuaikan dengan stack ini.</p>
+                      <div className="grid sm:grid-cols-2 gap-5">
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-1.5">Role / Pekerjaan</label>
+                          <input
+                            type="text"
+                            value={persona.role}
+                            onChange={(e) => savePersona({ role: e.target.value })}
+                            placeholder="Frontend Developer"
+                            className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-sm font-medium text-foreground mb-1.5">Tech stack</label>
+                          <input
+                            type="text"
+                            value={persona.stack}
+                            onChange={(e) => savePersona({ stack: e.target.value })}
+                            placeholder="React, TypeScript"
+                            className="w-full px-4 py-2.5 rounded-xl border border-border bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/40 focus:border-primary/60 transition"
+                          />
+                        </div>
                       </div>
 
-                      {/* Level */}
                       <div>
                         <label className="block text-sm font-medium text-foreground mb-2">Level pengalaman</label>
                         <div className="grid grid-cols-3 gap-2">
-                          {(["junior", "mid", "senior"] as const).map((lvl) => (
+                          {([
+                            { value: "junior", label: "Junior" },
+                            { value: "mid", label: "Mid" },
+                            { value: "senior", label: "Senior" },
+                          ] as const).map(({ value, label }) => (
                             <button
-                              key={lvl}
-                              onClick={() => savePersona({ level: lvl })}
+                              key={value}
+                              onClick={() => savePersona({ level: value })}
                               className={cn(
-                                "py-2.5 rounded-xl border text-sm font-medium capitalize transition-all",
-                                persona.level === lvl
+                                "py-2.5 rounded-xl border text-sm font-medium transition-all",
+                                persona.level === value
                                   ? "border-primary bg-primary/10 text-primary"
                                   : "border-border bg-background text-muted-foreground hover:border-primary/40 hover:text-foreground"
                               )}
                             >
-                              {lvl}
+                              {label}
                             </button>
                           ))}
                         </div>
                       </div>
+                    </div>
+                  </div>
 
-                      {/* Bahasa jawaban */}
+                  {/* Card: Gaya Jawaban */}
+                  <div className="rounded-2xl border border-border bg-card p-5 sm:p-6">
+                    <div className="flex items-center gap-2 mb-1">
+                      <Sparkles className="w-4 h-4 text-muted-foreground" />
+                      <h3 className="text-sm font-semibold text-foreground">Gaya Jawaban</h3>
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-5">Bahasa, gaya, dan tone yang dipakai AI saat menjawab.</p>
+
+                    <div className="space-y-5">
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">Bahasa jawaban</label>
+                        <label className="block text-sm font-medium text-foreground mb-2">Bahasa</label>
                         <div className="grid grid-cols-3 gap-2">
                           {([
                             { value: "indonesia", label: "Indonesia" },
@@ -537,9 +556,8 @@ export default function Settings() {
                         </div>
                       </div>
 
-                      {/* Gaya jawaban */}
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">Gaya jawaban</label>
+                        <label className="block text-sm font-medium text-foreground mb-2">Panjang jawaban</label>
                         <div className="grid grid-cols-2 gap-2">
                           {([
                             { value: "concise", label: "Ringkas", desc: "Langsung ke poin" },
@@ -562,9 +580,8 @@ export default function Settings() {
                         </div>
                       </div>
 
-                      {/* Tone */}
                       <div>
-                        <label className="block text-sm font-medium text-foreground mb-2">Tone komunikasi</label>
+                        <label className="block text-sm font-medium text-foreground mb-2">Tone</label>
                         <div className="grid grid-cols-3 gap-2">
                           {([
                             { value: "casual", label: "Santai" },
@@ -586,30 +603,18 @@ export default function Settings() {
                           ))}
                         </div>
                       </div>
-
-                      {/* Preview system prompt */}
-                      {(persona.nickname || persona.role || persona.stack || persona.level) && (
-                        <div className="p-4 rounded-xl border border-border bg-muted/30">
-                          <p className="text-xs font-medium text-muted-foreground mb-2">Preview instruksi ke AI:</p>
-                          <p className="text-xs text-muted-foreground leading-relaxed italic">
-                            {persona.nickname && `Nama user: ${persona.nickname}. `}
-                            {persona.role && `Role: ${persona.role}. `}
-                            {persona.stack && `Stack: ${persona.stack}. `}
-                            {persona.level && `Level: ${persona.level}. `}
-                            {persona.language === "indonesia" && "Jawab dalam Bahasa Indonesia. "}
-                            {persona.language === "english" && "Respond in English. "}
-                            {persona.language === "mixed" && "Jawab dengan code-switching. "}
-                            {persona.answerStyle === "concise" && "Gaya: ringkas. "}
-                            {persona.answerStyle === "detailed" && "Gaya: detail. "}
-                            {persona.tone && `Tone: ${persona.tone}.`}
-                          </p>
-                        </div>
-                      )}
-
-                      <p className="text-xs text-muted-foreground">
-                        {personaSaving ? "Menyimpan ke database..." : "Tersimpan otomatis ke database. Berlaku mulai pesan berikutnya."}
-                      </p>
                     </div>
+                  </div>
+
+                  {/* Status simpan */}
+                  <div className="flex items-center gap-2 px-1">
+                    <span className={cn(
+                      "inline-block w-1.5 h-1.5 rounded-full transition-colors",
+                      personaSaving ? "bg-amber-500 animate-pulse" : "bg-green-500"
+                    )} />
+                    <p className="text-xs text-muted-foreground">
+                      {personaSaving ? "Menyimpan..." : "Tersimpan. Berlaku mulai pesan berikutnya."}
+                    </p>
                   </div>
                 </div>
               )}
