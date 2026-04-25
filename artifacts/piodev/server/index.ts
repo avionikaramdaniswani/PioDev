@@ -1263,13 +1263,13 @@ app.patch("/api/me/api-keys/:id", requireAuth, async (req, res) => {
   res.json({ success: true, key: data });
 });
 
-// ── DELETE /api/me/api-keys/:id — revoke key ─────────────────────────────────
+// ── DELETE /api/me/api-keys/:id — hapus permanen ─────────────────────────────
 app.delete("/api/me/api-keys/:id", requireAuth, async (req, res) => {
   const userId = (req as any).userId;
   const { id } = req.params;
   const { error } = await supabaseAdmin
     .from("api_keys")
-    .update({ revoked_at: new Date().toISOString() })
+    .delete()
     .eq("id", id)
     .eq("user_id", userId);
   if (error) { res.status(500).json({ error: error.message }); return; }
