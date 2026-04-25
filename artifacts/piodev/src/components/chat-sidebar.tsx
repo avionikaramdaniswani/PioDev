@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
-import { Plus, Settings, LogOut, MessageSquare, Trash2, Pencil, Search, X, MoreHorizontal, Star, Menu, Shield, Newspaper, Video, Key } from "lucide-react";
+import { Plus, Settings, LogOut, MessageSquare, Trash2, Pencil, Search, X, MoreHorizontal, Star, Menu, Shield, Newspaper, Video, Key, Sparkles } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
@@ -501,18 +501,21 @@ export function ChatSidebar({
                     <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
                   )}
                 </div>
-                <span>What's New</span>
+                <span>Yang Baru</span>
                 {hasNewChangelog && (
                   <span className="ml-auto text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded-full">Baru</span>
                 )}
               </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => navigate("/premium")}
+                className="gap-2 cursor-pointer text-amber-600 dark:text-amber-400 focus:text-amber-700 dark:focus:text-amber-300"
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Upgrade ke Plus</span>
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate("/api-keys")} className="gap-2 cursor-pointer">
                 <Key className="w-4 h-4" />
                 <span>API Keys</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/video-studio")} className="gap-2 cursor-pointer">
-                <Video className="w-4 h-4" />
-                <span>Pio Studio</span>
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate("/settings")} className="gap-2 cursor-pointer">
                 <Settings className="w-4 h-4" />
