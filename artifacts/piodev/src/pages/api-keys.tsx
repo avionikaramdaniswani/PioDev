@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Key, Plus, Copy, Trash2, AlertTriangle, Check, ArrowLeft, Code, Zap, Clock, Sparkles, MessageSquare, Image as ImageIcon, Video, FileText, ScanText, Lock, Lightbulb, AlertCircle, Rocket, BookOpen, Layers, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Key, Plus, Copy, Trash2, AlertTriangle, Check, ArrowLeft, Code, Zap, Clock, Sparkles, MessageSquare, Image as ImageIcon, Video, FileText, ScanText, Lock, Lightbulb, AlertCircle, Rocket, BookOpen, Layers, Eye, EyeOff, Loader2, Wallet, Activity } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useAuth } from "@/hooks/use-auth";
@@ -220,11 +220,13 @@ export default function ApiKeysPage() {
 
         {/* Usage cards */}
         {usage && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-            <UsageCard label="Token hari ini" used={usage.usage.total_tokens} limit={usage.limits.tokens} />
-            <UsageCard label="Image hari ini" used={usage.usage.image_count} limit={usage.limits.images} />
-            <UsageCard label="Video hari ini" used={usage.usage.video_count} limit={usage.limits.videos} />
-            <UsageCard label="Request hari ini" used={usage.usage.request_count} limit={usage.limits.requests} />
+          <div className="space-y-3 mb-6">
+            <SaldoCard tokensUsed={usage.usage.total_tokens} tokensLimit={usage.limits.tokens} />
+            <div className="grid grid-cols-3 gap-3">
+              <MiniUsageCard icon={ImageIcon} label="Image hari ini" used={usage.usage.image_count} limit={usage.limits.images} color="text-fuchsia-500" />
+              <MiniUsageCard icon={Video} label="Video hari ini" used={usage.usage.video_count} limit={usage.limits.videos} color="text-rose-500" />
+              <MiniUsageCard icon={Activity} label="Request hari ini" used={usage.usage.request_count} limit={usage.limits.requests} color="text-sky-500" />
+            </div>
           </div>
         )}
 
@@ -446,19 +448,114 @@ export default function ApiKeysPage() {
   );
 }
 
-function UsageCard({ label, used, limit }: { label: string; used: number; limit: number }) {
+// Konversi: 2 token = Rp 1
+const TOKEN_PER_RP = 2;
+const formatIdr = (n: number) => `Rp ${Math.max(0, Math.floor(n)).toLocaleString("id-ID")}`;
+
+function useWibCountdown() {
+  const [text, setText] = useState("");
+  useEffect(() => {
+    const tick = () => {
+      const now = Date.now();
+      // WIB midnight = 17:00 UTC sehari sebelumnya. Cari 17:00 UTC berikutnya.
+      const d = new Date();
+      let target = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate(), 17, 0, 0);
+      if (target <= now) target += 24 * 3600 * 1000;
+      const diff = Math.max(0, target - now);
+      const h = Math.floor(diff / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      setText(`${h}j ${m}m ${s}d`);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
+  return text;
+}
+
+function SaldoCard({ tokensUsed, tokensLimit }: { tokensUsed: number; tokensLimit: number }) {
+  const balanceUsed = Math.floor(tokensUsed / TOKEN_PER_RP);
+  const balanceLimit = Math.max(1, Math.floor(tokensLimit / TOKEN_PER_RP));
+  const remaining = Math.max(0, balanceLimit - balanceUsed);
+  const pct = Math.min((balanceUsed / balanceLimit) * 100, 100);
+  const lowBalance = pct >= 80;
+  const countdown = useWibCountdown();
+
+  return (
+    <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/10 via-card to-card p-5" data-testid="card-saldo">
+      <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-12 -left-8 w-36 h-36 rounded-full bg-fuchsia-500/10 blur-3xl pointer-events-none" />
+
+      <div className="relative">
+        {/* Header */}
+        <div className="flex items-start justify-between mb-4">
+          <div className="flex items-center gap-2.5">
+            <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center ring-1 ring-primary/20">
+              <Wallet className="w-5 h-5 text-primary" />
+            </div>
+            <div>
+              <p className="text-sm font-semibold leading-tight">Pio Saldo</p>
+              <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">Saldo simulasi · bukan rupiah asli</p>
+            </div>
+          </div>
+          <span className="text-[10px] uppercase tracking-wider px-2 py-1 rounded-md bg-primary/15 text-primary font-bold">
+            API · Harian
+          </span>
+        </div>
+
+        {/* Big nominal */}
+        <div className="mb-4">
+          <p className="text-3xl md:text-4xl font-bold tracking-tight" data-testid="text-saldo-remaining">
+            {formatIdr(remaining)}
+          </p>
+          <p className="text-xs text-muted-foreground mt-1">
+            tersisa dari <span className="font-medium text-foreground/80">{formatIdr(balanceLimit)}</span> · terpakai <span className={cn("font-medium", lowBalance ? "text-amber-500" : "text-foreground/80")}>{formatIdr(balanceUsed)}</span>
+          </p>
+        </div>
+
+        {/* Progress */}
+        <div className="h-2 rounded-full bg-muted overflow-hidden mb-4">
+          <div
+            className={cn(
+              "h-full transition-all duration-500",
+              lowBalance ? "bg-gradient-to-r from-amber-500 to-rose-500" : "bg-gradient-to-r from-primary to-primary/60"
+            )}
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+
+        {/* Countdown + tariff */}
+        <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+          <div className="flex items-center gap-1.5 text-muted-foreground">
+            <Clock className="w-3.5 h-3.5" />
+            <span>Refill <span className="font-semibold text-foreground tabular-nums">{countdown}</span></span>
+          </div>
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="hidden sm:inline text-muted-foreground">Tarif:</span>
+            <span className="px-1.5 py-0.5 rounded bg-muted/70 text-muted-foreground"><MessageSquare className="w-3 h-3 inline mr-0.5 -mt-0.5" />~Rp 250</span>
+            <span className="px-1.5 py-0.5 rounded bg-muted/70 text-muted-foreground"><ImageIcon className="w-3 h-3 inline mr-0.5 -mt-0.5" />Rp 4rb</span>
+            <span className="px-1.5 py-0.5 rounded bg-muted/70 text-muted-foreground"><Video className="w-3 h-3 inline mr-0.5 -mt-0.5" />Rp 50rb</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MiniUsageCard({ icon: Icon, label, used, limit, color }: { icon: any; label: string; used: number; limit: number; color: string }) {
   const pct = Math.min((used / limit) * 100, 100);
   return (
-    <div className="p-4 rounded-xl border border-border bg-card">
-      <p className="text-xs text-muted-foreground mb-1">{label}</p>
-      <p className="text-lg font-semibold mb-2">
-        {used.toLocaleString()} <span className="text-xs text-muted-foreground font-normal">/ {limit.toLocaleString()}</span>
+    <div className="p-3 rounded-xl border border-border bg-card">
+      <div className="flex items-center gap-1.5 mb-1.5">
+        <Icon className={cn("w-3.5 h-3.5", color)} />
+        <p className="text-[11px] text-muted-foreground truncate">{label}</p>
+      </div>
+      <p className="text-base font-semibold mb-1.5">
+        {used.toLocaleString()}<span className="text-xs text-muted-foreground font-normal"> / {limit.toLocaleString()}</span>
       </p>
-      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-        <div
-          className={cn("h-full transition-all", pct > 80 ? "bg-amber-500" : "bg-primary")}
-          style={{ width: `${pct}%` }}
-        />
+      <div className="h-1 rounded-full bg-muted overflow-hidden">
+        <div className={cn("h-full transition-all", pct > 80 ? "bg-amber-500" : "bg-primary/70")} style={{ width: `${pct}%` }} />
       </div>
     </div>
   );
