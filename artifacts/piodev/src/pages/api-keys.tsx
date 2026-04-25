@@ -714,7 +714,7 @@ export default function ApiKeysPage() {
               </div>
 
               <p className="text-sm text-foreground/90 leading-relaxed mb-5">
-                Payment gateway untuk top up saldo <strong>segera hadir</strong>. Sambil nunggu, kamu bisa coba paket Plus gratis selama 1 bulan dan dapet bonus saldo Rp 25.000 langsung.
+                Payment gateway untuk top up saldo <strong>segera hadir</strong>. Sambil nunggu, kamu bisa coba paket Plus gratis selama 1 bulan dan dapet bonus saldo Rp 75.000 langsung.
               </p>
 
               <div className="flex flex-col-reverse sm:flex-row gap-2">

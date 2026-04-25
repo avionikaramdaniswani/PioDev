@@ -44,7 +44,9 @@ const PLUS_UPGRADE_BONUS_IDR = 75_000;   // bonus sekali saat upgrade ke Plus
 const PRO_UPGRADE_BONUS_IDR  = 125_000;  // bonus sekali saat upgrade ke Pro
 
 // ── Trial Plus (uji coba gratis 1 bulan, sekali per akun) ─────────────────────
-const PLUS_TRIAL_BONUS_IDR    = 25_000;  // bonus saldo saat klaim trial (lebih kecil dari upgrade berbayar)
+// Bonus saldo trial = sama dengan bonus upgrade Plus berbayar (Rp 75.000), pakai
+// helper `grantTierBonusOnce` sehingga idempotent: kalau user trial dulu lalu
+// nanti upgrade berbayar, ga dapet dobel — cuma sekali per akun.
 const PLUS_TRIAL_DURATION_DAYS = 30;     // durasi trial
 
 function tokensToIdr(tokens: number): number {
@@ -767,11 +769,15 @@ app.post("/api/premium/claim-trial", requireAuth, async (req, res) => {
     return;
   }
 
-  // 4. Kasih bonus saldo Rp 25.000 (type khusus 'bonus_plus_trial' — gak ngeblok bonus upgrade berbayar nanti)
+  // 4. Kasih bonus saldo Plus (Rp 75.000) — sama kayak upgrade berbayar.
+  //    Pake helper idempotent supaya user yang trial → expired → beli berbayar nanti
+  //    cuma dapet bonus ini sekali (gak dobel).
   let bonusGranted = false;
+  let bonusAmount = 0;
   try {
-    await addCredit(userId, PLUS_TRIAL_BONUS_IDR, "bonus_plus_trial", { source: "claim_trial" });
-    bonusGranted = true;
+    const result = await grantTierBonusOnce(userId, "plus", { source: "claim_trial" });
+    bonusGranted = result.granted;
+    bonusAmount = result.amount;
   } catch (e) {
     console.error("[claim-trial] bonus credit failed:", e);
   }
@@ -782,7 +788,7 @@ app.post("/api/premium/claim-trial", requireAuth, async (req, res) => {
     premium_expires_at: expiresAt.toISOString(),
     trial_claimed_at: now.toISOString(),
     bonus_granted: bonusGranted,
-    bonus_amount_idr: bonusGranted ? PLUS_TRIAL_BONUS_IDR : 0,
+    bonus_amount_idr: bonusAmount,
     duration_days: PLUS_TRIAL_DURATION_DAYS,
   });
 });
