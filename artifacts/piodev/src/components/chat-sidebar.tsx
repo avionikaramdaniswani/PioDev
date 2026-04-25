@@ -495,15 +495,10 @@ export function ChatSidebar({
                 onClick={() => { setHasNewChangelog(false); navigate("/whats-new"); }}
                 className="gap-2 cursor-pointer"
               >
-                <div className="relative">
-                  <Newspaper className="w-4 h-4" />
-                  {hasNewChangelog && (
-                    <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
-                  )}
-                </div>
-                <span>Apa yang baru?</span>
+                <Newspaper className="w-4 h-4" />
+                <span className="whitespace-nowrap">Apa yang baru?</span>
                 {hasNewChangelog && (
-                  <span className="ml-auto text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded-full">Baru</span>
+                  <span className="ml-auto w-2 h-2 rounded-full bg-red-500" />
                 )}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={() => navigate("/settings")} className="gap-2 cursor-pointer">
