@@ -1,4 +1,4 @@
--- PioDev: Admin RBAC Migration
+-- PioCode: Admin RBAC Migration
 -- Jalankan di Supabase Dashboard → SQL Editor
 
 -- 1. Buat tabel profiles

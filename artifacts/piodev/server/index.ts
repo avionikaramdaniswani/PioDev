@@ -76,7 +76,7 @@ const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
 const dashscopeApiKey = process.env.VITE_OPENAI_API_KEY!;
 
 if (!supabaseUrl || !supabaseAnonKey || !dashscopeApiKey) {
-  console.error("[PioDev API] Missing required environment variables.");
+  console.error("[PioCode API] Missing required environment variables.");
   process.exit(1);
 }
 
@@ -768,7 +768,7 @@ app.patch("/api/admin/users/:id/premium", requireAuth, requireAdmin, async (req,
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// ── API KEYS (BYOK — Bring Your Own Key untuk akses PioDev API dari luar) ─────
+// ── API KEYS (BYOK — Bring Your Own Key untuk akses PioCode API dari luar) ─────
 // ═══════════════════════════════════════════════════════════════════════════════
 
 const API_KEY_PREFIX = "pio-sk-";
@@ -1522,7 +1522,7 @@ app.all("/api/dashscope/*splat", requireAuth, async (req, res) => {
   try {
     upstream = await fetch(targetUrl, fetchInit);
   } catch (err) {
-    console.error("[PioDev API] Upstream fetch error:", err);
+    console.error("[PioCode API] Upstream fetch error:", err);
     res.status(502).json({ error: "Bad gateway" });
     return;
   }
@@ -1657,7 +1657,7 @@ app.post("/api/voice/synthesize", requireAuth, async (req, res) => {
         "Ocp-Apim-Subscription-Key": AZURE_SPEECH_KEY,
         "Content-Type": "application/ssml+xml",
         "X-Microsoft-OutputFormat": "audio-24khz-48kbitrate-mono-mp3",
-        "User-Agent": "PioDev",
+        "User-Agent": "PioCode",
       },
       body: ssml,
     });
@@ -1714,24 +1714,24 @@ if (IS_PRODUCTION) {
 
 const portTaken = IS_PRODUCTION ? false : await isPortInUse(SERVER_PORT);
 if (portTaken) {
-  console.log(`[PioDev API] Port ${SERVER_PORT} sudah dipakai instance lain. Skip start server.`);
+  console.log(`[PioCode API] Port ${SERVER_PORT} sudah dipakai instance lain. Skip start server.`);
   // Jaga event loop tetap hidup agar Vite di concurrently tidak mati
   setInterval(() => {}, 60_000);
 } else {
   const server = app.listen(SERVER_PORT, "0.0.0.0", () => {
-    console.log(`[PioDev API] Secure proxy running on port ${SERVER_PORT}`);
+    console.log(`[PioCode API] Secure proxy running on port ${SERVER_PORT}`);
   });
 
   server.on("error", (err: NodeJS.ErrnoException) => {
-    console.error("[PioDev API] Server error:", err.code, err.message);
+    console.error("[PioCode API] Server error:", err.code, err.message);
     // Jika port tetiba ditangkap instance lain, tetap jaga proses
     setInterval(() => {}, 60_000);
   });
 
   process.on("uncaughtException", (err) => {
-    console.error("[PioDev API] Uncaught exception:", err);
+    console.error("[PioCode API] Uncaught exception:", err);
   });
   process.on("unhandledRejection", (reason) => {
-    console.error("[PioDev API] Unhandled rejection:", reason);
+    console.error("[PioCode API] Unhandled rejection:", reason);
   });
 }

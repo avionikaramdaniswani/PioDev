@@ -27,7 +27,7 @@ export default function LandingPage() {
       <nav className="relative z-10 flex items-center justify-between px-6 sm:px-10 py-5 max-w-6xl mx-auto">
         <div className="flex items-center gap-2.5">
           <Logo size={32} />
-          <span className="font-bold text-lg tracking-tight">PioDev</span>
+          <span className="font-bold text-lg tracking-tight">PioCode</span>
         </div>
         <div className="flex items-center gap-2">
           <Link href="/login">
@@ -94,7 +94,7 @@ export default function LandingPage() {
               <div className="w-3 h-3 rounded-full bg-red-500/60" />
               <div className="w-3 h-3 rounded-full bg-yellow-500/60" />
               <div className="w-3 h-3 rounded-full bg-green-500/60" />
-              <span className="ml-2 text-xs text-white/20 font-mono">PioDev Chat</span>
+              <span className="ml-2 text-xs text-white/20 font-mono">PioCode Chat</span>
             </div>
             <div className="space-y-4">
               <div className="flex justify-end">
@@ -134,7 +134,7 @@ export default function LandingPage() {
       <footer className="relative z-10 border-t border-white/5 py-8 text-center">
         <div className="flex items-center justify-center gap-2 text-white/30 text-xs">
           <Terminal className="w-3.5 h-3.5" />
-          <span>PioDev — teman ngoding yang selalu siap</span>
+          <span>PioCode — teman ngoding yang selalu siap</span>
         </div>
       </footer>
     </div>

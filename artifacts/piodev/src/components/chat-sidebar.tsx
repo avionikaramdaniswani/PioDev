@@ -334,7 +334,7 @@ export function ChatSidebar({
       <div className="px-3 py-3 flex items-center justify-between">
         <div className="flex items-center gap-2 font-bold text-lg text-sidebar-foreground px-1">
           <Logo size={20} />
-          PioDev
+          PioCode
         </div>
         {onCollapse && (
           <button

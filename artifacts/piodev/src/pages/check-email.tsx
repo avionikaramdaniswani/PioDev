@@ -19,7 +19,7 @@ export default function CheckEmail() {
 
         <div className="relative z-10 flex items-center gap-2.5">
           <Logo size={32} />
-          <span className="text-white font-bold tracking-tight">PioDev</span>
+          <span className="text-white font-bold tracking-tight">PioCode</span>
         </div>
 
         <div className="relative z-10">
@@ -54,7 +54,7 @@ export default function CheckEmail() {
           >
             <div className="flex items-center gap-2 mb-8 lg:hidden justify-center">
               <Logo size={32} />
-              <span className="font-bold text-foreground tracking-tight">PioDev</span>
+              <span className="font-bold text-foreground tracking-tight">PioCode</span>
             </div>
 
             <div className="mx-auto w-16 h-16 bg-primary/10 border border-primary/20 rounded-2xl flex items-center justify-center mb-6">

@@ -1,9 +1,9 @@
 -- ============================================================
--- PioDev — API Keys Migration
+-- PioCode — API Keys Migration
 -- Jalankan di Supabase Dashboard → SQL Editor
 -- ============================================================
 
--- 1. Tabel api_keys (BYOK — user generate key untuk pakai PioDev API dari luar)
+-- 1. Tabel api_keys (BYOK — user generate key untuk pakai PioCode API dari luar)
 CREATE TABLE IF NOT EXISTS public.api_keys (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,

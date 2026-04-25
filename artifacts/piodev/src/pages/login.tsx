@@ -39,7 +39,7 @@ export default function Login() {
 
         <div className="relative z-10 flex items-center gap-2.5">
           <Logo size={32} />
-          <span className="text-white font-bold tracking-tight">PioDev</span>
+          <span className="text-white font-bold tracking-tight">PioCode</span>
         </div>
 
         <div className="relative z-10">
@@ -90,7 +90,7 @@ export default function Login() {
           >
             <div className="flex items-center gap-2 mb-7 lg:hidden">
               <Logo size={32} />
-              <span className="font-bold text-foreground tracking-tight">PioDev</span>
+              <span className="font-bold text-foreground tracking-tight">PioCode</span>
             </div>
 
             <div className="mb-6">

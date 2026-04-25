@@ -10,7 +10,7 @@ export function Logo({ className, size = 32 }: LogoProps) {
   return (
     <img
       src={logoSrc}
-      alt="PioDev"
+      alt="PioCode"
       width={size}
       height={size}
       className={cn("object-contain shrink-0", className)}

@@ -75,7 +75,7 @@ function SectionRingkasan({ stats, dailyUsage }: {
     <div className="space-y-6">
       <div>
         <h2 className="text-base font-semibold text-foreground mb-1">Ringkasan Platform</h2>
-        <p className="text-sm text-muted-foreground">Statistik keseluruhan PioDev 2.0</p>
+        <p className="text-sm text-muted-foreground">Statistik keseluruhan PioCode 2.0</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -827,7 +827,7 @@ export default function AdminPage() {
         <div className="px-4 py-4 flex items-center gap-2 border-b border-sidebar-border">
           <Logo size={28} />
           <div>
-            <div className="text-sm font-semibold text-sidebar-foreground leading-tight">PioDev Admin</div>
+            <div className="text-sm font-semibold text-sidebar-foreground leading-tight">PioCode Admin</div>
             <div className="text-[10px] text-sidebar-foreground/50">Dashboard</div>
           </div>
         </div>

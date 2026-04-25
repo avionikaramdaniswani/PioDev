@@ -1,4 +1,4 @@
-# PioDev
+# PioCode
 
 Platform chatbot AI berbasis React + Supabase.
 
@@ -22,7 +22,7 @@ Platform chatbot AI berbasis React + Supabase.
 - **Personalization** — custom system prompt, persona settings
 - **What's New** — changelog dengan notifikasi badge
 - **Freemium Tier (Penawaran Plus Terbatas)** — verifikasi follow Instagram untuk akses Plus
-- **API Keys (BYOK)** — Plus user generate `pio-sk-...` untuk akses PioDev API dari luar. Key disimpan ter-enkripsi (AES-256-GCM via `API_KEY_ENCRYPTION_SECRET`) → bisa di-reveal & copy ulang kayak Gemini AI Studio. Limit harian terpisah (200K token / 50 image / 10 video / 1000 req).
+- **API Keys (BYOK)** — Plus user generate `pio-sk-...` untuk akses PioCode API dari luar. Key disimpan ter-enkripsi (AES-256-GCM via `API_KEY_ENCRYPTION_SECRET`) → bisa di-reveal & copy ulang kayak Gemini AI Studio. Limit harian terpisah (200K token / 50 image / 10 video / 1000 req).
 - **Pio Saldo (display only)** — di halaman `/api-keys`, kuota token API ditampilkan dalam format IDR pakai konversi **2 token = Rp 1**. Jadi 200K token = saldo harian Rp 100.000. Tarif tampilan: chat singkat ~Rp 250, image ~Rp 4rb, video ~Rp 50rb. Murni transformasi UI di `SaldoCard` (`src/pages/api-keys.tsx`), backend masih hitung dalam token. Saldo simulasi, bukan rupiah asli.
 
 ## Sistem Hak Akses (Privilege)

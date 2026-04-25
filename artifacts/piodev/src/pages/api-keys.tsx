@@ -195,7 +195,7 @@ export default function ApiKeysPage() {
               API Keys
             </h1>
             <p className="text-sm text-muted-foreground">
-              Pakai PioDev AI dari aplikasi atau script kamu sendiri.
+              Pakai PioCode AI dari aplikasi atau script kamu sendiri.
             </p>
           </div>
         </div>
@@ -759,10 +759,10 @@ function Docs() {
       {docTab === "start" && (
         <div className="space-y-6">
           <Card className="bg-gradient-to-br from-primary/5 to-transparent">
-            <SectionHeader icon={Rocket} title="Apa itu PioDev API?" />
+            <SectionHeader icon={Rocket} title="Apa itu PioCode API?" />
             <p className="text-sm text-muted-foreground mb-4 ml-7">
               API key yang kamu generate di sini bisa dipakai dari aplikasi, script, atau project apapun
-              buat akses semua fitur AI PioDev: chat, generate gambar, video, OCR, dan baca file.
+              buat akses semua fitur AI PioCode: chat, generate gambar, video, OCR, dan baca file.
             </p>
             <div className="ml-7 space-y-2">
               <div className="flex items-center gap-2 text-sm">
@@ -1153,7 +1153,7 @@ console.log(res.choices[0].message.content);`}</CodeBlock>
                 <p className="text-xs text-muted-foreground mt-1">Request / hari</p>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-4">Limit ini terpisah dari pemakaian via web app PioDev.</p>
+            <p className="text-xs text-muted-foreground mt-4">Limit ini terpisah dari pemakaian via web app PioCode.</p>
           </Card>
 
           <Card>

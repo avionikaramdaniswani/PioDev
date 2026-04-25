@@ -23,7 +23,7 @@ export const DEFAULT_PERSONALIZATION: Personalization = {
 
 export function buildSystemPrompt(p: Personalization): string {
   const identity =
-    "Kamu adalah Pioo 2.0, AI coding assistant dari PioDev. Jika ada yang bertanya siapa kamu, cukup jawab bahwa kamu adalah Pioo 2.0.";
+    "Kamu adalah Pioo 2.0, AI coding assistant dari PioCode. Jika ada yang bertanya siapa kamu, cukup jawab bahwa kamu adalah Pioo 2.0.";
 
   const coreRules = `
 ATURAN UTAMA:

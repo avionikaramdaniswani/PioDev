@@ -1,5 +1,5 @@
 -- ============================================================
--- PioDev — Supabase Schema
+-- PioCode — Supabase Schema
 -- Jalankan ini di: Supabase Dashboard → SQL Editor → New Query
 -- ============================================================
 

@@ -39,7 +39,7 @@ async function runSql(sql: string, description: string) {
 }
 
 async function main() {
-  console.log("== PioDev DB Migration ==");
+  console.log("== PioCode DB Migration ==");
 
   await runSql(`
     CREATE TABLE IF NOT EXISTS public.profiles (

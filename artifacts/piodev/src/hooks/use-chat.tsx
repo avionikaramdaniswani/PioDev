@@ -708,12 +708,12 @@ export function useChat(userId: string | undefined) {
                 throw new ImageQuotaError(body.error ?? "Kuota generate gambar habis.");
               }
               if (r.status === 403 || r.status === 429 || r.status >= 500) {
-                console.warn(`[PioDev] Model ${model} returned ${r.status}`);
+                console.warn(`[PioCode] Model ${model} returned ${r.status}`);
                 continue;
               }
               if (!r.ok) {
                 const text = await r.text();
-                console.warn(`[PioDev] Model ${model} not ok (${r.status}):`, text);
+                console.warn(`[PioCode] Model ${model} not ok (${r.status}):`, text);
                 throw new Error(text);
               }
 
@@ -724,7 +724,7 @@ export function useChat(userId: string | undefined) {
               if (err?.code === "QUOTA_EXCEEDED") throw err;
               if (err?.code === "MODEL_RESTRICTED") throw err;
               if (err?.code === "IMAGE_QUOTA_EXCEEDED") throw err;
-              console.warn(`[PioDev] Model ${model} exception:`, err?.message);
+              console.warn(`[PioCode] Model ${model} exception:`, err?.message);
               continue;
             }
           }
@@ -871,7 +871,7 @@ export function useChat(userId: string | undefined) {
     } catch (err: any) {
       if (err?.name === "AbortError") return;
 
-      console.error("[PioDev] Chat error:", err?.message, err);
+      console.error("[PioCode] Chat error:", err?.message, err);
       const errorMsg = `Gagal: ${err?.message || "error tidak diketahui"}`;
       setChats((prev) =>
         prev.map((c) => {
@@ -1010,12 +1010,12 @@ export function useChat(userId: string | undefined) {
                 throw new ImageQuotaError(body.error ?? "Kuota generate gambar habis.");
               }
               if (r.status === 403 || r.status === 429 || r.status >= 500) {
-                console.warn(`[PioDev] Model ${model} returned ${r.status}`);
+                console.warn(`[PioCode] Model ${model} returned ${r.status}`);
                 continue;
               }
               if (!r.ok) {
                 const text = await r.text();
-                console.warn(`[PioDev] Model ${model} not ok (${r.status}):`, text);
+                console.warn(`[PioCode] Model ${model} not ok (${r.status}):`, text);
                 throw new Error(text);
               }
 
@@ -1026,7 +1026,7 @@ export function useChat(userId: string | undefined) {
               if (err?.code === "QUOTA_EXCEEDED") throw err;
               if (err?.code === "MODEL_RESTRICTED") throw err;
               if (err?.code === "IMAGE_QUOTA_EXCEEDED") throw err;
-              console.warn(`[PioDev] Model ${model} exception:`, err?.message);
+              console.warn(`[PioCode] Model ${model} exception:`, err?.message);
               continue;
             }
           }
