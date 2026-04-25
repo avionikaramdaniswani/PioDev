@@ -148,7 +148,7 @@ export default function PremiumPricingPage() {
         </div>
 
         {/* Tiers */}
-        <div className="grid grid-cols-3 gap-3 sm:gap-5 max-w-5xl mx-auto">
+        <div className="grid grid-cols-3 gap-3 sm:gap-5 max-w-5xl mx-auto pt-4">
           {tiers.map((t) => (
             <TierCard key={t.id} tier={t} />
           ))}
@@ -185,22 +185,22 @@ function TierCard({ tier }: { tier: Tier }) {
   return (
     <div
       className={cn(
-        "relative rounded-2xl border bg-card p-4 sm:p-5 flex flex-col",
+        "relative rounded-2xl border bg-card flex flex-col px-4 sm:px-5 pb-4 sm:pb-5",
         tier.highlight
-          ? "border-amber-500/40 dark:border-amber-400/40 shadow-lg shadow-amber-500/10 ring-1 " + accentRing
-          : "border-border",
+          ? "pt-7 sm:pt-8 border-amber-500/40 dark:border-amber-400/40 shadow-lg shadow-amber-500/10 ring-1 " + accentRing
+          : "pt-4 sm:pt-5 border-border",
         tier.comingSoon && "opacity-90"
       )}
     >
       {tier.badge && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+        <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 z-10">
           <span className={cn("text-[9px] sm:text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wide shadow-sm whitespace-nowrap", accentBadge)}>
             {tier.badge}
           </span>
         </div>
       )}
       {tier.comingSoon && (
-        <div className="absolute top-3 right-3">
+        <div className="absolute top-3 right-3 z-10">
           <span className="text-[9px] sm:text-[10px] font-semibold px-2 py-0.5 rounded-full bg-muted text-muted-foreground uppercase tracking-wide">
             Segera
           </span>
