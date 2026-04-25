@@ -501,7 +501,7 @@ export function ChatSidebar({
                     <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-500 rounded-full" />
                   )}
                 </div>
-                <span>Yang Baru</span>
+                <span>Apa yang baru?</span>
                 {hasNewChangelog && (
                   <span className="ml-auto text-[10px] bg-red-500 text-white px-1.5 py-0.5 rounded-full">Baru</span>
                 )}
