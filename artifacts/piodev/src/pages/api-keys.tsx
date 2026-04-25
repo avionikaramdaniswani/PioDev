@@ -54,7 +54,7 @@ export default function ApiKeysPage() {
   const [showCreate, setShowCreate] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
   const [creating, setCreating] = useState(false);
-  const [createdKey, setCreatedKey] = useState<string | null>(null);
+  const [createdKey, setCreatedKey] = useState<{ key: string; revealable: boolean; warning?: string } | null>(null);
   const [copied, setCopied] = useState(false);
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -119,9 +119,14 @@ export default function ApiKeysPage() {
         setCreating(false);
         return;
       }
-      setCreatedKey(data.key);
+      setCreatedKey({ key: data.key, revealable: !!data.revealable, warning: data.warning });
       setNewKeyName("");
-      toast({ title: "Key berhasil dibuat", description: "Jangan lupa simpan key-nya ya." });
+      toast({
+        title: "Key berhasil dibuat",
+        description: data.revealable
+          ? "Key juga bisa dilihat & disalin lagi nanti dari halaman ini."
+          : "Jangan lupa simpan key-nya ya.",
+      });
       await load();
     } catch (e: any) {
       const msg = e.message || "Gagal buat key";
@@ -527,15 +532,25 @@ export default function ApiKeysPage() {
                     </div>
                     <h3 className="text-lg font-semibold">Key berhasil dibuat</h3>
                   </div>
-                  <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/5 text-sm mb-4">
-                    <strong className="text-amber-600 dark:text-amber-400">Penting:</strong> Copy sekarang. Setelah modal ditutup, kamu ga bisa lihat lagi.
-                  </div>
+                  {createdKey.revealable ? (
+                    <div className="p-3 rounded-lg border border-primary/20 bg-primary/5 text-sm mb-4 flex items-start gap-2">
+                      <Eye className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                      <p className="text-muted-foreground">
+                        {createdKey.warning || "Key ini bisa kamu lihat & salin lagi kapan aja dari halaman ini."}
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/5 text-sm mb-4">
+                      <strong className="text-amber-600 dark:text-amber-400">Penting:</strong>{" "}
+                      {createdKey.warning || "Simpan key sekarang. Setelah modal ditutup, kamu ga bisa lihat lagi."}
+                    </div>
+                  )}
                   <div className="relative mb-4">
                     <code className="block px-3 py-3 pr-12 rounded-lg bg-muted font-mono text-xs break-all" data-testid="text-new-key">
-                      {createdKey}
+                      {createdKey.key}
                     </code>
                     <button
-                      onClick={() => copyKey(createdKey)}
+                      onClick={() => copyKey(createdKey.key)}
                       className="absolute top-2 right-2 p-2 rounded-md hover:bg-background transition"
                       data-testid="button-copy-key"
                     >
