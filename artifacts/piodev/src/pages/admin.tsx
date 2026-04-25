@@ -131,13 +131,14 @@ const PRESET_DURATIONS = [
 
 function PlusDurationDialog({ user, onConfirm, onClose }: {
   user: AdminUser | null;
-  onConfirm: (u: AdminUser, days: number) => void;
+  onConfirm: (u: AdminUser, days: number, tier: "plus" | "pro") => void;
   onClose: () => void;
 }) {
   const [selected, setSelected] = useState<number>(30);
   const [customVal, setCustomVal] = useState("");
   const [customUnit, setCustomUnit] = useState<"hari" | "bulan">("hari");
   const [useCustom, setUseCustom] = useState(false);
+  const [tier, setTier] = useState<"plus" | "pro">("plus");
 
   const effectiveDays = useCustom
     ? Math.round(Number(customVal) * (customUnit === "bulan" ? 30 : 1))
@@ -147,33 +148,69 @@ function PlusDurationDialog({ user, onConfirm, onClose }: {
 
   if (!user) return null;
 
+  const tierLabel = tier === "pro" ? "Pro" : "Plus";
+  const presetActiveClass = tier === "pro"
+    ? "bg-amber-600 border-amber-600 text-white"
+    : "bg-amber-500 border-amber-500 text-white";
+
   return (
     <Dialog open={!!user} onOpenChange={(o) => { if (!o) onClose(); }}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
             <Calendar className="w-4 h-4 text-amber-500" />
-            Durasi Plus untuk {user.full_name || user.email.split("@")[0]}
+            Beri {tierLabel} untuk {user.full_name || user.email.split("@")[0]}
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 py-1">
+          {/* Tier selector */}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1.5">Tier</p>
+            <div className="grid grid-cols-2 gap-2">
+              {(["plus", "pro"] as const).map((t) => {
+                const active = tier === t;
+                const proStyle = t === "pro";
+                return (
+                  <button
+                    key={t}
+                    onClick={() => setTier(t)}
+                    data-testid={`button-tier-${t}`}
+                    className={cn(
+                      "rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
+                      active
+                        ? proStyle
+                          ? "bg-amber-600 border-amber-600 text-white"
+                          : "bg-amber-500 border-amber-500 text-white"
+                        : "border-border bg-muted/30 text-foreground hover:border-amber-400 hover:bg-amber-500/10"
+                    )}
+                  >
+                    {t === "pro" ? "Pro · 360k/40/20" : "Plus · 200k/25/12"}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Preset chips */}
-          <div className="grid grid-cols-3 gap-2">
-            {PRESET_DURATIONS.map((p) => (
-              <button
-                key={p.days}
-                onClick={() => { setSelected(p.days); setUseCustom(false); }}
-                className={cn(
-                  "rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
-                  !useCustom && selected === p.days
-                    ? "bg-amber-500 border-amber-500 text-white"
-                    : "border-border bg-muted/30 text-foreground hover:border-amber-400 hover:bg-amber-500/10"
-                )}
-              >
-                {p.label}
-              </button>
-            ))}
+          <div>
+            <p className="text-xs font-medium text-muted-foreground mb-1.5">Durasi</p>
+            <div className="grid grid-cols-3 gap-2">
+              {PRESET_DURATIONS.map((p) => (
+                <button
+                  key={p.days}
+                  onClick={() => { setSelected(p.days); setUseCustom(false); }}
+                  className={cn(
+                    "rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
+                    !useCustom && selected === p.days
+                      ? presetActiveClass
+                      : "border-border bg-muted/30 text-foreground hover:border-amber-400 hover:bg-amber-500/10"
+                  )}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Custom */}
@@ -220,7 +257,7 @@ function PlusDurationDialog({ user, onConfirm, onClose }: {
 
           {valid && (
             <p className="text-xs text-muted-foreground text-center">
-              Plus aktif selama <span className="font-semibold text-foreground">{effectiveDays} hari</span>
+              {tierLabel} aktif selama <span className="font-semibold text-foreground">{effectiveDays} hari</span>
               {" "}(hingga {new Date(Date.now() + effectiveDays * 86_400_000).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })})
             </p>
           )}
@@ -231,11 +268,14 @@ function PlusDurationDialog({ user, onConfirm, onClose }: {
           <Button
             size="sm"
             disabled={!valid}
-            className="bg-amber-500 hover:bg-amber-600 text-white"
-            onClick={() => valid && onConfirm(user, effectiveDays)}
+            className={cn(
+              "text-white",
+              tier === "pro" ? "bg-amber-600 hover:bg-amber-700" : "bg-amber-500 hover:bg-amber-600",
+            )}
+            onClick={() => valid && onConfirm(user, effectiveDays, tier)}
           >
             <Star className="w-3.5 h-3.5 mr-1.5" />
-            Aktifkan Plus
+            Aktifkan {tierLabel}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -319,8 +359,13 @@ function SectionPengguna({
                           {u.role === "admin" ? "Admin" : "User"}
                         </Badge>
                         {u.is_premium && (
-                          <Badge className="shrink-0 bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20 hover:bg-amber-500/20">
-                            Plus
+                          <Badge className={cn(
+                            "shrink-0 border hover:opacity-90",
+                            u.tier === "pro"
+                              ? "bg-amber-600/15 text-amber-700 dark:text-amber-300 border-amber-600/25"
+                              : "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20",
+                          )}>
+                            {u.tier === "pro" ? "Pro" : "Plus"}
                           </Badge>
                         )}
                       </div>
@@ -337,13 +382,13 @@ function SectionPengguna({
                       <div className="flex items-center justify-end gap-0.5">
                         {/* Toggle Premium */}
                         <button
-                          title={u.is_premium ? "Cabut Plus" : "Beri Plus"}
+                          title={u.is_premium ? `Cabut ${u.tier === "pro" ? "Pro" : "Plus"}` : "Beri Plus / Pro"}
                           disabled={u.id === currentUserId}
                           onClick={() => u.is_premium ? onRevokePlus(u) : onTogglePremium(u)}
                           className="p-1.5 rounded-md hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                         >
                           {u.is_premium
-                            ? <StarOff className="w-4 h-4 text-amber-500" />
+                            ? <StarOff className={cn("w-4 h-4", u.tier === "pro" ? "text-amber-600" : "text-amber-500")} />
                             : <Star className="w-4 h-4 text-amber-400/60 hover:text-amber-500" />
                           }
                         </button>
@@ -775,11 +820,12 @@ export default function AdminPage() {
     setGivePlusUser(u);
   }
 
-  async function handleGivePlus(u: AdminUser, days: number) {
+  async function handleGivePlus(u: AdminUser, days: number, tier: "plus" | "pro" = "plus") {
     setGivePlusUser(null);
     try {
-      await updatePremium(u.id, true, days);
-      showToast(`✓ ${u.email} diberi Plus selama ${days} hari.`, true);
+      await updatePremium(u.id, true, { days, tier });
+      const label = tier === "pro" ? "Pro" : "Plus";
+      showToast(`✓ ${u.email} diberi ${label} selama ${days} hari.`, true);
     } catch (e: any) {
       showToast(e.message, false);
     }
@@ -789,7 +835,8 @@ export default function AdminPage() {
     if (u.id === user?.id) { showToast("Tidak bisa mengubah status premium akun sendiri.", false); return; }
     try {
       await updatePremium(u.id, false);
-      showToast(`× Plus ${u.email} dicabut.`, true);
+      const label = u.tier === "pro" ? "Pro" : "Plus";
+      showToast(`× ${label} ${u.email} dicabut.`, true);
     } catch (e: any) {
       showToast(e.message, false);
     }

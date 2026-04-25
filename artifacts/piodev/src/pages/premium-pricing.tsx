@@ -40,6 +40,9 @@ export default function PremiumPricingPage() {
     );
   }
 
+  const userTier = status.tier ?? (status.isPremium ? "plus" : "free");
+  const isPlusActive = userTier === "plus" && !isAdmin;
+  const isProActive  = userTier === "pro"  && !isAdmin;
   const isPremium = status.isPremium || isAdmin;
   const appStatus = status.application?.status;
   const hasPending = appStatus === "pending";
@@ -66,20 +69,24 @@ export default function PremiumPricingPage() {
       name: "Plus",
       badge: "Populer",
       tagline: "Untuk pengguna aktif",
-      price: "Gratis",
-      priceSuffix: "promo terbatas",
+      price: "Rp 10.000",
+      priceSuffix: "per bulan · gratis lewat promo",
       highlight: true,
       features: [
-        "360.000 token per hari",
+        "200.000 token per hari",
         "Semua model premium",
         "25 gambar AI per hari",
         "12 video AI per bulan",
         "Prioritas saat server sibuk",
         "API key untuk developer",
-        "Bonus saldo Rp 100.000 saat upgrade",
+        "Bonus saldo Rp 75.000 saat upgrade",
       ],
-      cta: isPremium
+      cta: isAdmin
+        ? { label: "Admin · Bypass", disabled: true }
+        : isPlusActive
         ? { label: "Paket Aktif", disabled: true }
+        : isProActive
+        ? { label: "Sudah Pakai Pro", disabled: true }
         : hasPending
         ? { label: "Aplikasi Diproses…", onClick: () => setLocation("/premium/apply") }
         : { label: "Dapatkan Plus", primary: true, onClick: () => setLocation("/premium/apply") },
@@ -87,19 +94,24 @@ export default function PremiumPricingPage() {
     {
       id: "pro",
       name: "Pro",
-      badge: "Segera",
-      tagline: "Untuk tim & profesional",
-      price: "—",
-      priceSuffix: "sedang dikembangkan",
-      comingSoon: true,
+      badge: "Baru",
+      tagline: "Untuk power user & developer",
+      price: "Rp 18.000",
+      priceSuffix: "per bulan",
       features: [
-        "Token tanpa batas wajar",
-        "Model frontier terbaru",
-        "Gambar AI tak terbatas",
-        "Video HD hingga 60 detik",
-        "Dukungan prioritas 1-on-1",
+        "360.000 token per hari",
+        "Semua model premium",
+        "40 gambar AI per hari",
+        "20 video AI per bulan",
+        "Prioritas tertinggi saat sibuk",
+        "API key untuk developer",
+        "Bonus saldo Rp 125.000 saat upgrade",
       ],
-      cta: { label: "Beri Tahu Aku", disabled: true },
+      cta: isAdmin
+        ? { label: "Admin · Bypass", disabled: true }
+        : isProActive
+        ? { label: "Paket Aktif", disabled: true }
+        : { label: "Segera Hadir", disabled: true },
     },
   ];
 
@@ -123,9 +135,12 @@ export default function PremiumPricingPage() {
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-foreground">
             Paket yang tumbuh bersamamu
           </h1>
+          <p className="text-sm text-muted-foreground mt-3 max-w-xl mx-auto">
+            Mulai gratis. Upgrade kapan pun butuh kapasitas lebih besar.
+          </p>
         </div>
 
-        <div className="grid grid-cols-3 gap-4 sm:gap-5 items-stretch">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 items-stretch">
           {tiers.map((t) => (
             <TierCard key={t.id} tier={t} />
           ))}
@@ -143,7 +158,7 @@ function TierCard({ tier }: { tier: Tier }) {
   const cardClasses = isPlus
     ? "border-primary/50 bg-gradient-to-b from-primary/[0.06] to-transparent shadow-lg shadow-primary/10"
     : isPro
-    ? "border-amber-500/30 dark:border-amber-400/25"
+    ? "border-amber-500/40 dark:border-amber-400/30 bg-gradient-to-b from-amber-500/[0.04] to-transparent"
     : "border-border";
 
   const badgeClasses = isPlus
@@ -165,12 +180,13 @@ function TierCard({ tier }: { tier: Tier }) {
         cardClasses,
         tier.comingSoon && "opacity-80",
       )}
+      data-testid={`card-tier-${tier.id}`}
     >
       {/* Name + badge */}
       <div className="flex items-center gap-2 mb-1.5 min-h-[24px]">
         <h3 className={cn(
           "text-base sm:text-lg font-semibold",
-          isPlus ? "text-primary" : "text-foreground",
+          isPlus ? "text-primary" : isPro ? "text-amber-600 dark:text-amber-400" : "text-foreground",
         )}>
           {tier.name}
         </h3>
@@ -199,12 +215,15 @@ function TierCard({ tier }: { tier: Tier }) {
       <button
         onClick={tier.cta.onClick}
         disabled={tier.cta.disabled}
+        data-testid={`button-cta-${tier.id}`}
         className={cn(
           "w-full h-10 rounded-lg text-sm font-medium transition-all mb-6 px-3",
           tier.cta.primary
             ? "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm shadow-primary/20"
             : isPlus
             ? "border border-primary/40 bg-primary/10 text-primary hover:bg-primary/15"
+            : isPro
+            ? "border border-amber-500/40 bg-amber-500/10 text-amber-600 dark:text-amber-400 hover:bg-amber-500/15"
             : "border border-border bg-background text-foreground hover:bg-muted",
           tier.cta.disabled && "cursor-not-allowed opacity-60 hover:bg-background",
         )}

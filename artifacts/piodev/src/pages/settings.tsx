@@ -43,6 +43,7 @@ export default function Settings() {
   // Usage summary untuk section Plus
   type UsageSummary = {
     isPremium: boolean; isAdmin: boolean; premiumExpiresAt: string | null;
+    tier?: "free" | "plus" | "pro";
     token: { used: number; limit: number };
     image: { used: number; limit: number };
     video: { credits: number; max: number };
@@ -757,10 +758,18 @@ export default function Settings() {
                             <div>
                               <div className="flex items-center gap-2">
                                 <span className="text-sm font-semibold text-foreground">
-                                  {usageSummary.isAdmin ? "Admin" : usageSummary.isPremium ? "Plus Aktif" : "Free"}
+                                  {usageSummary.isAdmin
+                                    ? "Admin"
+                                    : usageSummary.tier === "pro"
+                                    ? "Pro Aktif"
+                                    : usageSummary.isPremium
+                                    ? "Plus Aktif"
+                                    : "Free"}
                                 </span>
                                 {usageSummary.isPremium && !usageSummary.isAdmin && (
-                                  <span className="text-xs px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 font-medium">PLUS</span>
+                                  <span className="text-xs px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-600 dark:text-amber-400 font-medium">
+                                    {usageSummary.tier === "pro" ? "PRO" : "PLUS"}
+                                  </span>
                                 )}
                               </div>
                               {usageSummary.isPremium && usageSummary.premiumExpiresAt && !usageSummary.isAdmin ? (

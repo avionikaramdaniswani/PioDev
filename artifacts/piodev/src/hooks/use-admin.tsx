@@ -1,12 +1,15 @@
 import { useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 
+export type Tier = "free" | "plus" | "pro";
+
 export type AdminUser = {
   id: string;
   email: string;
   full_name: string;
   role: "user" | "admin";
   is_premium: boolean;
+  tier: Tier;
   premium_expires_at: string | null;
   created_at: string;
   last_sign_in_at: string | null;
@@ -90,18 +93,26 @@ export function useAdmin() {
     );
   }, []);
 
-  const updatePremium = useCallback(async (userId: string, is_premium: boolean, days?: number) => {
+  const updatePremium = useCallback(async (
+    userId: string,
+    is_premium: boolean,
+    opts?: { days?: number; tier?: "plus" | "pro" },
+  ) => {
+    const tier = opts?.tier ?? "plus";
+    const days = opts?.days;
     const res = await fetch(`/api/admin/users/${userId}/premium`, {
       method: "PATCH",
       headers: { ...(await authHeader()), "Content-Type": "application/json" },
-      body: JSON.stringify({ is_premium, ...(days ? { days } : {}) }),
+      body: JSON.stringify({ is_premium, tier, ...(days ? { days } : {}) }),
     });
     if (!res.ok) {
       const data = await res.json();
       throw new Error(data.error || "Gagal mengubah status premium");
     }
     setUsers((prev) =>
-      prev.map((u) => (u.id === userId ? { ...u, is_premium } : u))
+      prev.map((u) => (u.id === userId
+        ? { ...u, is_premium, tier: is_premium ? tier : "free" as const }
+        : u))
     );
   }, []);
 
@@ -135,10 +146,11 @@ export function useAdmin() {
     } catch { /**/ }
   }, []);
 
-  const approveApplication = useCallback(async (id: string) => {
+  const approveApplication = useCallback(async (id: string, tier: "plus" | "pro" = "plus") => {
     const res = await fetch(`/api/admin/premium-applications/${id}/approve`, {
       method: "PATCH",
-      headers: await authHeader(),
+      headers: { ...(await authHeader()), "Content-Type": "application/json" },
+      body: JSON.stringify({ tier }),
     });
     if (!res.ok) throw new Error((await res.json()).error || "Gagal approve");
     setPremiumApplications((prev) =>

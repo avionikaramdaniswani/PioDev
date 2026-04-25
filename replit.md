@@ -15,25 +15,29 @@ Platform chatbot AI berbasis React + Supabase.
 ## Fitur Utama
 
 - **AI Chat** dengan streaming, thinking mode, web search, code artifacts
-- **Image Generation** (Qwen Image models) — kuota harian tier-aware (Free: 7/hari, Plus: 25/hari)
-- **Video Studio** (/video-studio) — text-to-video/image-to-video (Wan series), kredit bulanan tier-aware (Free: 3/bln, Plus: 12/bln)
+- **Image Generation** (Qwen Image models) — kuota harian tier-aware (Free: 7/hari, Plus: 25/hari, Pro: 40/hari)
+- **Video Studio** (/video-studio) — text-to-video/image-to-video (Wan series), kredit bulanan tier-aware (Free: 3/bln, Plus: 12/bln, Pro: 20/bln)
 - **Artifact Panel** — preview kode HTML/CSS/JS langsung di chat
 - **Admin Dashboard** — RBAC (user/admin), manage users, approve/reject premium applications
 - **Personalization** — custom system prompt, persona settings
 - **What's New** — changelog dengan notifikasi badge
 - **Freemium Tier (Penawaran Plus Terbatas)** — verifikasi follow Instagram untuk akses Plus
 - **API Keys (BYOK) — Plus only** — Plus & Admin user generate `pio-sk-...` untuk akses PioCode API dari luar. Key disimpan ter-enkripsi (AES-256-GCM via `API_KEY_ENCRYPTION_SECRET`) → bisa di-reveal & copy ulang kayak Gemini AI Studio. Free user GAK bisa bikin (403 + CTA upgrade).
-- **Saldo Credit (REAL IDR, persisten)** — kolom `profiles.credit_balance_idr` (INTEGER) + tabel ledger `credit_transactions` (RLS aktif, lihat `server/credit-system-migration.sql` — wajib jalanin manual via Supabase Dashboard SQL Editor sekali). Saldo TIDAK reset harian. Konversi: **2 token = Rp 1** (cost = `ceil(tokens / 2)`); tarif tetap: image Rp 4.000, video Rp 50.000. Saat user di-approve jadi Plus (lewat `/premium-applications/approve` atau `admin/users/:id/premium`), otomatis dapet bonus `Rp 100.000` sekali (idempotent via `bonus_plus_upgrade` ledger entry). Admin bypass (gak di-charge tapi tetap masuk log). Endpoint: `GET /api/me/credit` (saldo + 50 transaksi terakhir + pricing) & `POST /api/me/credit/top-up` (503 `coming_soon` placeholder). Helpers: `getCreditBalance / addCredit / deductCredit / grantPlusBonusOnce` di `server/index.ts` — fail-safe try/catch supaya app gak crash kalau migrasi belum jalan. UI: `SaldoCard` di `src/pages/api-keys.tsx` (tombol "Top Up Saldo · Segera"), free user lihat error message upgrade. Chat & `/premium` masih pakai sistem token harian biasa (no change).
+- **Saldo Credit (REAL IDR, persisten)** — kolom `profiles.credit_balance_idr` (INTEGER) + tabel ledger `credit_transactions` (RLS aktif, lihat `server/credit-system-migration.sql` — wajib jalanin manual via Supabase Dashboard SQL Editor sekali). Saldo TIDAK reset harian. Konversi: **2 token = Rp 1** (cost = `ceil(tokens / 2)`); tarif tetap: image Rp 4.000, video Rp 50.000. Saat user di-approve jadi Plus/Pro, otomatis dapet bonus tier-aware via `grantTierBonusOnce` (Plus: `Rp 75.000` sekali via ledger `bonus_plus_upgrade`; Pro: `Rp 125.000` sekali via `bonus_pro_upgrade`; kalau user upgrade Plus→Pro, hanya selisih `Rp 50.000` yang ditambah). Admin bypass (gak di-charge tapi tetap masuk log). Endpoint: `GET /api/me/credit` (saldo + 20 transaksi terakhir + pricing termasuk `pro_bonus_idr`) & `POST /api/me/credit/top-up` (503 `coming_soon` placeholder). Helpers: `getCreditBalance / addCredit / deductCredit / grantTierBonusOnce` di `server/index.ts` — fail-safe try/catch supaya app gak crash kalau migrasi belum jalan. UI: `SaldoCard` di `src/pages/api-keys.tsx` (badge berbeda Plus vs Pro), free user lihat error message upgrade.
+
+- **Sistem Tier 3-Tingkat (Free / Plus / Pro)** — kolom `profiles.tier TEXT NOT NULL DEFAULT 'free'` + `premium_applications.tier TEXT NOT NULL DEFAULT 'plus'` (CHECK constraint `('free','plus','pro')`). Migrasi: jalanin `server/tier-system-migration.sql` manual via Supabase Dashboard SQL Editor (idempotent, backfill `is_premium=true` → `tier='plus'`). Kolom `is_premium` boolean tetap dipake untuk back-compat — sekarang artinya `tier IN ('plus','pro')`. Helper di server: `getTier(profile)` & `getTierLimits(tier, isAdmin)`. Konstanta: `FREE/PLUS/PRO_TOKEN_LIMIT` (60k/200k/360k), `FREE/PLUS/PRO_IMAGE_LIMIT` (7/25/40), `FREE/PLUS/PRO_VIDEO_CREDITS` (3/12/20). Pro tier saat ini "Segera Hadir" di pricing page — admin bisa kasih lewat dashboard. Endpoint admin terima `body.tier`: `PATCH /api/admin/users/:id/premium`, `PATCH /api/admin/premium-applications/:id/approve`. Response API include `tier` field: `/api/me/quota`, `/api/me/usage-summary`, `/api/premium/status`, `/api/me/credit`, `/api/admin/users`.
 
 ## Sistem Hak Akses (Privilege)
 
-| Fitur | Free | Plus | Admin |
-|-------|------|------|-------|
-| Token harian | 60K | 360K | Unlimited |
-| Model | Mini only | All (Plus, Coder, Mini) | All |
-| Image gen / hari | 7 | 25 | Unlimited |
-| Video kredit / bulan | 3 | 12 | Unlimited |
-| Badge | — | "Plus" | "Admin" |
+| Fitur | Free | Plus | Pro | Admin |
+|-------|------|------|-----|-------|
+| Token harian | 60K | 200K | 360K | Unlimited |
+| Model | Mini only | All (Plus, Coder, Mini) | All | All |
+| Image gen / hari | 7 | 25 | 40 | Unlimited |
+| Video kredit / bulan | 3 | 12 | 20 | Unlimited |
+| Bonus saldo upgrade | — | Rp 75.000 | Rp 125.000 (Plus→Pro: selisih Rp 50.000) | — |
+| Harga display | Rp 0 | Rp 10.000/bln | Rp 18.000/bln | — |
+| Badge | — | "Plus" | "Pro" | "Admin" |
 
 - Server memblokir model premium untuk user Free (403 MODEL_RESTRICTED)
 - Kuota image gen di-track di kolom `image_gen_count` + `image_gen_reset_date` di tabel `profiles`

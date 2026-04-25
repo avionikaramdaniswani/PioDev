@@ -22,8 +22,23 @@ import { VoiceModeOverlay } from "@/components/voice-mode-overlay";
 import { cn } from "@/lib/utils";
 
 const FREE_DAILY_LIMIT = 60_000;
-const PREMIUM_DAILY_LIMIT = 360_000;
+const PLUS_DAILY_LIMIT = 200_000;
+const PRO_DAILY_LIMIT  = 360_000;
 const PREMIUM_BANNER_DISMISSED_KEY = "pioo_premium_banner_dismissed";
+
+function tierLimit(tier: "free" | "plus" | "pro" | undefined, isAdmin: boolean): number {
+  if (isAdmin) return 9_999_999;
+  if (tier === "pro")  return PRO_DAILY_LIMIT;
+  if (tier === "plus") return PLUS_DAILY_LIMIT;
+  return FREE_DAILY_LIMIT;
+}
+
+function tierLimitLabel(tier: "free" | "plus" | "pro" | undefined, isAdmin: boolean): string {
+  if (isAdmin) return "∞";
+  if (tier === "pro")  return "360K";
+  if (tier === "plus") return "200K";
+  return "60K";
+}
 const STARRED_KEY = "piodev_starred_chats";
 const loadStarred = (): Set<string> => {
   try { return new Set(JSON.parse(localStorage.getItem(STARRED_KEY) || "[]")); } catch { return new Set(); }
@@ -389,7 +404,8 @@ export default function ChatPage() {
 
   const hasAttachments = attachedImages.length > 0 || attachedFiles.length > 0;
   const isPremium = premiumStatus?.isPremium ?? false;
-  const effectiveLimit = isAdmin ? 9_999_999 : isPremium ? PREMIUM_DAILY_LIMIT : FREE_DAILY_LIMIT;
+  const userTier = premiumStatus?.tier ?? "free";
+  const effectiveLimit = tierLimit(userTier, isAdmin);
   const isQuotaExhausted = todayUsage.totalTokens >= effectiveLimit;
   const canSend = !!(input.trim() || hasAttachments) && !isTyping && !isQuotaExhausted;
 
@@ -1081,7 +1097,7 @@ export default function ChatPage() {
                   {(() => {
                     const used = todayUsage.totalTokens;
                     const limit = effectiveLimit;
-                    const limitLabel = isAdmin ? "∞" : isPremium ? "360K" : "60K";
+                    const limitLabel = tierLimitLabel(userTier, isAdmin);
                     const pct = isAdmin ? 0 : Math.min(100, (used / limit) * 100);
                     const isExhausted = !isAdmin && used >= limit;
                     const isWarning = pct >= 85;

@@ -11,12 +11,24 @@ const IS_PRODUCTION = process.env.NODE_ENV === "production";
 const SERVER_PORT = IS_PRODUCTION
   ? Number(process.env.PORT ?? 8080)
   : Number(process.env.SERVER_PORT ?? 3099);
-const DAILY_TOKEN_LIMIT   = 60_000;
-const PREMIUM_TOKEN_LIMIT = 360_000;
-const FREE_VIDEO_CREDITS    = 3;
-const PREMIUM_VIDEO_CREDITS = 12;
-const FREE_IMAGE_LIMIT    = 7;
-const PREMIUM_IMAGE_LIMIT = 25;
+// ── Tier limits (3-tier: free / plus / pro) ────────────────────────────────────
+const FREE_TOKEN_LIMIT = 60_000;
+const PLUS_TOKEN_LIMIT = 200_000;
+const PRO_TOKEN_LIMIT  = 360_000;
+
+const FREE_IMAGE_LIMIT = 7;
+const PLUS_IMAGE_LIMIT = 25;
+const PRO_IMAGE_LIMIT  = 40;
+
+const FREE_VIDEO_CREDITS = 3;
+const PLUS_VIDEO_CREDITS = 12;
+const PRO_VIDEO_CREDITS  = 20;
+
+// Aliases biar kode lama yg masih nyebut PREMIUM_* gak break (Plus = "Premium" lama).
+const DAILY_TOKEN_LIMIT     = FREE_TOKEN_LIMIT;
+const PREMIUM_TOKEN_LIMIT   = PLUS_TOKEN_LIMIT;
+const PREMIUM_IMAGE_LIMIT   = PLUS_IMAGE_LIMIT;
+const PREMIUM_VIDEO_CREDITS = PLUS_VIDEO_CREDITS;
 
 // ── Limit khusus akses lewat API key (terpisah dari pemakaian web) ─────────────
 // Tetap dipake untuk request_count (rate limiting per hari) — bukan untuk billing.
@@ -28,7 +40,8 @@ const IDR_PER_TOKEN_NUM = 1;
 const IDR_PER_TOKEN_DEN = 2;
 const IMAGE_COST_IDR = 4_000;     // per gambar
 const VIDEO_COST_IDR = 50_000;    // per video
-const PLUS_UPGRADE_BONUS_IDR = 100_000; // bonus sekali saat upgrade ke Plus
+const PLUS_UPGRADE_BONUS_IDR = 75_000;   // bonus sekali saat upgrade ke Plus
+const PRO_UPGRADE_BONUS_IDR  = 125_000;  // bonus sekali saat upgrade ke Pro
 
 function tokensToIdr(tokens: number): number {
   if (!tokens || tokens <= 0) return 0;
@@ -79,6 +92,38 @@ function isPremiumActive(profile: { is_premium?: boolean | null; premium_expires
   if (!profile.is_premium) return false;
   if (!profile.premium_expires_at) return true; // record lama tanpa expiry = tetap aktif
   return new Date(profile.premium_expires_at) > new Date();
+}
+
+export type Tier = "free" | "plus" | "pro";
+
+/**
+ * Tentukan tier user dari profile row.
+ * Prioritas: kolom `tier` baru → fallback ke is_premium boolean (legacy).
+ * Kalau is_premium=true tapi sudah expired → 'free'.
+ */
+function getTier(profile: {
+  tier?: string | null;
+  is_premium?: boolean | null;
+  premium_expires_at?: string | null;
+} | null | undefined): Tier {
+  if (!profile) return "free";
+  if (!isPremiumActive(profile)) return "free";
+  const t = (profile.tier ?? "").toLowerCase();
+  if (t === "pro") return "pro";
+  if (t === "plus") return "plus";
+  return "plus"; // is_premium=true tanpa tier (legacy) → anggap Plus
+}
+
+/** Limit-limit per tier (untuk admin, semua unlimited). */
+function getTierLimits(tier: Tier, isAdmin: boolean): {
+  tokenLimit: number;
+  imageLimit: number;
+  videoMax: number;
+} {
+  if (isAdmin) return { tokenLimit: 9_999_999, imageLimit: 9999, videoMax: 999 };
+  if (tier === "pro")  return { tokenLimit: PRO_TOKEN_LIMIT,  imageLimit: PRO_IMAGE_LIMIT,  videoMax: PRO_VIDEO_CREDITS };
+  if (tier === "plus") return { tokenLimit: PLUS_TOKEN_LIMIT, imageLimit: PLUS_IMAGE_LIMIT, videoMax: PLUS_VIDEO_CREDITS };
+  return { tokenLimit: FREE_TOKEN_LIMIT, imageLimit: FREE_IMAGE_LIMIT, videoMax: FREE_VIDEO_CREDITS };
 }
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL!;
@@ -172,16 +217,21 @@ app.get("/api/admin/users", requireAuth, requireAdmin, async (_req, res) => {
   const profileMap: Record<string, any> = {};
   (profiles || []).forEach((p: any) => { profileMap[p.id] = p; });
 
-  const users = authUsers.users.map((u) => ({
-    id: u.id,
-    email: u.email,
-    full_name: profileMap[u.id]?.full_name || u.user_metadata?.full_name || "",
-    role: profileMap[u.id]?.role || "user",
-    is_premium: profileMap[u.id]?.is_premium ?? false,
-    premium_expires_at: profileMap[u.id]?.premium_expires_at ?? null,
-    created_at: u.created_at,
-    last_sign_in_at: u.last_sign_in_at,
-  }));
+  const users = authUsers.users.map((u) => {
+    const p = profileMap[u.id];
+    const tier = getTier(p ?? null);
+    return {
+      id: u.id,
+      email: u.email,
+      full_name: p?.full_name || u.user_metadata?.full_name || "",
+      role: p?.role || "user",
+      is_premium: p?.is_premium ?? false,
+      tier,
+      premium_expires_at: p?.premium_expires_at ?? null,
+      created_at: u.created_at,
+      last_sign_in_at: u.last_sign_in_at,
+    };
+  });
 
   res.json({ users });
 });
@@ -348,13 +398,14 @@ app.get("/api/me/quota", requireAuth, async (req, res) => {
   const today = getTodayWIB();
   const [usageRes, profileRes] = await Promise.all([
     supabaseAdmin.from("daily_token_usage").select("total_tokens").eq("user_id", userId).eq("date", today).single(),
-    supabaseAdmin.from("profiles").select("is_premium, premium_expires_at, role").eq("id", userId).single(),
+    supabaseAdmin.from("profiles").select("is_premium, premium_expires_at, role, tier").eq("id", userId).single(),
   ]);
   const used = usageRes.data?.total_tokens ?? 0;
   const isAdmin = profileRes.data?.role === "admin";
-  const isPremium = isAdmin || isPremiumActive(profileRes.data ?? {});
-  const limit = isAdmin ? 9_999_999 : isPremium ? PREMIUM_TOKEN_LIMIT : DAILY_TOKEN_LIMIT;
-  res.json({ used, limit, remaining: Math.max(0, limit - used), isPremium });
+  const tier = getTier(profileRes.data ?? null);
+  const isPremium = isAdmin || tier !== "free";
+  const { tokenLimit: limit } = getTierLimits(tier, isAdmin);
+  res.json({ used, limit, remaining: Math.max(0, limit - used), isPremium, tier });
 });
 
 // GET /api/me/usage-summary — ringkasan quota + status plus untuk halaman pengaturan
@@ -364,31 +415,31 @@ app.get("/api/me/usage-summary", requireAuth, async (req, res) => {
   const [usageRow, profileRow] = await Promise.all([
     supabaseAdmin.from("daily_token_usage").select("total_tokens").eq("user_id", userId).eq("date", today).single(),
     supabaseAdmin.from("profiles")
-      .select("role, is_premium, premium_expires_at, video_credits, video_credits_reset_date, image_gen_count, image_gen_reset_date")
+      .select("role, is_premium, premium_expires_at, tier, video_credits, video_credits_reset_date, image_gen_count, image_gen_reset_date")
       .eq("id", userId).single(),
   ]);
   const profile = profileRow.data;
   const isAdmin = profile?.role === "admin";
-  const isPremium = isAdmin || isPremiumActive(profile ?? {});
+  const tier = getTier(profile);
+  const isPremium = isAdmin || tier !== "free";
+  const { tokenLimit, imageLimit: imgLimit, videoMax } = getTierLimits(tier, isAdmin);
 
   const tokenUsed = usageRow.data?.total_tokens ?? 0;
-  const tokenLimit = isAdmin ? 9_999_999 : isPremium ? PREMIUM_TOKEN_LIMIT : DAILY_TOKEN_LIMIT;
 
   // Image quota
   const imgDate = profile?.image_gen_reset_date ?? "";
   const imgCount = imgDate === today ? (profile?.image_gen_count ?? 0) : 0;
-  const imgLimit = isAdmin ? 9999 : isPremium ? PREMIUM_IMAGE_LIMIT : FREE_IMAGE_LIMIT;
 
   // Video credits (monthly) — video_credits nyimpen TERPAKAI, bukan sisa
   const thisMonth = getThisMonthWIB();
   const storedMonth = (profile?.video_credits_reset_date ?? "").slice(0, 7);
-  const videoMax = isAdmin ? 999 : isPremium ? PREMIUM_VIDEO_CREDITS : FREE_VIDEO_CREDITS;
   const videoUsed = storedMonth === thisMonth ? (profile?.video_credits ?? 0) : 0;
   const videoCredits = Math.max(0, videoMax - videoUsed);
 
   res.json({
     isPremium,
     isAdmin,
+    tier,
     premiumExpiresAt: profile?.premium_expires_at ?? null,
     token: { used: tokenUsed, limit: tokenLimit },
     image: { used: imgCount, limit: imgLimit },
@@ -423,7 +474,7 @@ async function getVideoCredits(userId: string): Promise<{ credits: number; maxCr
   const thisMonth = getThisMonthWIB();
   const { data: profile } = await supabaseAdmin
     .from("profiles")
-    .select("video_credits, video_credits_reset_date, role, is_premium, premium_expires_at")
+    .select("video_credits, video_credits_reset_date, role, is_premium, premium_expires_at, tier")
     .eq("id", userId)
     .single();
 
@@ -431,8 +482,8 @@ async function getVideoCredits(userId: string): Promise<{ credits: number; maxCr
 
   if (profile.role === "admin") return { credits: 999, maxCredits: 999 };
 
-  const isPremium = isPremiumActive(profile);
-  const maxCredits = isPremium ? PREMIUM_VIDEO_CREDITS : FREE_VIDEO_CREDITS;
+  const tier = getTier(profile);
+  const { videoMax: maxCredits } = getTierLimits(tier, false);
 
   const storedMonth = (profile.video_credits_reset_date ?? "").slice(0, 7);
   if (storedMonth !== thisMonth) {
@@ -453,15 +504,15 @@ async function deductVideoCredit(userId: string): Promise<boolean> {
 
   const { data: profile } = await supabaseAdmin
     .from("profiles")
-    .select("role, is_premium, premium_expires_at, video_credits, video_credits_reset_date")
+    .select("role, is_premium, premium_expires_at, tier, video_credits, video_credits_reset_date")
     .eq("id", userId)
     .single();
 
   if (!profile) return false;
   if (profile.role === "admin") return true;
 
-  const isPremium = isPremiumActive(profile);
-  const maxCredits = isPremium ? PREMIUM_VIDEO_CREDITS : FREE_VIDEO_CREDITS;
+  const tier = getTier(profile);
+  const { videoMax: maxCredits } = getTierLimits(tier, false);
 
   const storedMonth = (profile.video_credits_reset_date ?? "").slice(0, 7);
   const used = storedMonth === thisMonth ? (profile.video_credits ?? 0) : 0;
@@ -482,15 +533,15 @@ async function getImageGenQuota(userId: string): Promise<{ count: number; limit:
   const today = getTodayWIB();
   const { data: profile } = await supabaseAdmin
     .from("profiles")
-    .select("image_gen_count, image_gen_reset_date, role, is_premium, premium_expires_at")
+    .select("image_gen_count, image_gen_reset_date, role, is_premium, premium_expires_at, tier")
     .eq("id", userId)
     .single();
 
   if (!profile) return { count: 0, limit: FREE_IMAGE_LIMIT, remaining: FREE_IMAGE_LIMIT };
   if (profile.role === "admin") return { count: 0, limit: 9999, remaining: 9999 };
 
-  const isPremium = isPremiumActive(profile);
-  const limit = isPremium ? PREMIUM_IMAGE_LIMIT : FREE_IMAGE_LIMIT;
+  const tier = getTier(profile);
+  const { imageLimit: limit } = getTierLimits(tier, false);
 
   if ((profile.image_gen_reset_date ?? "") !== today) {
     await supabaseAdmin
@@ -508,15 +559,15 @@ async function deductImageGen(userId: string): Promise<boolean> {
   const today = getTodayWIB();
   const { data: profile } = await supabaseAdmin
     .from("profiles")
-    .select("role, is_premium, premium_expires_at, image_gen_count, image_gen_reset_date")
+    .select("role, is_premium, premium_expires_at, tier, image_gen_count, image_gen_reset_date")
     .eq("id", userId)
     .single();
 
   if (!profile) return false;
   if (profile.role === "admin") return true;
 
-  const isPremium = isPremiumActive(profile);
-  const limit = isPremium ? PREMIUM_IMAGE_LIMIT : FREE_IMAGE_LIMIT;
+  const tier = getTier(profile);
+  const { imageLimit: limit } = getTierLimits(tier, false);
 
   let currentCount = profile.image_gen_count ?? 0;
   if ((profile.image_gen_reset_date ?? "") !== today) {
@@ -620,12 +671,14 @@ app.delete("/api/video-jobs", requireAuth, async (req, res) => {
 // GET /api/premium/status — cek status aplikasi premium user sendiri
 app.get("/api/premium/status", requireAuth, async (req, res) => {
   const userId = (req as any).userId;
-  const { data: profile } = await supabaseAdmin.from("profiles").select("is_premium, premium_expires_at, role").eq("id", userId).single();
+  const { data: profile } = await supabaseAdmin.from("profiles").select("is_premium, premium_expires_at, role, tier").eq("id", userId).single();
   const { data: application } = await supabaseAdmin.from("premium_applications").select("*").eq("user_id", userId).maybeSingle();
   const isAdmin = profile?.role === "admin";
+  const tier = getTier(profile);
   res.json({
-    isPremium: isAdmin || isPremiumActive(profile ?? {}),
+    isPremium: isAdmin || tier !== "free",
     isAdmin,
+    tier,
     premiumExpiresAt: profile?.premium_expires_at ?? null,
     application: application ?? null,
   });
@@ -717,27 +770,38 @@ app.get("/api/admin/premium-applications", requireAuth, requireAdmin, async (_re
 });
 
 // PATCH /api/admin/premium-applications/:id/approve
+// Body opsional: { tier: 'plus' | 'pro' } — default 'plus'.
 app.patch("/api/admin/premium-applications/:id/approve", requireAuth, requireAdmin, async (req, res) => {
   const { id } = req.params;
+  let body: any = {};
+  try {
+    const raw = req.body instanceof Buffer ? req.body.toString("utf8") : req.body;
+    body = typeof raw === "string" ? JSON.parse(raw) : raw;
+  } catch { /**/ }
+  const requestedTier: Tier = body?.tier === "pro" ? "pro" : "plus";
+
   const { data: app } = await supabaseAdmin.from("premium_applications").select("user_id").eq("id", id).single();
   if (!app) { res.status(404).json({ error: "Aplikasi tidak ditemukan." }); return; }
 
   const now = new Date().toISOString();
 
-  await supabaseAdmin.from("premium_applications").update({ status: "approved", reviewed_at: now }).eq("id", id);
+  await supabaseAdmin.from("premium_applications")
+    .update({ status: "approved", reviewed_at: now, tier: requestedTier })
+    .eq("id", id);
   // video_credits tidak perlu diubah — getVideoCredits hitung sisa otomatis dari used count
   await supabaseAdmin.from("profiles").update({
     is_premium: true,
+    tier: requestedTier,
     premium_expires_at: oneMonthFromNow(),
   }).eq("id", app.user_id);
 
-  // Bonus saldo credit Rp 100.000 — hanya sekali per user (idempotent)
-  const bonusGranted = await grantPlusBonusOnce(app.user_id, {
+  // Bonus saldo credit — hanya sekali per tier (idempotent), Plus→Pro dapet selisih
+  const { granted, amount } = await grantTierBonusOnce(app.user_id, requestedTier, {
     source: "premium_application_approve",
     application_id: id,
   });
 
-  res.json({ ok: true, bonus_granted: bonusGranted, bonus_amount_idr: PLUS_UPGRADE_BONUS_IDR });
+  res.json({ ok: true, bonus_granted: granted, bonus_amount_idr: amount, tier: requestedTier });
 });
 
 // PATCH /api/admin/premium-applications/:id/reject
@@ -758,6 +822,7 @@ app.patch("/api/admin/premium-applications/:id/reject", requireAuth, requireAdmi
 });
 
 // PATCH /api/admin/users/:id/premium — toggle premium langsung dari tab pengguna
+// Body: { is_premium: boolean, tier?: 'plus'|'pro', days?: number }
 app.patch("/api/admin/users/:id/premium", requireAuth, requireAdmin, async (req, res) => {
   const { id } = req.params;
   let body: any = {};
@@ -766,6 +831,7 @@ app.patch("/api/admin/users/:id/premium", requireAuth, requireAdmin, async (req,
     body = typeof raw === "string" ? JSON.parse(raw) : raw;
   } catch { /**/ }
   const { is_premium, days } = body;
+  const requestedTier: Tier = body?.tier === "pro" ? "pro" : "plus";
 
   let expiresAt: string | null = null;
   if (is_premium) {
@@ -779,17 +845,24 @@ app.patch("/api/admin/users/:id/premium", requireAuth, requireAdmin, async (req,
   }
 
   // video_credits tidak perlu diubah saat toggle — getVideoCredits otomatis hitung sisa berdasar used count
-  const updatePayload = { is_premium: !!is_premium, premium_expires_at: expiresAt };
+  const updatePayload: any = {
+    is_premium: !!is_premium,
+    premium_expires_at: expiresAt,
+    tier: is_premium ? requestedTier : "free",
+  };
   const { error } = await supabaseAdmin.from("profiles").update(updatePayload).eq("id", id);
   if (error) { res.status(500).json({ error: error.message }); return; }
 
-  // Saat admin toggle premium ON → coba grant bonus (skip kalau user udah pernah dapat)
+  // Saat admin toggle premium ON → coba grant bonus tier-aware (skip kalau user udah pernah dapat)
   let bonusGranted = false;
+  let bonusAmount = 0;
   if (is_premium) {
-    bonusGranted = await grantPlusBonusOnce(id, { source: "admin_toggle_premium" });
+    const result = await grantTierBonusOnce(id, requestedTier, { source: "admin_toggle_premium" });
+    bonusGranted = result.granted;
+    bonusAmount = result.amount;
   }
 
-  res.json({ ok: true, bonus_granted: bonusGranted });
+  res.json({ ok: true, bonus_granted: bonusGranted, bonus_amount_idr: bonusAmount, tier: updatePayload.tier });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -999,23 +1072,57 @@ async function deductCredit(userId: string, amountIdr: number, type: string, met
 }
 
 // Grant bonus Plus upgrade — hanya sekali per user (idempotent).
-// Cek dari ledger apakah sudah pernah dapat bonus_plus_upgrade.
+// Dipertahankan untuk backward compat. Logic baru pakai grantTierBonusOnce.
 async function grantPlusBonusOnce(userId: string, sourceMetadata?: any): Promise<boolean> {
+  const { granted } = await grantTierBonusOnce(userId, "plus", sourceMetadata);
+  return granted;
+}
+
+/**
+ * Grant bonus tier upgrade — idempotent per tier.
+ * - Plus: Rp 75.000 sekali. Skip kalau user udah pernah dapet bonus Plus atau Pro.
+ * - Pro: Rp 125.000 sekali. Kalau user udah pernah Plus, kasih selisih (Rp 50.000).
+ *   Kalau belum pernah, kasih full Rp 125.000.
+ */
+async function grantTierBonusOnce(
+  userId: string,
+  tier: Tier,
+  sourceMetadata?: any,
+): Promise<{ granted: boolean; amount: number }> {
+  if (tier === "free") return { granted: false, amount: 0 };
+
+  // Cek riwayat bonus dari ledger
+  let hasPlusBonus = false;
+  let hasProBonus = false;
   try {
     const { data: existing } = await supabaseAdmin
       .from("credit_transactions")
-      .select("id")
+      .select("type")
       .eq("user_id", userId)
-      .eq("type", "bonus_plus_upgrade")
-      .limit(1)
-      .maybeSingle();
-    if (existing) return false;
+      .in("type", ["bonus_plus_upgrade", "bonus_pro_upgrade"]);
+    for (const row of existing ?? []) {
+      if (row.type === "bonus_plus_upgrade") hasPlusBonus = true;
+      if (row.type === "bonus_pro_upgrade")  hasProBonus = true;
+    }
   } catch {
-    // Kalau tabel belum ada (migration belum jalan), skip aja
-    return false;
+    // Tabel mungkin belum ada (migration belum jalan)
+    return { granted: false, amount: 0 };
   }
-  await addCredit(userId, PLUS_UPGRADE_BONUS_IDR, "bonus_plus_upgrade", sourceMetadata ?? null);
-  return true;
+
+  if (tier === "plus") {
+    if (hasPlusBonus || hasProBonus) return { granted: false, amount: 0 };
+    await addCredit(userId, PLUS_UPGRADE_BONUS_IDR, "bonus_plus_upgrade", sourceMetadata ?? null);
+    return { granted: true, amount: PLUS_UPGRADE_BONUS_IDR };
+  }
+
+  // tier === "pro"
+  if (hasProBonus) return { granted: false, amount: 0 };
+  const amount = hasPlusBonus
+    ? Math.max(0, PRO_UPGRADE_BONUS_IDR - PLUS_UPGRADE_BONUS_IDR)
+    : PRO_UPGRADE_BONUS_IDR;
+  if (amount <= 0) return { granted: false, amount: 0 };
+  await addCredit(userId, amount, "bonus_pro_upgrade", sourceMetadata ?? null);
+  return { granted: true, amount };
 }
 
 // ── GET /api/me/api-keys — list semua key user (tanpa value asli) ────────────
@@ -1197,11 +1304,12 @@ app.get("/api/me/credit", requireAuth, async (req, res) => {
   const userId = (req as any).userId;
   const { data: profile } = await supabaseAdmin
     .from("profiles")
-    .select("credit_balance_idr, is_premium, premium_expires_at, role")
+    .select("credit_balance_idr, is_premium, premium_expires_at, role, tier")
     .eq("id", userId)
     .single();
   const isAdmin = profile?.role === "admin";
-  const isPremium = isAdmin || isPremiumActive(profile ?? {});
+  const tier = getTier(profile);
+  const isPremium = isAdmin || tier !== "free";
 
   let transactions: any[] = [];
   try {
@@ -1218,6 +1326,7 @@ app.get("/api/me/credit", requireAuth, async (req, res) => {
     balance_idr: (profile as any)?.credit_balance_idr ?? 0,
     is_premium: isPremium,
     is_admin: isAdmin,
+    tier,
     transactions,
     pricing: {
       idr_per_token_num: IDR_PER_TOKEN_NUM,
@@ -1225,6 +1334,7 @@ app.get("/api/me/credit", requireAuth, async (req, res) => {
       image_idr: IMAGE_COST_IDR,
       video_idr: VIDEO_COST_IDR,
       plus_bonus_idr: PLUS_UPGRADE_BONUS_IDR,
+      pro_bonus_idr: PRO_UPGRADE_BONUS_IDR,
     },
   });
 });
@@ -1684,14 +1794,15 @@ app.all("/api/dashscope/*splat", requireAuth, async (req, res) => {
   const today = getTodayWIB();
   const [usageRow, profileRow] = await Promise.all([
     supabaseAdmin.from("daily_token_usage").select("total_tokens").eq("user_id", userId).eq("date", today).single(),
-    supabaseAdmin.from("profiles").select("is_premium, premium_expires_at, role").eq("id", userId).single(),
+    supabaseAdmin.from("profiles").select("is_premium, premium_expires_at, role, tier").eq("id", userId).single(),
   ]);
   const todayTokens = usageRow.data?.total_tokens ?? 0;
   const isAdmin = profileRow.data?.role === "admin";
-  const isPremium = isAdmin || isPremiumActive(profileRow.data ?? {});
+  const tier = getTier(profileRow.data ?? null);
+  const isPremium = isAdmin || tier !== "free";
 
   // ── Cek quota token harian ─────────────────────────────────────────────────
-  const tokenLimit = isAdmin ? 9_999_999 : isPremium ? PREMIUM_TOKEN_LIMIT : DAILY_TOKEN_LIMIT;
+  const { tokenLimit } = getTierLimits(tier, isAdmin);
   if (todayTokens >= tokenLimit) {
     res.status(429)
       .set("X-Pioo-Error", "QUOTA_EXCEEDED")

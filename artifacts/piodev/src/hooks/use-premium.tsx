@@ -1,9 +1,12 @@
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
 
+export type Tier = "free" | "plus" | "pro";
+
 export type PremiumStatus = {
   isPremium: boolean;
   isAdmin: boolean;
+  tier: Tier;
   premiumExpiresAt: string | null;
   application: {
     id: string;
@@ -11,6 +14,7 @@ export type PremiumStatus = {
     status: "pending" | "approved" | "rejected";
     rejection_note: string;
     created_at: string;
+    tier?: Tier;
   } | null;
 };
 

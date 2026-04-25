@@ -36,6 +36,7 @@ type CreditInfo = {
   balance_idr: number;
   is_premium: boolean;
   is_admin: boolean;
+  tier?: "free" | "plus" | "pro";
   transactions: CreditTransaction[];
   pricing: {
     idr_per_token_num: number;
@@ -43,6 +44,7 @@ type CreditInfo = {
     image_idr: number;
     video_idr: number;
     plus_bonus_idr: number;
+    pro_bonus_idr?: number;
   };
 };
 
@@ -765,9 +767,15 @@ function SaldoCard({ credit, onTopUp }: { credit: CreditInfo; onTopUp: () => voi
             "text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-bold",
             isAdmin
               ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
+              : credit.tier === "pro"
+              ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
               : "bg-primary/15 text-primary"
           )}>
-            {isAdmin ? "Admin · Bypass" : "Plus · Aktif"}
+            {isAdmin
+              ? "Admin · Bypass"
+              : credit.tier === "pro"
+              ? "Pro · Aktif"
+              : "Plus · Aktif"}
           </span>
         </div>
 
