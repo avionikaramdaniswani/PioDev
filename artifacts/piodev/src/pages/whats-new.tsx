@@ -110,10 +110,7 @@ export default function WhatsNewPage() {
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Apa yang baru?</h1>
-            <p className="text-sm text-muted-foreground mt-1">Update dan perbaikan terbaru di Pioo 2.0.</p>
-          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight">Apa yang baru?</h1>
         </div>
 
         {/* Loading skeleton */}
