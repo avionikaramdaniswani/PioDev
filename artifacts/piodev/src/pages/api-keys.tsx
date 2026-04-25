@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Key, Plus, Copy, Trash2, AlertTriangle, Check, ArrowLeft, Code, Zap, Clock, Sparkles, MessageSquare, Image as ImageIcon, Video, FileText, ScanText, Lock, Lightbulb, AlertCircle, Rocket, BookOpen, Layers, Eye, EyeOff, Loader2, Wallet, Activity, Pencil, X as XIcon, ShieldAlert } from "lucide-react";
+import { Key, Plus, Copy, Trash2, AlertTriangle, Check, ArrowLeft, Code, Zap, Clock, Sparkles, MessageSquare, Image as ImageIcon, Video, FileText, ScanText, Lock, Lightbulb, AlertCircle, Rocket, BookOpen, Layers, Eye, EyeOff, Loader2, Activity, Pencil, X as XIcon, ShieldAlert } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useAuth } from "@/hooks/use-auth";
@@ -741,88 +741,54 @@ const formatIdr = (n: number) => `Rp ${Math.max(0, Math.floor(n)).toLocaleString
 function SaldoCard({ credit, onTopUp }: { credit: CreditInfo; onTopUp: () => void }) {
   const balance = credit.balance_idr;
   const isAdmin = credit.is_admin;
-  const isLow = !isAdmin && balance < 5_000;
+  const isLow = !isAdmin && balance > 0 && balance < 5_000;
   const isEmpty = !isAdmin && balance <= 0;
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-border bg-gradient-to-br from-primary/10 via-card to-card p-5" data-testid="card-saldo">
-      <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-primary/20 blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-12 -left-8 w-36 h-36 rounded-full bg-fuchsia-500/10 blur-3xl pointer-events-none" />
-
-      <div className="relative">
-        {/* Header */}
-        <div className="flex items-start justify-between mb-4">
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center ring-1 ring-primary/20">
-              <Wallet className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm font-semibold leading-tight">Saldo Credit</p>
-              <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">
-                Pakai untuk akses PioCode API · tanpa reset harian
-              </p>
-            </div>
-          </div>
-          <span className={cn(
-            "text-[10px] uppercase tracking-wider px-2 py-1 rounded-md font-bold",
-            isAdmin
-              ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-              : credit.tier === "pro"
-              ? "bg-amber-500/15 text-amber-600 dark:text-amber-400"
-              : "bg-primary/15 text-primary"
-          )}>
-            {isAdmin
-              ? "Admin · Bypass"
-              : credit.tier === "pro"
-              ? "Pro · Aktif"
-              : "Plus · Aktif"}
-          </span>
-        </div>
-
-        {/* Big nominal */}
-        <div className="mb-4">
-          <p className="text-3xl md:text-4xl font-bold tracking-tight" data-testid="text-saldo-remaining">
-            {isAdmin ? "Tanpa Batas" : formatIdr(balance)}
-          </p>
-          {!isAdmin && (
-            <p className={cn(
-              "text-xs mt-1",
-              isEmpty ? "text-rose-500 font-medium" : isLow ? "text-amber-500 font-medium" : "text-muted-foreground"
-            )}>
-              {isEmpty
-                ? "Saldo habis. Top up untuk lanjut pakai API."
-                : isLow
-                ? "Saldo menipis — pertimbangkan top up segera."
-                : "Saldo akan terus menyusut tiap kali API dipakai."}
-            </p>
-          )}
-          {isAdmin && (
-            <p className="text-xs text-muted-foreground mt-1">
-              Akun admin ga di-charge — pemakaian tetap dicatat di log.
-            </p>
-          )}
-        </div>
-
-        {/* Top up + tariff */}
-        <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
+    <div className="rounded-2xl border border-border bg-card p-5" data-testid="card-saldo">
+      {/* Label + Top Up trigger */}
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <p className="text-xs text-muted-foreground uppercase tracking-wider">Saldo Credit</p>
+        {!isAdmin && (
           <button
             onClick={onTopUp}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/10 text-primary border border-primary/30 hover:bg-primary/15 transition font-medium"
+            className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:text-primary/80 transition"
             data-testid="button-top-up"
           >
             <Plus className="w-3.5 h-3.5" />
-            Top Up Saldo
-            <span className="ml-1 text-[10px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/15">
+            Top up
+            <span className="text-[9px] uppercase tracking-wider px-1.5 py-0.5 rounded bg-primary/10 text-primary/70">
               Segera
             </span>
           </button>
-          <div className="flex items-center gap-1.5 flex-wrap">
-            <span className="hidden sm:inline text-muted-foreground">Tarif:</span>
-            <span className="px-1.5 py-0.5 rounded bg-muted/70 text-muted-foreground"><MessageSquare className="w-3 h-3 inline mr-0.5 -mt-0.5" />~Rp 250</span>
-            <span className="px-1.5 py-0.5 rounded bg-muted/70 text-muted-foreground"><ImageIcon className="w-3 h-3 inline mr-0.5 -mt-0.5" />Rp 4rb</span>
-            <span className="px-1.5 py-0.5 rounded bg-muted/70 text-muted-foreground"><Video className="w-3 h-3 inline mr-0.5 -mt-0.5" />Rp 50rb</span>
-          </div>
-        </div>
+        )}
+      </div>
+
+      {/* Big nominal */}
+      <p className="text-4xl font-bold tracking-tight" data-testid="text-saldo-remaining">
+        {isAdmin ? "Tanpa Batas" : formatIdr(balance)}
+      </p>
+
+      {/* Status line — singkat */}
+      <p className={cn(
+        "text-xs mt-1.5",
+        isEmpty ? "text-rose-500 font-medium" : isLow ? "text-amber-500 font-medium" : "text-muted-foreground"
+      )}>
+        {isAdmin
+          ? "Akun admin · gak di-charge"
+          : isEmpty
+          ? "Saldo habis. Top up untuk lanjut pakai API."
+          : isLow
+          ? "Saldo menipis."
+          : "Tanpa reset harian."}
+      </p>
+
+      {/* Tarif — minimalis di bawah */}
+      <div className="flex items-center gap-3 mt-4 pt-3 border-t border-border text-[11px] text-muted-foreground">
+        <span>Tarif</span>
+        <span className="inline-flex items-center gap-1"><MessageSquare className="w-3 h-3" />~Rp 250</span>
+        <span className="inline-flex items-center gap-1"><ImageIcon className="w-3 h-3" />Rp 4rb</span>
+        <span className="inline-flex items-center gap-1"><Video className="w-3 h-3" />Rp 50rb</span>
       </div>
     </div>
   );
