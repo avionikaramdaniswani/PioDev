@@ -1,4 +1,4 @@
-import logoSrc from "@/assets/piodev-logo.png";
+import logoSrc from "@/assets/pioo-logo.png";
 import { cn } from "@/lib/utils";
 
 interface LogoProps {

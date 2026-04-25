@@ -19,6 +19,7 @@ import { usePremium } from "@/hooks/use-premium";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { ChatSidebar } from "@/components/chat-sidebar";
 import { VoiceModeOverlay } from "@/components/voice-mode-overlay";
+import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 
 const FREE_DAILY_LIMIT = 60_000;
@@ -754,9 +755,7 @@ export default function ChatPage() {
               </div>
             ) : !activeChat || activeChat.messages.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center">
-                <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center mb-6">
-                  <Terminal className="w-8 h-8 text-primary" />
-                </div>
+                <Logo size={64} className="rounded-2xl mb-6" />
                 <h2 className="text-2xl font-bold text-foreground mb-2">
                   Halo, {user.name.split(" ")[0].replace(/^./, (c) => c.toUpperCase())}! Ada yang bisa aku bantu?
                 </h2>
@@ -840,9 +839,7 @@ export default function ChatPage() {
                     <>
                       <div className="flex flex-col gap-2 w-full">
                         <div className="flex items-center gap-2.5">
-                          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-indigo-400 flex items-center justify-center shrink-0 shadow-sm">
-                            <Terminal className="w-3.5 h-3.5 text-white" />
-                          </div>
+                          <Logo size={28} className="rounded-lg shadow-sm" />
                           <span className="text-xs font-semibold text-muted-foreground tracking-wide uppercase">Pioo 2.0</span>
                         </div>
                         <div className="pl-9 w-full">
@@ -883,9 +880,7 @@ export default function ChatPage() {
             {isTyping && activeChat?.messages.at(-1)?.content === "" && !activeChat?.messages.at(-1)?.thinking && (
               <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex flex-col gap-2 w-full">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-primary to-indigo-400 flex items-center justify-center shrink-0 shadow-sm">
-                    <Terminal className="w-3.5 h-3.5 text-white" />
-                  </div>
+                  <Logo size={28} className="rounded-lg shadow-sm" />
                   <span className="text-xs font-semibold text-muted-foreground tracking-wide uppercase">Pioo 2.0</span>
                 </div>
                 <div className="pl-9 flex items-center gap-1.5 h-7">
