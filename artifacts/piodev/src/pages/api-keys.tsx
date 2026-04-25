@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Key, Plus, Copy, Trash2, AlertTriangle, Check, ArrowLeft, Code, Zap, Clock, Sparkles, MessageSquare, Image as ImageIcon, Video, FileText, ScanText, Lock, Lightbulb, AlertCircle, Rocket, BookOpen, Layers, Eye, EyeOff, Loader2, Activity, Pencil, X as XIcon, ShieldAlert } from "lucide-react";
+import { Key, Plus, Copy, Trash2, AlertTriangle, Check, ArrowLeft, ArrowRight, Code, Zap, Clock, Sparkles, MessageSquare, Image as ImageIcon, Video, FileText, ScanText, Lock, Lightbulb, AlertCircle, Rocket, BookOpen, Layers, Eye, EyeOff, Loader2, Activity, Pencil, X as XIcon, ShieldAlert, CreditCard } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useAuth } from "@/hooks/use-auth";
@@ -77,6 +77,7 @@ export default function ApiKeysPage() {
   const [error, setError] = useState<string | null>(null);
 
   const [showCreate, setShowCreate] = useState(false);
+  const [topUpDialogOpen, setTopUpDialogOpen] = useState(false);
   const [newKeyName, setNewKeyName] = useState("");
   const [creating, setCreating] = useState(false);
   const [createdKey, setCreatedKey] = useState<{ key: string; revealable: boolean; warning?: string } | null>(null);
@@ -130,11 +131,13 @@ export default function ApiKeysPage() {
     }
   }
 
-  async function handleTopUp() {
-    toast({
-      title: "Segera Hadir",
-      description: "Top up saldo masih dalam pengembangan. Sabar ya, fitur ini akan tersedia secepatnya!",
-    });
+  function handleTopUp() {
+    setTopUpDialogOpen(true);
+  }
+
+  function handleGoToPlan() {
+    setTopUpDialogOpen(false);
+    navigate("/premium");
   }
 
   useEffect(() => { if (user?.id) load(); /* eslint-disable-next-line */ }, [user?.id]);
@@ -661,6 +664,74 @@ export default function ApiKeysPage() {
                 >
                   {deletingId === revokeTarget.id && <Loader2 className="w-4 h-4 animate-spin" />}
                   {deletingId === revokeTarget.id ? "Merevoke..." : "Ya, revoke"}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Top Up dialog — payment gateway placeholder + redirect ke /premium */}
+      <AnimatePresence>
+        {topUpDialogOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+            onClick={() => setTopUpDialogOpen(false)}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="topup-dialog-title"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              transition={{ duration: 0.18, ease: "easeOut" }}
+              className="bg-card border border-border rounded-2xl shadow-2xl max-w-md w-full p-6 relative"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setTopUpDialogOpen(false)}
+                className="absolute top-4 right-4 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                aria-label="Tutup"
+              >
+                <XIcon className="w-4 h-4" />
+              </button>
+
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center text-primary">
+                  <CreditCard className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 id="topup-dialog-title" className="text-lg font-semibold text-foreground leading-tight">
+                    Top Up Saldo
+                  </h2>
+                  <p className="text-xs text-muted-foreground mt-0.5">Belum tersedia.</p>
+                </div>
+              </div>
+
+              <p className="text-sm text-foreground/90 leading-relaxed mb-5">
+                Payment gateway untuk top up saldo <strong>segera hadir</strong>. Sambil nunggu, kamu bisa coba paket Plus gratis selama 1 bulan dan dapet bonus saldo Rp 25.000 langsung.
+              </p>
+
+              <div className="flex flex-col-reverse sm:flex-row gap-2">
+                <button
+                  onClick={() => setTopUpDialogOpen(false)}
+                  className="flex-1 h-10 rounded-lg text-sm font-medium border border-border bg-background text-foreground hover:bg-muted transition-colors"
+                >
+                  Tutup
+                </button>
+                <button
+                  onClick={handleGoToPlan}
+                  className="flex-1 h-10 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center justify-center gap-1.5"
+                  data-testid="button-goto-trial"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  <span>Ambil Trial 1 Bulan</span>
+                  <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             </motion.div>
