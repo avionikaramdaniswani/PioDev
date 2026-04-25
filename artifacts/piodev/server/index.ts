@@ -43,6 +43,10 @@ const VIDEO_COST_IDR = 50_000;    // per video
 const PLUS_UPGRADE_BONUS_IDR = 75_000;   // bonus sekali saat upgrade ke Plus
 const PRO_UPGRADE_BONUS_IDR  = 125_000;  // bonus sekali saat upgrade ke Pro
 
+// ── Trial Plus (uji coba gratis 1 bulan, sekali per akun) ─────────────────────
+const PLUS_TRIAL_BONUS_IDR    = 25_000;  // bonus saldo saat klaim trial (lebih kecil dari upgrade berbayar)
+const PLUS_TRIAL_DURATION_DAYS = 30;     // durasi trial
+
 function tokensToIdr(tokens: number): number {
   if (!tokens || tokens <= 0) return 0;
   return Math.ceil((tokens * IDR_PER_TOKEN_NUM) / IDR_PER_TOKEN_DEN);
@@ -671,7 +675,11 @@ app.delete("/api/video-jobs", requireAuth, async (req, res) => {
 // GET /api/premium/status — info tier user sendiri
 app.get("/api/premium/status", requireAuth, async (req, res) => {
   const userId = (req as any).userId;
-  const { data: profile } = await supabaseAdmin.from("profiles").select("is_premium, premium_expires_at, role, tier").eq("id", userId).single();
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("is_premium, premium_expires_at, role, tier, trial_claimed_at")
+    .eq("id", userId)
+    .single();
   const isAdmin = profile?.role === "admin";
   const tier = getTier(profile);
   res.json({
@@ -679,6 +687,103 @@ app.get("/api/premium/status", requireAuth, async (req, res) => {
     isAdmin,
     tier,
     premiumExpiresAt: profile?.premium_expires_at ?? null,
+    trialClaimedAt: (profile as any)?.trial_claimed_at ?? null,
+    trialAvailable: !isAdmin && !(profile as any)?.trial_claimed_at && tier === "free",
+  });
+});
+
+// POST /api/premium/claim-trial — klaim uji coba Plus 1 bulan (sekali per akun)
+app.post("/api/premium/claim-trial", requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+
+  // 1. Cek email_confirmed_at di Supabase Auth (anti farming pakai email random)
+  const { data: { user: authUser }, error: authErr } = await supabaseAdmin.auth.admin.getUserById(userId);
+  if (authErr || !authUser) {
+    res.status(401).json({ error: "Unauthorized" });
+    return;
+  }
+  if (!authUser.email_confirmed_at) {
+    res.status(403).json({
+      error: "email_not_verified",
+      message: "Verifikasi email kamu dulu sebelum klaim uji coba.",
+    });
+    return;
+  }
+
+  // 2. Ambil profile + cek sudah pernah klaim atau belum
+  const { data: profile, error: profileErr } = await supabaseAdmin
+    .from("profiles")
+    .select("is_premium, premium_expires_at, role, tier, trial_claimed_at")
+    .eq("id", userId)
+    .single();
+  if (profileErr || !profile) {
+    res.status(500).json({ error: "Profile tidak ditemukan." });
+    return;
+  }
+
+  const isAdmin = (profile as any).role === "admin";
+  if (isAdmin) {
+    res.status(409).json({
+      error: "admin_bypass",
+      message: "Admin tidak perlu klaim uji coba.",
+    });
+    return;
+  }
+
+  if ((profile as any).trial_claimed_at) {
+    res.status(409).json({
+      error: "trial_already_claimed",
+      message: "Uji coba gratis cuma bisa diklaim sekali per akun.",
+    });
+    return;
+  }
+
+  const currentTier = getTier(profile);
+  if (currentTier !== "free") {
+    res.status(409).json({
+      error: "already_premium",
+      message: "Kamu sudah punya paket aktif. Uji coba cuma untuk user Free.",
+    });
+    return;
+  }
+
+  // 3. Set tier ke Plus + premium_expires_at = NOW + 30 hari + tandain trial_claimed_at
+  const now = new Date();
+  const expiresAt = new Date(now);
+  expiresAt.setDate(expiresAt.getDate() + PLUS_TRIAL_DURATION_DAYS);
+
+  const { error: updErr } = await supabaseAdmin
+    .from("profiles")
+    .update({
+      is_premium: true,
+      tier: "plus",
+      premium_expires_at: expiresAt.toISOString(),
+      trial_claimed_at: now.toISOString(),
+    })
+    .eq("id", userId);
+
+  if (updErr) {
+    res.status(500).json({ error: updErr.message });
+    return;
+  }
+
+  // 4. Kasih bonus saldo Rp 25.000 (type khusus 'bonus_plus_trial' — gak ngeblok bonus upgrade berbayar nanti)
+  let bonusGranted = false;
+  try {
+    await addCredit(userId, PLUS_TRIAL_BONUS_IDR, "bonus_plus_trial", { source: "claim_trial" });
+    bonusGranted = true;
+  } catch (e) {
+    console.error("[claim-trial] bonus credit failed:", e);
+  }
+
+  res.json({
+    ok: true,
+    tier: "plus",
+    premium_expires_at: expiresAt.toISOString(),
+    trial_claimed_at: now.toISOString(),
+    bonus_granted: bonusGranted,
+    bonus_amount_idr: bonusGranted ? PLUS_TRIAL_BONUS_IDR : 0,
+    duration_days: PLUS_TRIAL_DURATION_DAYS,
   });
 });
 

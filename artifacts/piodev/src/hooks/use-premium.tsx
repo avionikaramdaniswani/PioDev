@@ -8,6 +8,23 @@ export type PremiumStatus = {
   isAdmin: boolean;
   tier: Tier;
   premiumExpiresAt: string | null;
+  trialClaimedAt?: string | null;
+  trialAvailable?: boolean;
+};
+
+export type ClaimTrialResponse = {
+  ok: true;
+  tier: "plus";
+  premium_expires_at: string;
+  trial_claimed_at: string;
+  bonus_granted: boolean;
+  bonus_amount_idr: number;
+  duration_days: number;
+};
+
+export type ClaimTrialError = {
+  error: string;
+  message: string;
 };
 
 async function authHeader() {
@@ -31,5 +48,15 @@ export function usePremium(userId: string | undefined) {
 
   useEffect(() => { fetchStatus(); }, [fetchStatus]);
 
-  return { status, isLoading, refetch: fetchStatus };
+  const claimTrial = useCallback(async (): Promise<ClaimTrialResponse | ClaimTrialError> => {
+    const res = await fetch("/api/premium/claim-trial", {
+      method: "POST",
+      headers: { ...(await authHeader()), "Content-Type": "application/json" },
+    });
+    const data = await res.json();
+    if (res.ok) await fetchStatus();
+    return data;
+  }, [fetchStatus]);
+
+  return { status, isLoading, refetch: fetchStatus, claimTrial };
 }

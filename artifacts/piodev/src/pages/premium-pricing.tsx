@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { usePremium } from "@/hooks/use-premium";
 import { useTheme } from "@/hooks/use-theme";
-import { ArrowLeft, Check, Loader2, CreditCard } from "lucide-react";
+import { ArrowLeft, Check, Loader2, CreditCard, Sparkles, AlertTriangle, X as XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function useInlineToast() {
@@ -34,16 +34,45 @@ export default function PremiumPricingPage() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
   const [, setLocation] = useLocation();
-  const { status, isLoading } = usePremium(user?.id);
+  const { status, isLoading, claimTrial } = usePremium(user?.id);
   const { toast, show: showToast } = useInlineToast();
+
+  const [trialModalOpen, setTrialModalOpen] = useState(false);
+  const [claiming, setClaiming] = useState(false);
 
   const handleBuy = useCallback((tierName: "Plus" | "Pro") => {
     showToast(`Payment gateway untuk paket ${tierName} segera hadir. Tunggu update ya!`);
   }, [showToast]);
 
-  const handleFreeTrial = useCallback(() => {
-    showToast("Uji coba gratis 1 bulan segera tersedia. Tunggu update ya!");
-  }, [showToast]);
+  const handleOpenTrialModal = useCallback(() => setTrialModalOpen(true), []);
+  const handleCloseTrialModal = useCallback(() => {
+    if (!claiming) setTrialModalOpen(false);
+  }, [claiming]);
+
+  const handleConfirmTrial = useCallback(async () => {
+    setClaiming(true);
+    try {
+      const result = await claimTrial();
+      if ("ok" in result && result.ok) {
+        const bonusMsg = result.bonus_granted
+          ? ` Bonus saldo Rp ${result.bonus_amount_idr.toLocaleString("id-ID")} udah masuk.`
+          : "";
+        showToast(`Berhasil! Plus aktif sampai 1 bulan ke depan.${bonusMsg}`);
+        setTrialModalOpen(false);
+      } else {
+        const err = result as { error: string; message: string };
+        showToast(err.message || "Gagal klaim uji coba. Coba lagi.");
+        // Kalau errornya 'trial_already_claimed' atau 'already_premium', tutup modal
+        if (err.error === "trial_already_claimed" || err.error === "already_premium" || err.error === "admin_bypass") {
+          setTrialModalOpen(false);
+        }
+      }
+    } catch {
+      showToast("Gagal klaim uji coba. Cek koneksi internet kamu.");
+    } finally {
+      setClaiming(false);
+    }
+  }, [claimTrial, showToast]);
 
   useEffect(() => {
     if (!user) setLocation("/login");
@@ -63,6 +92,9 @@ export default function PremiumPricingPage() {
   const isPlusActive = userTier === "plus" && !isAdmin;
   const isProActive  = userTier === "pro"  && !isAdmin;
   const isPremium = status.isPremium || isAdmin;
+  const trialClaimed = !!status.trialClaimedAt;
+  // Tombol trial cuma untuk user free yang belum pernah klaim & bukan admin
+  const showTrialButton = !isAdmin && !isPlusActive && !isProActive;
 
   const tiers: Tier[] = [
     {
@@ -105,10 +137,11 @@ export default function PremiumPricingPage() {
         : isProActive
         ? { label: "Sudah Pakai Pro", disabled: true }
         : { label: "Pilih & Beli Sekarang", primary: true, onClick: () => handleBuy("Plus") },
-      secondaryCta:
-        isAdmin || isPlusActive || isProActive
-          ? undefined
-          : { label: "Ambil Gratis Uji Coba 1 Bulan", onClick: handleFreeTrial },
+      secondaryCta: !showTrialButton
+        ? undefined
+        : trialClaimed
+        ? { label: "Uji Coba Sudah Diklaim", disabled: true }
+        : { label: "Ambil Gratis Uji Coba 1 Bulan", onClick: handleOpenTrialModal },
     },
     {
       id: "pro",
@@ -182,6 +215,90 @@ export default function PremiumPricingPage() {
           </div>
         )}
       </div>
+
+      {/* Modal konfirmasi klaim uji coba Plus */}
+      {trialModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm"
+          onClick={handleCloseTrialModal}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="trial-modal-title"
+        >
+          <div
+            className="bg-card border border-border rounded-2xl shadow-2xl max-w-md w-full p-6 relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={handleCloseTrialModal}
+              disabled={claiming}
+              className="absolute top-4 right-4 p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+              aria-label="Tutup"
+            >
+              <XIcon className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center text-primary">
+                <Sparkles className="w-5 h-5" />
+              </div>
+              <div>
+                <h2 id="trial-modal-title" className="text-lg font-semibold text-foreground leading-tight">
+                  Uji Coba Plus 1 Bulan
+                </h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Gratis, tanpa kartu kredit.</p>
+              </div>
+            </div>
+
+            <ul className="space-y-2.5 mb-5 text-sm text-foreground">
+              <li className="flex items-start gap-2.5">
+                <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" strokeWidth={2.5} />
+                <span>Akses semua fitur Plus selama <strong>30 hari</strong></span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" strokeWidth={2.5} />
+                <span>Bonus saldo <strong>Rp 25.000</strong> langsung masuk</span>
+              </li>
+              <li className="flex items-start gap-2.5">
+                <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" strokeWidth={2.5} />
+                <span>Otomatis kembali ke Free saat masa uji coba habis</span>
+              </li>
+            </ul>
+
+            <div className="flex items-start gap-2 px-3 py-2.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 dark:text-amber-400 mb-5">
+              <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+              <p className="text-xs leading-relaxed">
+                Uji coba <strong>cuma bisa diklaim sekali per akun</strong> dan tidak bisa dibatalkan. Pastikan kamu pakai email yang aktif.
+              </p>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={handleCloseTrialModal}
+                disabled={claiming}
+                className="flex-1 h-10 rounded-lg text-sm font-medium border border-border bg-background text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button
+                onClick={handleConfirmTrial}
+                disabled={claiming}
+                className="flex-1 h-10 rounded-lg text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+                data-testid="button-confirm-trial"
+              >
+                {claiming ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Memproses…</span>
+                  </>
+                ) : (
+                  <span>Aktifkan Sekarang</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
