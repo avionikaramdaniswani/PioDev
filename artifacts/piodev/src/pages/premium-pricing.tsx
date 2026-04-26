@@ -389,7 +389,7 @@ function TierCard({ tier }: { tier: Tier }) {
 
       {/* Price */}
       <div className="mb-5">
-        {tier.discountPercent && tier.discountPercent > 0 && tier.originalPrice && (
+        {!!tier.discountPercent && tier.discountPercent > 0 && tier.originalPrice && (
           <div className="flex items-center gap-2 mb-1.5 flex-wrap">
             <span className="text-xs text-muted-foreground line-through tabular-nums">
               {tier.originalPrice}
@@ -404,7 +404,7 @@ function TierCard({ tier }: { tier: Tier }) {
           {tier.price}
         </div>
         <p className="text-xs text-muted-foreground mt-1.5">{tier.priceSuffix}</p>
-        {tier.discountLabel && tier.discountPercent && tier.discountPercent > 0 && (
+        {tier.discountLabel && !!tier.discountPercent && tier.discountPercent > 0 && (
           <p className="text-[11px] font-medium text-red-600 dark:text-red-400 mt-1.5">
             🎉 {tier.discountLabel}
           </p>
