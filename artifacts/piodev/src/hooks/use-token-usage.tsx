@@ -16,12 +16,30 @@ function getToday(): string {
   return wib.toISOString().slice(0, 10);
 }
 
-// Upsert token harian ke Supabase (fire-and-forget)
+// Custom event untuk optimistic update token usage tanpa nunggu realtime DB
+const TOKEN_USAGE_EVENT = "pioo:token-usage-bump";
+
+type TokenBumpDetail = {
+  userId: string;
+  promptTokens: number;
+  completionTokens: number;
+};
+
+// Upsert token harian ke Supabase (fire-and-forget) + dispatch event optimistic
 export async function recordTokenUsageToDB(
   userId: string,
   promptTokens: number,
   completionTokens: number,
 ) {
+  // Optimistic: kasih tau hook lain INSTAN, gak nunggu round-trip DB
+  try {
+    window.dispatchEvent(
+      new CustomEvent<TokenBumpDetail>(TOKEN_USAGE_EVENT, {
+        detail: { userId, promptTokens, completionTokens },
+      }),
+    );
+  } catch {}
+
   const today = getToday();
   try {
     const { data: existing } = await supabase
@@ -147,8 +165,53 @@ export function useTokenUsageData(userId: string | undefined) {
       )
       .subscribe();
 
+    // Optimistic update: dengerin event dari recordTokenUsageToDB & bump state lokal seketika
+    const onBump = (e: Event) => {
+      const detail = (e as CustomEvent<TokenBumpDetail>).detail;
+      if (!detail || detail.userId !== userId) return;
+      const { promptTokens, completionTokens } = detail;
+      const totalAdded = promptTokens + completionTokens;
+      setTodayUsage((prev) => ({
+        promptTokens: prev.promptTokens + promptTokens,
+        completionTokens: prev.completionTokens + completionTokens,
+        totalTokens: prev.totalTokens + totalAdded,
+        messages: prev.messages + 1,
+      }));
+      setWeekUsage((prev) => ({
+        promptTokens: prev.promptTokens + promptTokens,
+        completionTokens: prev.completionTokens + completionTokens,
+        totalTokens: prev.totalTokens + totalAdded,
+        messages: prev.messages + 1,
+      }));
+      setMonthUsage((prev) => ({
+        promptTokens: prev.promptTokens + promptTokens,
+        completionTokens: prev.completionTokens + completionTokens,
+        totalTokens: prev.totalTokens + totalAdded,
+        messages: prev.messages + 1,
+      }));
+      setDaily7((prev) => {
+        if (prev.length === 0) return prev;
+        const today = getToday();
+        return prev.map((d) =>
+          d.date === today
+            ? {
+                date: d.date,
+                usage: {
+                  promptTokens: d.usage.promptTokens + promptTokens,
+                  completionTokens: d.usage.completionTokens + completionTokens,
+                  totalTokens: d.usage.totalTokens + totalAdded,
+                  messages: d.usage.messages + 1,
+                },
+              }
+            : d,
+        );
+      });
+    };
+    window.addEventListener(TOKEN_USAGE_EVENT, onBump);
+
     return () => {
       supabase.removeChannel(channel);
+      window.removeEventListener(TOKEN_USAGE_EVENT, onBump);
     };
   }, [userId, buildStats]);
 
