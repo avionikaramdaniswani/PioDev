@@ -7,7 +7,7 @@ import {
   Sun, Moon, X, ImageIcon, FileText, Check, Copy, ArrowDown, RotateCcw,
   Globe, Brain, ChevronDown, Sparkles, Download,
   MoreHorizontal, Star, Pencil, Trash2, Gift, Lock,
-  AudioLines,
+  AudioLines, Library,
 } from "lucide-react";
 
 import { useAuth } from "@/hooks/use-auth";
@@ -18,6 +18,7 @@ import { usePremium } from "@/hooks/use-premium";
 
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { ChatSidebar } from "@/components/chat-sidebar";
+import { PustakaPickerDialog } from "@/components/pustaka-picker-dialog";
 import { VoiceModeOverlay } from "@/components/voice-mode-overlay";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
@@ -108,6 +109,7 @@ export default function ChatPage() {
   const [isDesktopSidebarOpen, setIsDesktopSidebarOpen] = useState(true);
   const [input, setInput] = useState("");
   const [isAttachMenuOpen, setIsAttachMenuOpen] = useState(false);
+  const [isPustakaPickerOpen, setIsPustakaPickerOpen] = useState(false);
   const [webSearchEnabled, setWebSearchEnabled] = useState(false);
   const [thinkingEnabled, setThinkingEnabled] = useState(false);
   const [modelTier, setModelTier] = useState<"plus" | "mini" | "coder">(() => {
@@ -1021,6 +1023,17 @@ export default function ChatPage() {
                             <FileText className="w-4 h-4 text-muted-foreground" />
                             Tambah File
                           </button>
+                          <div className="h-px bg-border mx-2" />
+                          <button
+                            onClick={() => {
+                              setIsAttachMenuOpen(false);
+                              setIsPustakaPickerOpen(true);
+                            }}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-sm hover:bg-accent transition-colors text-left"
+                          >
+                            <Library className="w-4 h-4 text-muted-foreground" />
+                            Dari Pustaka
+                          </button>
                         </motion.div>
                       )}
                     </AnimatePresence>
@@ -1151,6 +1164,15 @@ export default function ChatPage() {
         activeChat={activeChat as any}
         isTyping={isTyping}
         modelTier={modelTier}
+      />
+
+      {/* Pustaka picker — pilih dokumen untuk dilampirkan ke chat */}
+      <PustakaPickerDialog
+        open={isPustakaPickerOpen}
+        onClose={() => setIsPustakaPickerOpen(false)}
+        onPick={(picked) => {
+          setAttachedFiles((prev) => [...prev, ...picked]);
+        }}
       />
     </div>
   );

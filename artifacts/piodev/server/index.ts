@@ -24,6 +24,17 @@ const FREE_VIDEO_CREDITS = 3;
 const PLUS_VIDEO_CREDITS = 12;
 const PRO_VIDEO_CREDITS  = 20;
 
+// ── Pustaka (Knowledge Base) limits per tier ───────────────────────────────────
+const FREE_PUSTAKA_FILE_BYTES = 10 * 1024 * 1024;   // 10 MB
+const PLUS_PUSTAKA_FILE_BYTES = 50 * 1024 * 1024;   // 50 MB
+const PRO_PUSTAKA_FILE_BYTES  = 200 * 1024 * 1024;  // 200 MB
+const FREE_PUSTAKA_FILE_COUNT = 25;
+const PLUS_PUSTAKA_FILE_COUNT = 250;
+const PRO_PUSTAKA_FILE_COUNT  = -1; // unlimited
+const FREE_PUSTAKA_PAGES_MO   = 100;
+const PLUS_PUSTAKA_PAGES_MO   = 1000;
+const PRO_PUSTAKA_PAGES_MO    = 5000;
+
 // Aliases biar kode lama yg masih nyebut PREMIUM_* gak break (Plus = "Premium" lama).
 const DAILY_TOKEN_LIMIT     = FREE_TOKEN_LIMIT;
 const PREMIUM_TOKEN_LIMIT   = PLUS_TOKEN_LIMIT;
@@ -2032,6 +2043,363 @@ app.get("/api/voice/voices", requireAuth, (_req, res) => {
     ],
     default: DEFAULT_TTS_VOICE,
   });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Pustaka (Knowledge Base)
+// ═══════════════════════════════════════════════════════════════════════════════
+
+const AZURE_DOC_KEY = process.env.AZURE_DOC_INTELLIGENCE_KEY || "";
+const AZURE_DOC_ENDPOINT = (process.env.AZURE_DOC_INTELLIGENCE_ENDPOINT || "").replace(/\/$/, "");
+
+function getPustakaLimits(tier: Tier, isAdmin: boolean): {
+  fileBytes: number;
+  fileCount: number;
+  pagesPerMonth: number;
+} {
+  if (isAdmin) return { fileBytes: 1024 * 1024 * 1024, fileCount: -1, pagesPerMonth: 99999 };
+  if (tier === "pro")  return { fileBytes: PRO_PUSTAKA_FILE_BYTES,  fileCount: PRO_PUSTAKA_FILE_COUNT,  pagesPerMonth: PRO_PUSTAKA_PAGES_MO };
+  if (tier === "plus") return { fileBytes: PLUS_PUSTAKA_FILE_BYTES, fileCount: PLUS_PUSTAKA_FILE_COUNT, pagesPerMonth: PLUS_PUSTAKA_PAGES_MO };
+  return { fileBytes: FREE_PUSTAKA_FILE_BYTES, fileCount: FREE_PUSTAKA_FILE_COUNT, pagesPerMonth: FREE_PUSTAKA_PAGES_MO };
+}
+
+async function getMonthlyPageUsage(userId: string): Promise<{ used: number }> {
+  const month = getThisMonthWIB();
+  const { data } = await supabaseAdmin
+    .from("document_page_usage")
+    .select("pages_used")
+    .eq("user_id", userId)
+    .eq("month", month)
+    .maybeSingle();
+  return { used: data?.pages_used ?? 0 };
+}
+
+async function incrementMonthlyPageUsage(userId: string, pages: number) {
+  if (pages <= 0) return;
+  const month = getThisMonthWIB();
+  const { data: existing } = await supabaseAdmin
+    .from("document_page_usage")
+    .select("pages_used")
+    .eq("user_id", userId)
+    .eq("month", month)
+    .maybeSingle();
+  if (existing) {
+    await supabaseAdmin
+      .from("document_page_usage")
+      .update({ pages_used: (existing.pages_used ?? 0) + pages, updated_at: new Date().toISOString() })
+      .eq("user_id", userId)
+      .eq("month", month);
+  } else {
+    await supabaseAdmin
+      .from("document_page_usage")
+      .insert({ user_id: userId, month, pages_used: pages });
+  }
+}
+
+async function azureExtractText(
+  fileBuffer: Buffer,
+  contentType: string,
+): Promise<{ text: string; pageCount: number }> {
+  if (!AZURE_DOC_KEY || !AZURE_DOC_ENDPOINT) {
+    throw new Error("Azure Document Intelligence belum dikonfigurasi");
+  }
+  const url = `${AZURE_DOC_ENDPOINT}/documentintelligence/documentModels/prebuilt-read:analyze?api-version=2024-11-30`;
+  const startRes = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Ocp-Apim-Subscription-Key": AZURE_DOC_KEY,
+      "Content-Type": contentType,
+    },
+    body: new Uint8Array(fileBuffer),
+  });
+  if (!startRes.ok) {
+    const errText = await startRes.text();
+    throw new Error(`Azure parse failed (${startRes.status}): ${errText.slice(0, 300)}`);
+  }
+  const operationLocation = startRes.headers.get("operation-location");
+  if (!operationLocation) throw new Error("Azure tidak mengembalikan operation-location");
+
+  const maxTries = 60; // ~60 detik max
+  for (let i = 0; i < maxTries; i++) {
+    await new Promise((r) => setTimeout(r, 1000));
+    const pollRes = await fetch(operationLocation, {
+      headers: { "Ocp-Apim-Subscription-Key": AZURE_DOC_KEY },
+    });
+    if (!pollRes.ok) throw new Error(`Azure poll failed: ${pollRes.status}`);
+    const json: any = await pollRes.json();
+    if (json.status === "succeeded") {
+      const result = json.analyzeResult || {};
+      const text = result.content || "";
+      const pageCount = Array.isArray(result.pages) ? result.pages.length : 0;
+      return { text, pageCount };
+    }
+    if (json.status === "failed") {
+      throw new Error("Azure analysis failed: " + JSON.stringify(json.error || {}).slice(0, 200));
+    }
+  }
+  throw new Error("Azure analysis timeout");
+}
+
+const TEXT_FILE_EXT_REGEX = /\.(md|txt|js|ts|jsx|tsx|json|yaml|yml|html|css|scss|sh|bash|sql|rs|go|java|cpp|cxx|c|h|hpp|rb|php|swift|kt|dart|py|csv|toml|ini|env|xml|vue|svelte|astro|mdx)$/i;
+
+function isTextFile(mime: string, name: string): boolean {
+  const m = (mime || "").toLowerCase();
+  if (m.startsWith("text/")) return true;
+  if (m === "application/json" || m === "application/xml") return true;
+  if (m.includes("javascript") || m.includes("typescript")) return true;
+  if (TEXT_FILE_EXT_REGEX.test(name)) return true;
+  return false;
+}
+
+const pustakaUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 200 * 1024 * 1024 }, // hard cap 200MB; tier dicek di handler
+});
+
+// ── POST /api/pustaka — upload file & parse ───────────────────────────────────
+app.post("/api/pustaka", requireAuth, pustakaUpload.single("file"), async (req, res) => {
+  const userId = (req as any).userId;
+  const file = req.file;
+  if (!file) { res.status(400).json({ error: "File wajib di-attach" }); return; }
+
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("role, is_premium, premium_expires_at, tier")
+    .eq("id", userId)
+    .single();
+  const isAdmin = profile?.role === "admin";
+  const tier = getTier(profile);
+  const limits = getPustakaLimits(tier, isAdmin);
+
+  if (file.size > limits.fileBytes) {
+    const maxMb = Math.floor(limits.fileBytes / 1024 / 1024);
+    res.status(413).json({ error: `File terlalu besar. Maksimal ${maxMb} MB untuk tier ${tier}.` });
+    return;
+  }
+
+  if (limits.fileCount !== -1) {
+    const { count } = await supabaseAdmin
+      .from("documents")
+      .select("*", { count: "exact", head: true })
+      .eq("user_id", userId);
+    if ((count || 0) >= limits.fileCount) {
+      res.status(403).json({
+        error: `Kuota Pustaka habis: maks ${limits.fileCount} file untuk tier ${tier}. Hapus file lama atau upgrade.`,
+      });
+      return;
+    }
+  }
+
+  const docId = crypto.randomUUID();
+  const safeName = file.originalname.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 120);
+  const storagePath = `${userId}/${docId}-${safeName}`;
+
+  const { error: storageErr } = await supabaseAdmin.storage
+    .from("pustaka")
+    .upload(storagePath, file.buffer, {
+      contentType: file.mimetype || "application/octet-stream",
+      upsert: false,
+    });
+  if (storageErr) {
+    res.status(500).json({ error: "Storage upload failed: " + storageErr.message });
+    return;
+  }
+
+  const { data: insertedDoc, error: insertErr } = await supabaseAdmin
+    .from("documents")
+    .insert({
+      id: docId,
+      user_id: userId,
+      name: file.originalname,
+      file_path: storagePath,
+      file_type: file.mimetype || "application/octet-stream",
+      size_bytes: file.size,
+      parse_status: "processing",
+    })
+    .select()
+    .single();
+
+  if (insertErr || !insertedDoc) {
+    await supabaseAdmin.storage.from("pustaka").remove([storagePath]);
+    res.status(500).json({ error: insertErr?.message || "DB insert failed" });
+    return;
+  }
+
+  const mime = (file.mimetype || "").toLowerCase();
+  const isPdf = mime === "application/pdf";
+  const isImage = mime.startsWith("image/");
+  const textFile = isTextFile(mime, file.originalname);
+
+  try {
+    if (textFile) {
+      const text = file.buffer.toString("utf8");
+      await supabaseAdmin
+        .from("documents")
+        .update({
+          extracted_text: text.slice(0, 500_000),
+          page_count: 0,
+          parse_status: "done",
+        })
+        .eq("id", docId);
+    } else if (isPdf || isImage) {
+      const monthUsage = await getMonthlyPageUsage(userId);
+      if (monthUsage.used >= limits.pagesPerMonth) {
+        await supabaseAdmin
+          .from("documents")
+          .update({
+            parse_status: "skipped",
+            parse_error: "Kuota halaman bulan ini habis",
+          })
+          .eq("id", docId);
+      } else {
+        const { text, pageCount } = await azureExtractText(file.buffer, file.mimetype);
+        if (monthUsage.used + pageCount > limits.pagesPerMonth) {
+          await supabaseAdmin
+            .from("documents")
+            .update({
+              parse_status: "skipped",
+              parse_error: `Butuh ${pageCount} halaman, sisa kuota ${limits.pagesPerMonth - monthUsage.used} halaman`,
+            })
+            .eq("id", docId);
+        } else {
+          await supabaseAdmin
+            .from("documents")
+            .update({
+              extracted_text: text.slice(0, 500_000),
+              page_count: pageCount,
+              parse_status: "done",
+            })
+            .eq("id", docId);
+          await incrementMonthlyPageUsage(userId, pageCount);
+        }
+      }
+    } else {
+      await supabaseAdmin
+        .from("documents")
+        .update({
+          parse_status: "skipped",
+          parse_error: `Tipe file belum didukung untuk parsing: ${mime || "unknown"}`,
+        })
+        .eq("id", docId);
+    }
+  } catch (e: any) {
+    console.error("[Pustaka] parse error:", e);
+    await supabaseAdmin
+      .from("documents")
+      .update({
+        parse_status: "failed",
+        parse_error: String(e?.message || e).slice(0, 500),
+      })
+      .eq("id", docId);
+  }
+
+  const { data: finalDoc } = await supabaseAdmin
+    .from("documents")
+    .select("*")
+    .eq("id", docId)
+    .single();
+
+  res.json({ document: finalDoc });
+});
+
+// ── GET /api/pustaka — list dokumen user ──────────────────────────────────────
+app.get("/api/pustaka", requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+  const { data, error } = await supabaseAdmin
+    .from("documents")
+    .select("id, name, file_type, size_bytes, page_count, parse_status, parse_error, tags, created_at")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) { res.status(500).json({ error: error.message }); return; }
+  res.json({ documents: data || [] });
+});
+
+// ── GET /api/pustaka/usage — kuota Pustaka user ───────────────────────────────
+app.get("/api/pustaka/usage", requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("role, is_premium, premium_expires_at, tier")
+    .eq("id", userId)
+    .single();
+  const isAdmin = profile?.role === "admin";
+  const tier = getTier(profile);
+  const limits = getPustakaLimits(tier, isAdmin);
+  const { count: fileCount } = await supabaseAdmin
+    .from("documents")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId);
+  const { used: pagesUsed } = await getMonthlyPageUsage(userId);
+  res.json({
+    tier,
+    isAdmin,
+    fileCount: fileCount || 0,
+    fileLimit: limits.fileCount,
+    fileMaxBytes: limits.fileBytes,
+    pagesUsed,
+    pagesLimit: limits.pagesPerMonth,
+  });
+});
+
+// ── GET /api/pustaka/:id/text — fetch extracted text (buat attach ke chat) ────
+app.get("/api/pustaka/:id/text", requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+  const { data, error } = await supabaseAdmin
+    .from("documents")
+    .select("name, extracted_text, parse_status")
+    .eq("id", req.params.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error || !data) { res.status(404).json({ error: "Dokumen tidak ditemukan" }); return; }
+  if (data.parse_status !== "done") {
+    res.status(400).json({ error: `Dokumen belum siap (status: ${data.parse_status})` });
+    return;
+  }
+  res.json({ name: data.name, text: data.extracted_text || "" });
+});
+
+// ── DELETE /api/pustaka/:id ───────────────────────────────────────────────────
+app.delete("/api/pustaka/:id", requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+  const { data: doc } = await supabaseAdmin
+    .from("documents")
+    .select("file_path")
+    .eq("id", req.params.id)
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (!doc) { res.status(404).json({ error: "Dokumen tidak ditemukan" }); return; }
+
+  await supabaseAdmin.storage.from("pustaka").remove([doc.file_path]);
+  await supabaseAdmin
+    .from("documents")
+    .delete()
+    .eq("id", req.params.id)
+    .eq("user_id", userId);
+  res.json({ ok: true });
+});
+
+// ── PATCH /api/pustaka/:id — rename / tag dokumen ─────────────────────────────
+app.patch("/api/pustaka/:id", requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+  let body: any = {};
+  try {
+    const raw = req.body instanceof Buffer ? req.body.toString("utf8") : req.body;
+    body = typeof raw === "string" ? JSON.parse(raw) : raw;
+  } catch { /**/ }
+  const update: any = {};
+  if (typeof body.name === "string" && body.name.trim()) update.name = body.name.trim().slice(0, 200);
+  if (Array.isArray(body.tags)) update.tags = body.tags.map((t: any) => String(t).slice(0, 40)).slice(0, 20);
+  if (Object.keys(update).length === 0) { res.status(400).json({ error: "Tidak ada field yang diupdate" }); return; }
+  update.updated_at = new Date().toISOString();
+  const { data, error } = await supabaseAdmin
+    .from("documents")
+    .update(update)
+    .eq("id", req.params.id)
+    .eq("user_id", userId)
+    .select()
+    .maybeSingle();
+  if (error || !data) { res.status(500).json({ error: error?.message || "Update gagal" }); return; }
+  res.json({ document: data });
 });
 
 // Cek apakah port sudah dipakai sebelum mencoba bind

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
-import { Plus, Settings, LogOut, MessageSquare, Trash2, Pencil, Search, X, MoreHorizontal, Star, Menu, Shield, Newspaper, Video, Key, Sparkles } from "lucide-react";
+import { Plus, Settings, LogOut, MessageSquare, Trash2, Pencil, Search, X, MoreHorizontal, Star, Menu, Shield, Newspaper, Video, Key, Sparkles, Library } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
@@ -80,6 +80,7 @@ export function ChatSidebar({
 }: ChatSidebarProps) {
   const [location, navigate] = useLocation();
   const isOnStudio = location === "/video-studio";
+  const isOnPustaka = location === "/pustaka";
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
@@ -285,6 +286,20 @@ export function ChatSidebar({
           <Video className="w-5 h-5" />
         </button>
 
+        {/* Pustaka */}
+        <button
+          onClick={() => navigate("/pustaka")}
+          title="Pustaka"
+          className={cn(
+            "w-10 h-10 flex items-center justify-center rounded-lg transition-colors",
+            isOnPustaka
+              ? "bg-primary/15 text-primary"
+              : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+          )}
+        >
+          <Library className="w-5 h-5" />
+        </button>
+
         {/* Search — klik untuk expand */}
         <button
           onClick={onExpand}
@@ -369,7 +384,7 @@ export function ChatSidebar({
       </div>
 
       {/* Pio Studio */}
-      <div className="px-3 pb-2">
+      <div className="px-3 pb-1.5">
         <button
           onClick={() => navigate("/video-studio")}
           className={cn(
@@ -381,6 +396,22 @@ export function ChatSidebar({
         >
           <Video className="w-4 h-4" />
           Pio Studio
+        </button>
+      </div>
+
+      {/* Pustaka */}
+      <div className="px-3 pb-2">
+        <button
+          onClick={() => navigate("/pustaka")}
+          className={cn(
+            "w-full flex items-center gap-2 px-3 py-2.5 rounded-xl font-medium transition-colors",
+            isOnPustaka
+              ? "bg-primary/10 text-primary border border-primary/10"
+              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+          )}
+        >
+          <Library className="w-4 h-4" />
+          Pustaka
         </button>
       </div>
 
