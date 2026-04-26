@@ -22,7 +22,9 @@ type Tier = {
   badge?: string;
   tagline: string;
   price: string;
-  priceSuffix: string;
+  priceSuffix?: string;
+  /** Periode singkat yang tampil inline di samping harga utama (mis. "/bulan"). */
+  pricePeriod?: string;
   /** Original (pre-discount) price — kalau ada, tampil di-strikethrough di atas harga utama. */
   originalPrice?: string;
   /** Persentase diskon, mis. 50 → "50% OFF". 0 = no discount. */
@@ -143,9 +145,7 @@ export default function PremiumPricingPage() {
       badge: "Populer",
       tagline: "Volume gede buat power user individual",
       ...plusPrice,
-      priceSuffix: plusPrice.discountPercent > 0
-        ? `per bulan · ${plusPrice.discountLabel || "promo terbatas"}`
-        : "per bulan · gratis lewat promo",
+      pricePeriod: "/bulan",
       highlight: true,
       features: [
         "200.000 token per hari",
@@ -175,9 +175,7 @@ export default function PremiumPricingPage() {
       badge: "Baru",
       tagline: "Untuk developer & creator pro",
       ...proPrice,
-      priceSuffix: proPrice.discountPercent > 0
-        ? `per bulan · ${proPrice.discountLabel || "promo terbatas"}`
-        : "per bulan",
+      pricePeriod: "/bulan",
       features: [
         "360.000 token per hari",
         "Semua model premium",
@@ -400,14 +398,16 @@ function TierCard({ tier }: { tier: Tier }) {
             </span>
           </div>
         )}
-        <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight leading-none tabular-nums">
-          {tier.price}
+        <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight leading-none tabular-nums flex items-baseline gap-0.5">
+          <span>{tier.price}</span>
+          {tier.pricePeriod && (
+            <span className="text-sm font-medium text-muted-foreground">
+              {tier.pricePeriod}
+            </span>
+          )}
         </div>
-        <p className="text-xs text-muted-foreground mt-1.5">{tier.priceSuffix}</p>
-        {tier.discountLabel && !!tier.discountPercent && tier.discountPercent > 0 && (
-          <p className="text-[11px] font-medium text-red-600 dark:text-red-400 mt-1.5">
-            🎉 {tier.discountLabel}
-          </p>
+        {tier.priceSuffix && (
+          <p className="text-xs text-muted-foreground mt-1.5">{tier.priceSuffix}</p>
         )}
       </div>
 
