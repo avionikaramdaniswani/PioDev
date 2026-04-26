@@ -788,7 +788,7 @@ export default function ChatPage() {
                 <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" />
                 <div className="flex-1 min-w-0">
                   <span className="text-xs font-semibold text-amber-600 dark:text-amber-400 mr-1.5">Upgrade ke Plus / Pro</span>
-                  <span className="text-xs text-muted-foreground hidden sm:inline">Token, gambar & video lebih banyak — mulai Rp 10.000/bln</span>
+                  <span className="text-xs text-muted-foreground hidden sm:inline">Token, gambar & video lebih banyak — harga bersahabat</span>
                 </div>
                 <button
                   onClick={() => setLocation("/premium")}

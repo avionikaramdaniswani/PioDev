@@ -414,6 +414,102 @@ app.delete("/api/admin/changelog/:id", requireAuth, requireAdmin, async (req, re
   res.json({ ok: true });
 });
 
+// ─── Pricing config (harga + diskon, editable dari admin) ──────────────────────
+type TierPricing = {
+  price_idr: number;
+  discount_percent: number;
+  discount_label: string;
+};
+type PricingConfig = {
+  plus: TierPricing;
+  pro: TierPricing;
+};
+
+const DEFAULT_PRICING: PricingConfig = {
+  plus: { price_idr: 10000, discount_percent: 0, discount_label: "" },
+  pro:  { price_idr: 18000, discount_percent: 0, discount_label: "" },
+};
+
+const PRICING_CACHE_TTL_MS = 60_000;
+let pricingCache: { value: PricingConfig; loadedAt: number } | null = null;
+
+function sanitizeTierPricing(input: any, fallback: TierPricing): TierPricing {
+  const price = Number(input?.price_idr);
+  const discount = Number(input?.discount_percent);
+  const label = typeof input?.discount_label === "string" ? input.discount_label : "";
+  return {
+    price_idr: Number.isFinite(price) && price >= 0 && price <= 10_000_000
+      ? Math.round(price)
+      : fallback.price_idr,
+    discount_percent: Number.isFinite(discount) && discount >= 0 && discount <= 99
+      ? Math.round(discount)
+      : 0,
+    discount_label: label.slice(0, 60),
+  };
+}
+
+function sanitizePricingConfig(raw: any): PricingConfig {
+  return {
+    plus: sanitizeTierPricing(raw?.plus, DEFAULT_PRICING.plus),
+    pro:  sanitizeTierPricing(raw?.pro,  DEFAULT_PRICING.pro),
+  };
+}
+
+async function loadPricingConfig(force = false): Promise<PricingConfig> {
+  if (!force && pricingCache && Date.now() - pricingCache.loadedAt < PRICING_CACHE_TTL_MS) {
+    return pricingCache.value;
+  }
+  try {
+    const { data, error } = await supabaseAdmin
+      .from("app_config")
+      .select("value")
+      .eq("key", "pricing")
+      .maybeSingle();
+    if (error) throw error;
+    const value = data?.value
+      ? sanitizePricingConfig(data.value)
+      : DEFAULT_PRICING;
+    pricingCache = { value, loadedAt: Date.now() };
+    return value;
+  } catch {
+    // Tabel belum di-migrate — fallback ke default biar app tetap jalan.
+    pricingCache = { value: DEFAULT_PRICING, loadedAt: Date.now() };
+    return DEFAULT_PRICING;
+  }
+}
+
+// GET /api/pricing-config — public (dipakai pricing page tanpa login)
+app.get("/api/pricing-config", async (_req, res) => {
+  const config = await loadPricingConfig();
+  res.json(config);
+});
+
+// PUT /api/admin/pricing-config — admin only
+app.put("/api/admin/pricing-config", requireAuth, requireAdmin, async (req, res) => {
+  const userId = (req as any).userId;
+  const sanitized = sanitizePricingConfig(req.body);
+  const { error } = await supabaseAdmin
+    .from("app_config")
+    .upsert(
+      {
+        key: "pricing",
+        value: sanitized,
+        updated_at: new Date().toISOString(),
+        updated_by: userId,
+      },
+      { onConflict: "key" },
+    );
+  if (error) {
+    res.status(500).json({
+      error: error.message,
+      hint: "Pastikan migration `app-config-migration.sql` udah dijalanin di Supabase.",
+    });
+    return;
+  }
+  pricingCache = null; // invalidate
+  res.json({ ok: true, value: sanitized });
+});
+
 // ── GET /api/me/quota  (sisa token hari ini) ───────────────────────────────────
 app.get("/api/me/quota", requireAuth, async (req, res) => {
   const userId = (req as any).userId;

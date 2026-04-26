@@ -3,7 +3,8 @@ import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { usePremium } from "@/hooks/use-premium";
 import { useTheme } from "@/hooks/use-theme";
-import { ArrowLeft, Check, Loader2, CreditCard, Sparkles, AlertTriangle, X as XIcon } from "lucide-react";
+import { usePricingConfig, discountedPrice, formatIDR, type TierPricing } from "@/hooks/use-pricing-config";
+import { ArrowLeft, Check, Loader2, CreditCard, Sparkles, AlertTriangle, Tag, X as XIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 function useInlineToast() {
@@ -22,6 +23,12 @@ type Tier = {
   tagline: string;
   price: string;
   priceSuffix: string;
+  /** Original (pre-discount) price — kalau ada, tampil di-strikethrough di atas harga utama. */
+  originalPrice?: string;
+  /** Persentase diskon, mis. 50 → "50% OFF". 0 = no discount. */
+  discountPercent?: number;
+  /** Optional label promo, mis. "Diskon Lebaran". */
+  discountLabel?: string;
   features: string[];
   cta: { label: string; disabled?: boolean; onClick?: () => void; primary?: boolean };
   secondaryCta?: { label: string; disabled?: boolean; onClick?: () => void };
@@ -96,6 +103,21 @@ export default function PremiumPricingPage() {
   // Tombol trial cuma untuk user free yang belum pernah klaim & bukan admin
   const showTrialButton = !isAdmin && !isPlusActive && !isProActive;
 
+  // Pricing config dari server (dinamis, bisa di-edit admin)
+  const pricing = usePricingConfig();
+  const buildPriceProps = (t: TierPricing) => {
+    const finalPrice = discountedPrice(t);
+    const hasDiscount = t.discount_percent > 0 && finalPrice !== t.price_idr;
+    return {
+      price: formatIDR(finalPrice),
+      originalPrice: hasDiscount ? formatIDR(t.price_idr) : undefined,
+      discountPercent: hasDiscount ? t.discount_percent : 0,
+      discountLabel: hasDiscount ? (t.discount_label || "") : "",
+    };
+  };
+  const plusPrice = buildPriceProps(pricing.plus);
+  const proPrice = buildPriceProps(pricing.pro);
+
   const tiers: Tier[] = [
     {
       id: "free",
@@ -119,8 +141,10 @@ export default function PremiumPricingPage() {
       name: "Plus",
       badge: "Populer",
       tagline: "Volume gede buat power user individual",
-      price: "Rp 10.000",
-      priceSuffix: "per bulan · gratis lewat promo",
+      ...plusPrice,
+      priceSuffix: plusPrice.discountPercent > 0
+        ? `per bulan · ${plusPrice.discountLabel || "promo terbatas"}`
+        : "per bulan · gratis lewat promo",
       highlight: true,
       features: [
         "200.000 token per hari",
@@ -149,8 +173,10 @@ export default function PremiumPricingPage() {
       name: "Pro",
       badge: "Baru",
       tagline: "Untuk developer & creator pro",
-      price: "Rp 18.000",
-      priceSuffix: "per bulan",
+      ...proPrice,
+      priceSuffix: proPrice.discountPercent > 0
+        ? `per bulan · ${proPrice.discountLabel || "promo terbatas"}`
+        : "per bulan",
       features: [
         "360.000 token per hari",
         "Semua model premium",
@@ -362,10 +388,26 @@ function TierCard({ tier }: { tier: Tier }) {
 
       {/* Price */}
       <div className="mb-5">
-        <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight leading-none">
+        {tier.discountPercent && tier.discountPercent > 0 && tier.originalPrice && (
+          <div className="flex items-center gap-2 mb-1.5 flex-wrap">
+            <span className="text-xs text-muted-foreground line-through tabular-nums">
+              {tier.originalPrice}
+            </span>
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-red-500/15 text-red-600 dark:text-red-400 uppercase tracking-wide">
+              <Tag className="w-2.5 h-2.5" strokeWidth={3} />
+              {tier.discountPercent}% OFF
+            </span>
+          </div>
+        )}
+        <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight leading-none tabular-nums">
           {tier.price}
         </div>
         <p className="text-xs text-muted-foreground mt-1.5">{tier.priceSuffix}</p>
+        {tier.discountLabel && tier.discountPercent && tier.discountPercent > 0 && (
+          <p className="text-[11px] font-medium text-red-600 dark:text-red-400 mt-1.5">
+            🎉 {tier.discountLabel}
+          </p>
+        )}
       </div>
 
       {/* CTA */}

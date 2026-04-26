@@ -21,17 +21,22 @@ import {
   LayoutDashboard, Users, ArrowLeft, Search,
   Shield, ShieldOff, Trash2, RefreshCw,
   Zap, MessageSquare, TrendingUp, Newspaper, Plus,
-  Star, StarOff, Check, Loader2, Calendar,
+  Star, StarOff, Check, Loader2, Calendar, Tag, AlertCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/logo";
+import {
+  fetchPricingConfig, invalidatePricingConfig, discountedPrice, formatIDR,
+  DEFAULT_PRICING, type PricingConfig,
+} from "@/hooks/use-pricing-config";
 
-type Section = "ringkasan" | "pengguna" | "changelog";
+type Section = "ringkasan" | "pengguna" | "harga" | "changelog";
 
 const NAV_ITEMS: { id: Section; label: string; icon: React.ElementType }[] = [
-  { id: "ringkasan",  label: "Ringkasan",  icon: LayoutDashboard },
-  { id: "pengguna",   label: "Pengguna",   icon: Users },
-  { id: "changelog",  label: "What's New", icon: Newspaper },
+  { id: "ringkasan",  label: "Ringkasan",     icon: LayoutDashboard },
+  { id: "pengguna",   label: "Pengguna",      icon: Users },
+  { id: "harga",      label: "Harga & Promo", icon: Tag },
+  { id: "changelog",  label: "What's New",    icon: Newspaper },
 ];
 
 function useToast() {
@@ -442,6 +447,195 @@ async function authHeader() {
   return { Authorization: `Bearer ${session?.access_token ?? ""}`, "Content-Type": "application/json" };
 }
 
+function SectionHarga({ showToast }: { showToast: (msg: string, ok: boolean) => void }) {
+  const [config, setConfig] = useState<PricingConfig>(DEFAULT_PRICING);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    fetchPricingConfig(true).then((v) => {
+      if (alive) {
+        setConfig(v);
+        setIsLoading(false);
+      }
+    });
+    return () => { alive = false; };
+  }, []);
+
+  function updateTier(tier: "plus" | "pro", patch: Partial<PricingConfig["plus"]>) {
+    setConfig((prev) => ({
+      ...prev,
+      [tier]: { ...prev[tier], ...patch },
+    }));
+  }
+
+  async function handleSave() {
+    setIsSaving(true);
+    try {
+      const r = await fetch("/api/admin/pricing-config", {
+        method: "PUT",
+        headers: await authHeader(),
+        body: JSON.stringify(config),
+      });
+      const d = await r.json();
+      if (!r.ok) {
+        const hint = d.hint ? ` ${d.hint}` : "";
+        throw new Error((d.error || "Gagal simpan") + hint);
+      }
+      invalidatePricingConfig();
+      setConfig(d.value);
+      showToast("Harga berhasil disimpan.", true);
+    } catch (e: any) {
+      showToast(e.message ?? "Gagal simpan", false);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  function handleReset() {
+    setConfig(DEFAULT_PRICING);
+  }
+
+  return (
+    <div className="space-y-6 max-w-3xl">
+      <div>
+        <h2 className="text-base font-semibold text-foreground mb-1">Harga & Promo</h2>
+        <p className="text-sm text-muted-foreground">
+          Atur harga paket Plus & Pro plus diskon promo. Perubahan langsung tampil di halaman pricing.
+        </p>
+      </div>
+
+      <div className="rounded-lg border border-amber-500/20 bg-amber-500/5 p-3 flex gap-3 text-xs text-foreground/80">
+        <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+        <div>
+          Kalau muncul error <strong>"app_config tidak ada"</strong> saat simpan, jalankan dulu file{" "}
+          <code className="px-1.5 py-0.5 rounded bg-muted font-mono">server/app-config-migration.sql</code>{" "}
+          di Supabase SQL editor (cuma sekali).
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="flex items-center justify-center py-12 text-muted-foreground">
+          <Loader2 className="w-5 h-5 animate-spin" />
+        </div>
+      ) : (
+        <>
+          <PricingTierEditor
+            tierName="Plus"
+            color="text-primary"
+            value={config.plus}
+            onChange={(p) => updateTier("plus", p)}
+          />
+          <PricingTierEditor
+            tierName="Pro"
+            color="text-amber-600 dark:text-amber-400"
+            value={config.pro}
+            onChange={(p) => updateTier("pro", p)}
+          />
+
+          <div className="flex items-center gap-2 pt-2">
+            <Button onClick={handleSave} disabled={isSaving} data-testid="button-save-pricing">
+              {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Check className="w-4 h-4 mr-2" />}
+              Simpan perubahan
+            </Button>
+            <Button variant="outline" onClick={handleReset} disabled={isSaving} data-testid="button-reset-pricing">
+              Reset ke default
+            </Button>
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function PricingTierEditor({
+  tierName, color, value, onChange,
+}: {
+  tierName: string;
+  color: string;
+  value: PricingConfig["plus"];
+  onChange: (patch: Partial<PricingConfig["plus"]>) => void;
+}) {
+  const finalPrice = discountedPrice(value);
+  const hasDiscount = value.discount_percent > 0;
+
+  return (
+    <div className="rounded-xl border border-border bg-card p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className={cn("text-base font-semibold", color)}>Paket {tierName}</h3>
+        <div className="text-right">
+          <div className="text-xs text-muted-foreground">Preview</div>
+          <div className="text-sm font-bold text-foreground tabular-nums">
+            {hasDiscount ? (
+              <>
+                <span className="text-xs text-muted-foreground line-through mr-2">
+                  {formatIDR(value.price_idr)}
+                </span>
+                {formatIDR(finalPrice)}
+              </>
+            ) : (
+              formatIDR(finalPrice)
+            )}
+            <span className="text-xs text-muted-foreground font-normal"> /bln</span>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <label className="block">
+          <span className="text-xs font-medium text-muted-foreground block mb-1.5">
+            Harga normal (Rp / bulan)
+          </span>
+          <Input
+            type="number"
+            min={0}
+            max={10000000}
+            step={1000}
+            value={value.price_idr}
+            onChange={(e) => onChange({ price_idr: Number(e.target.value) || 0 })}
+            data-testid={`input-price-${tierName.toLowerCase()}`}
+          />
+        </label>
+        <label className="block">
+          <span className="text-xs font-medium text-muted-foreground block mb-1.5">
+            Diskon (%) — 0 = nonaktif
+          </span>
+          <Input
+            type="number"
+            min={0}
+            max={99}
+            step={1}
+            value={value.discount_percent}
+            onChange={(e) => onChange({ discount_percent: Number(e.target.value) || 0 })}
+            data-testid={`input-discount-${tierName.toLowerCase()}`}
+          />
+        </label>
+      </div>
+
+      <label className="block">
+        <span className="text-xs font-medium text-muted-foreground block mb-1.5">
+          Label promo (opsional, tampil di bawah harga)
+        </span>
+        <Input
+          type="text"
+          maxLength={60}
+          placeholder="mis. Diskon Lebaran 2026"
+          value={value.discount_label}
+          onChange={(e) => onChange({ discount_label: e.target.value })}
+          disabled={!hasDiscount}
+          data-testid={`input-label-${tierName.toLowerCase()}`}
+        />
+        {!hasDiscount && (
+          <span className="text-[11px] text-muted-foreground/70 mt-1 block">
+            Aktifin diskon dulu untuk pakai label.
+          </span>
+        )}
+      </label>
+    </div>
+  );
+}
+
 function SectionChangelog({ showToast }: { showToast: (msg: string, ok: boolean) => void }) {
   const [entries, setEntries] = useState<ChangelogEntry[]>([]);
   const [isFetching, setIsFetching] = useState(true);
@@ -777,6 +971,9 @@ export default function AdminPage() {
               onRevokePlus={handleRevokePlus}
               onDelete={setToDelete}
             />
+          )}
+          {activeSection === "harga" && (
+            <SectionHarga showToast={showToast} />
           )}
           {activeSection === "changelog" && (
             <SectionChangelog showToast={showToast} />
