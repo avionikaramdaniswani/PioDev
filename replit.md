@@ -102,8 +102,10 @@ Tab `Pengguna` di `/admin` (komponen `SectionPengguna` di `src/pages/admin.tsx`)
 - **Filter**: Tier (free/plus/pro), Role (user/admin), Status (active/expiring ≤7h/expired).
 - **Sort**: Terbaru, Terlama, Login Terakhir, Saldo Tertinggi/Terendah, Expires Terdekat.
 - **Pagination**: 20 baris per halaman.
-- **Kolom**: Pengguna, Role/Tier, Saldo (Rupiah), Expires (badge dengan warna sesuai status), Bergabung.
-- **Aksi**: Tombol `⋮` (DropdownMenu) → "Edit" (buka `EditUserDialog`) atau "Hapus" (AlertDialog konfirmasi).
+- **Kolom**: Pengguna, Role/Tier, Saldo (Rupiah, sm+), Expires (badge dengan warna sesuai status, md+), Bergabung (lg+), Login Terakhir (xl+).
+- **Aksi**: Tombol `⋮` (DropdownMenu) → "Detail Pengguna" (buka `UserDetailSheet`), "Edit" (buka `EditUserDialog`), atau "Hapus" (AlertDialog konfirmasi).
+
+`UserDetailSheet` adalah side panel (Sheet dari kanan, max-w-md) yang menampilkan profil lengkap user secara read-only: avatar inisial, nama+email, badge status (Role, Tier, Trial Claimed/Belum klaim), section Akses & Premium (role, tier, status premium dengan countdown, expires), section Saldo & Trial (saldo sekarang, tanggal klaim trial atau "Belum diklaim"), section Aktivitas (bergabung, login terakhir — dua-duanya dengan jam:menit), Identifier (UUID + tombol copy), serta tombol aksi cepat Edit/Hapus di bawah. Dipakai buat support/audit cepat tanpa harus buka dialog edit.
 
 `EditUserDialog` adalah dialog tunggal yang mengkonsolidasi semua editing user: role (user/admin), tier (free/plus/pro) + durasi (preset 7h–1th atau kustom hari/bulan), dan saldo (mode "Tambah/Kurangi" atau "Set Eksak" + catatan opsional). Dialog memanggil endpoint sesuai field yang berubah.
 

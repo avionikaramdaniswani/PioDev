@@ -15,6 +15,9 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  Sheet, SheetContent, SheetHeader, SheetTitle,
+} from "@/components/ui/sheet";
+import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
   DropdownMenuItem, DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
@@ -29,7 +32,8 @@ import {
   Trash2, RefreshCw,
   Zap, MessageSquare, TrendingUp, Newspaper, Plus,
   Check, Loader2, Tag, AlertCircle,
-  MoreHorizontal, Pencil, ChevronLeft, ChevronRight, ArrowUpDown,
+  MoreHorizontal, Pencil, Eye, ChevronLeft, ChevronRight, ArrowUpDown,
+  Copy,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/logo";
@@ -450,6 +454,225 @@ function EditUserDialog({
   );
 }
 
+// ── DETAIL ROW (helper kecil buat baris label/value yg konsisten) ────────────
+function DetailRow({
+  label, value, mono, valueClassName,
+}: { label: string; value: React.ReactNode; mono?: boolean; valueClassName?: string }) {
+  return (
+    <div className="flex items-baseline justify-between gap-3 py-1.5">
+      <span className="text-xs text-muted-foreground shrink-0">{label}</span>
+      <span className={cn(
+        "text-sm text-foreground text-right min-w-0 truncate",
+        mono && "font-mono text-xs",
+        valueClassName,
+      )}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function fmtDateTime(iso: string | null): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  return d.toLocaleString("id-ID", {
+    day: "numeric", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
+  });
+}
+function fmtDate(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+}
+
+function UserDetailSheet({
+  user, isSelf, onClose, onEdit, onDelete,
+}: {
+  user: AdminUser | null;
+  isSelf: boolean;
+  onClose: () => void;
+  onEdit: (u: AdminUser) => void;
+  onDelete: (u: AdminUser) => void;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  if (!user) return null;
+
+  const exp = expiresStatus(user);
+  const initial = (user.full_name || user.email).trim().charAt(0).toUpperCase();
+
+  async function copyId() {
+    if (!user) return;
+    try {
+      await navigator.clipboard.writeText(user.id);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1500);
+    } catch { /**/ }
+  }
+
+  return (
+    <Sheet open={!!user} onOpenChange={(o) => { if (!o) onClose(); }}>
+      <SheetContent className="w-full sm:max-w-md overflow-y-auto">
+        <SheetHeader className="text-left">
+          <SheetTitle className="text-base">Detail Pengguna</SheetTitle>
+        </SheetHeader>
+
+        {/* ── Identitas ───────────────────────────────────────────────────── */}
+        <div className="mt-5 flex items-start gap-3 pb-5 border-b border-border">
+          <div className="w-12 h-12 rounded-full bg-primary/15 text-primary flex items-center justify-center text-lg font-semibold shrink-0">
+            {initial}
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="text-base font-semibold text-foreground truncate">
+              {user.full_name || "Tanpa nama"}
+            </div>
+            <div className="text-xs text-muted-foreground truncate">{user.email}</div>
+            <div className="flex items-center gap-1.5 flex-wrap mt-2">
+              <Badge variant={user.role === "admin" ? "default" : "secondary"} className="shrink-0">
+                {user.role === "admin" ? "Admin" : "User"}
+              </Badge>
+              {user.is_premium && (
+                <Badge className={cn(
+                  "shrink-0 border",
+                  user.tier === "pro"
+                    ? "bg-amber-600/15 text-amber-700 dark:text-amber-300 border-amber-600/25"
+                    : "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20",
+                )}>
+                  {user.tier === "pro" ? "Pro" : "Plus"}
+                </Badge>
+              )}
+              {user.trial_claimed_at ? (
+                <Badge variant="outline" className="shrink-0 border-emerald-500/30 text-emerald-600 dark:text-emerald-400">
+                  Trial diklaim
+                </Badge>
+              ) : (
+                <Badge variant="outline" className="shrink-0 text-muted-foreground">
+                  Belum klaim trial
+                </Badge>
+              )}
+              {isSelf && (
+                <Badge variant="outline" className="shrink-0 border-primary/40 text-primary">
+                  Ini kamu
+                </Badge>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* ── Akses & Premium ─────────────────────────────────────────────── */}
+        <div className="mt-5 pb-5 border-b border-border">
+          <h3 className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
+            Akses & Premium
+          </h3>
+          <DetailRow label="Role" value={user.role === "admin" ? "Admin" : "User"} />
+          <DetailRow
+            label="Tier"
+            value={user.tier === "free" ? "Free" : user.tier === "pro" ? "Pro" : "Plus"}
+          />
+          <DetailRow
+            label="Status Premium"
+            value={
+              user.is_premium ? (
+                <span>
+                  Aktif
+                  {exp.tone !== "none" && (
+                    <span className={cn(
+                      "ml-2 text-xs",
+                      exp.tone === "expired" && "text-destructive",
+                      exp.tone === "soon" && "text-amber-600 dark:text-amber-400",
+                      exp.tone === "active" && "text-muted-foreground",
+                    )}>
+                      ({exp.label})
+                    </span>
+                  )}
+                </span>
+              ) : (
+                <span className="text-muted-foreground">Tidak aktif</span>
+              )
+            }
+          />
+          {user.is_premium && user.premium_expires_at && (
+            <DetailRow label="Expires" value={fmtDate(user.premium_expires_at)} />
+          )}
+        </div>
+
+        {/* ── Saldo & Trial ───────────────────────────────────────────────── */}
+        <div className="mt-5 pb-5 border-b border-border">
+          <h3 className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
+            Saldo & Trial
+          </h3>
+          <DetailRow
+            label="Saldo Sekarang"
+            value={formatRupiah(user.credit_balance_idr)}
+            valueClassName={user.credit_balance_idr > 0 ? "font-semibold tabular-nums" : "text-muted-foreground tabular-nums"}
+          />
+          <DetailRow
+            label="Klaim Trial"
+            value={
+              user.trial_claimed_at
+                ? <span className="text-emerald-600 dark:text-emerald-400">✓ {fmtDate(user.trial_claimed_at)}</span>
+                : <span className="text-muted-foreground">Belum diklaim</span>
+            }
+          />
+        </div>
+
+        {/* ── Aktivitas ───────────────────────────────────────────────────── */}
+        <div className="mt-5 pb-5 border-b border-border">
+          <h3 className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
+            Aktivitas
+          </h3>
+          <DetailRow label="Bergabung" value={fmtDateTime(user.created_at)} />
+          <DetailRow label="Login Terakhir" value={fmtDateTime(user.last_sign_in_at)} />
+        </div>
+
+        {/* ── Identifier ──────────────────────────────────────────────────── */}
+        <div className="mt-5 pb-5 border-b border-border">
+          <h3 className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">
+            Identifier
+          </h3>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-[11px] font-mono text-muted-foreground bg-muted/40 rounded px-2 py-1.5 truncate">
+              {user.id}
+            </code>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={copyId}
+              className="h-8 px-2 shrink-0"
+              aria-label="Salin ID"
+            >
+              {copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+            </Button>
+          </div>
+        </div>
+
+        {/* ── Aksi ────────────────────────────────────────────────────────── */}
+        <div className="mt-5 flex items-center gap-2">
+          <Button
+            variant="default"
+            size="sm"
+            className="flex-1"
+            onClick={() => { onClose(); onEdit(user); }}
+          >
+            <Pencil className="w-3.5 h-3.5 mr-1.5" />
+            Edit Pengguna
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={isSelf}
+            onClick={() => { if (!isSelf) { onClose(); onDelete(user); } }}
+            className="text-destructive hover:text-destructive border-destructive/30 hover:bg-destructive/10"
+          >
+            <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+            Hapus
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 type TierFilter = "all" | "free" | "plus" | "pro";
 type RoleFilter = "all" | "user" | "admin";
 type StatusFilter = "all" | "active" | "expiring" | "expired";
@@ -469,12 +692,13 @@ function expiresStatus(u: AdminUser): { label: string; tone: "active" | "soon" |
 }
 
 function SectionPengguna({
-  users, isLoading, error, currentUserId, onEdit, onDelete,
+  users, isLoading, error, currentUserId, onView, onEdit, onDelete,
 }: {
   users: AdminUser[];
   isLoading: boolean;
   error: string | null;
   currentUserId?: string;
+  onView: (u: AdminUser) => void;
   onEdit: (u: AdminUser) => void;
   onDelete: (u: AdminUser) => void;
 }) {
@@ -635,14 +859,15 @@ function SectionPengguna({
                 <th className="text-right px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">Saldo</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Expires</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Bergabung</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden xl:table-cell">Login Terakhir</th>
                 <th className="w-12 px-2 py-3"></th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={6} className="text-center py-14 text-muted-foreground text-sm">Memuat data...</td></tr>
+                <tr><td colSpan={7} className="text-center py-14 text-muted-foreground text-sm">Memuat data...</td></tr>
               ) : pageItems.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-14 text-muted-foreground text-sm">
+                <tr><td colSpan={7} className="text-center py-14 text-muted-foreground text-sm">
                   {search || activeFilterCount > 0 ? "Tidak ada hasil yang cocok." : "Belum ada pengguna."}
                 </td></tr>
               ) : (
@@ -698,6 +923,11 @@ function SectionPengguna({
                       <td className="px-4 py-3 text-muted-foreground text-sm hidden lg:table-cell whitespace-nowrap">
                         {new Date(u.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
                       </td>
+                      <td className="px-4 py-3 text-muted-foreground text-sm hidden xl:table-cell whitespace-nowrap">
+                        {u.last_sign_in_at
+                          ? new Date(u.last_sign_in_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })
+                          : <span className="text-muted-foreground/60">—</span>}
+                      </td>
                       <td className="px-2 py-3">
                         <div className="flex items-center justify-end">
                           <DropdownMenu>
@@ -709,7 +939,11 @@ function SectionPengguna({
                                 <MoreHorizontal className="w-4 h-4" />
                               </button>
                             </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-40">
+                            <DropdownMenuContent align="end" className="w-44">
+                              <DropdownMenuItem onClick={() => onView(u)} className="cursor-pointer">
+                                <Eye className="w-3.5 h-3.5 mr-2" />
+                                Detail Pengguna
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => onEdit(u)} className="cursor-pointer">
                                 <Pencil className="w-3.5 h-3.5 mr-2" />
                                 Edit
@@ -1135,6 +1369,7 @@ export default function AdminPage() {
   const [toDelete, setToDelete] = useState<AdminUser | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
+  const [viewingUser, setViewingUser] = useState<AdminUser | null>(null);
   const { toast, show: showToast } = useToast();
 
   useEffect(() => {
@@ -1276,6 +1511,7 @@ export default function AdminPage() {
               isLoading={isLoading}
               error={error}
               currentUserId={user?.id}
+              onView={setViewingUser}
               onEdit={setEditingUser}
               onDelete={setToDelete}
             />
@@ -1307,6 +1543,15 @@ export default function AdminPage() {
           ))}
         </nav>
       </div>
+
+      {/* ── Detail user (read-only side panel) ────────────────────────────── */}
+      <UserDetailSheet
+        user={viewingUser}
+        isSelf={viewingUser?.id === user?.id}
+        onClose={() => setViewingUser(null)}
+        onEdit={setEditingUser}
+        onDelete={setToDelete}
+      />
 
       {/* ── Edit user (role / tier / saldo) ───────────────────────────────── */}
       <EditUserDialog
