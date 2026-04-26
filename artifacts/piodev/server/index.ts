@@ -2164,6 +2164,13 @@ async function extractDocxText(buffer: Buffer): Promise<string> {
   return (result?.value || "").trim();
 }
 
+// Estimasi halaman DOCX dari jumlah kata (~400 kata/halaman, mendekati Word default).
+function estimateDocxPages(text: string): number {
+  if (!text) return 1;
+  const words = text.trim().split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.ceil(words / 400));
+}
+
 const pustakaUpload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 200 * 1024 * 1024 }, // hard cap 200MB; tier dicek di handler
@@ -2256,15 +2263,38 @@ app.post("/api/pustaka", requireAuth, pustakaUpload.single("file"), async (req, 
         })
         .eq("id", docId);
     } else if (docxFile) {
-      const text = await extractDocxText(file.buffer);
-      await supabaseAdmin
-        .from("documents")
-        .update({
-          extracted_text: text.slice(0, 500_000),
-          page_count: 0,
-          parse_status: "done",
-        })
-        .eq("id", docId);
+      const monthUsage = await getMonthlyPageUsage(userId);
+      if (monthUsage.used >= limits.pagesPerMonth) {
+        await supabaseAdmin
+          .from("documents")
+          .update({
+            parse_status: "skipped",
+            parse_error: "Kuota halaman bulan ini habis",
+          })
+          .eq("id", docId);
+      } else {
+        const text = await extractDocxText(file.buffer);
+        const pageCount = estimateDocxPages(text);
+        if (monthUsage.used + pageCount > limits.pagesPerMonth) {
+          await supabaseAdmin
+            .from("documents")
+            .update({
+              parse_status: "skipped",
+              parse_error: `Butuh ~${pageCount} halaman, sisa kuota ${limits.pagesPerMonth - monthUsage.used} halaman`,
+            })
+            .eq("id", docId);
+        } else {
+          await supabaseAdmin
+            .from("documents")
+            .update({
+              extracted_text: text.slice(0, 500_000),
+              page_count: pageCount,
+              parse_status: "done",
+            })
+            .eq("id", docId);
+          await incrementMonthlyPageUsage(userId, pageCount);
+        }
+      }
     } else if (isPdf || isImage) {
       const monthUsage = await getMonthlyPageUsage(userId);
       if (monthUsage.used >= limits.pagesPerMonth) {
@@ -2348,15 +2378,11 @@ app.post("/api/parse-file", requireAuth, parseFileUpload.single("file"), async (
       return;
     }
 
-    if (isDocx(mime, name)) {
-      const text = await extractDocxText(file.buffer);
-      res.json({ name, content: text.slice(0, 500_000), pageCount: 0 });
-      return;
-    }
-
     const isPdf = mime === "application/pdf" || /\.pdf$/i.test(name);
     const isImage = mime.startsWith("image/");
-    if (isPdf || isImage) {
+    const isDocxFile = isDocx(mime, name);
+
+    if (isPdf || isImage || isDocxFile) {
       // Cek kuota halaman bulanan (pakai sistem yg sama dgn Pustaka)
       const { data: profile } = await supabaseAdmin
         .from("profiles")
@@ -2371,10 +2397,21 @@ app.post("/api/parse-file", requireAuth, parseFileUpload.single("file"), async (
         res.status(403).json({ error: `Kuota halaman bulan ini habis (${limits.pagesPerMonth} hal/bulan untuk tier ${tier})` });
         return;
       }
-      const { text, pageCount } = await azureExtractText(file.buffer, file.mimetype);
+
+      let text = "";
+      let pageCount = 0;
+      if (isDocxFile) {
+        text = await extractDocxText(file.buffer);
+        pageCount = estimateDocxPages(text);
+      } else {
+        const azure = await azureExtractText(file.buffer, file.mimetype);
+        text = azure.text;
+        pageCount = azure.pageCount;
+      }
+
       if (monthUsage.used + pageCount > limits.pagesPerMonth) {
         res.status(403).json({
-          error: `Butuh ${pageCount} halaman, sisa kuota ${limits.pagesPerMonth - monthUsage.used} halaman`,
+          error: `Butuh ~${pageCount} halaman, sisa kuota ${limits.pagesPerMonth - monthUsage.used} halaman`,
         });
         return;
       }

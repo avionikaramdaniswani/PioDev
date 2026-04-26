@@ -362,7 +362,7 @@ export default function PustakaPage() {
               <div className="rounded-xl border border-border bg-card px-3 py-2.5 sm:px-4 sm:py-3">
                 <p className="text-[11px] sm:text-xs text-muted-foreground">
                   <span className="sm:hidden">Halaman bulan ini</span>
-                  <span className="hidden sm:inline">Halaman PDF/foto bulan ini</span>
+                  <span className="hidden sm:inline">Halaman PDF/DOCX/foto bulan ini</span>
                 </p>
                 <p className="text-xs sm:text-sm font-medium mt-1">
                   {usage.pagesUsed}
