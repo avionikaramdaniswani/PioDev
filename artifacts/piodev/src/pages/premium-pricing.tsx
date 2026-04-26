@@ -106,8 +106,6 @@ export default function PremiumPricingPage() {
   // Tombol trial cuma untuk user free yang belum pernah klaim & bukan admin
   const showTrialButton = !isAdmin && !isPlusActive && !isProActive;
 
-  // Pricing config dari server (dinamis, bisa di-edit admin)
-  const pricing = usePricingConfig();
   const buildPriceProps = (t: TierPricing) => {
     const finalPrice = discountedPrice(t);
     const hasDiscount = t.discount_percent > 0 && finalPrice !== t.price_idr;
