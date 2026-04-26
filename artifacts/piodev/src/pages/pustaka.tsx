@@ -324,12 +324,12 @@ export default function PustakaPage() {
           </div>
 
           {usage && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="rounded-xl border border-border bg-card px-4 py-3">
-                <div className="flex items-center justify-between">
-                  <p className="text-xs text-muted-foreground">Tier</p>
+            <div className="grid grid-cols-3 gap-2 sm:gap-3">
+              <div className="rounded-xl border border-border bg-card px-3 py-2.5 sm:px-4 sm:py-3">
+                <div className="flex items-center justify-between gap-1">
+                  <p className="text-[11px] sm:text-xs text-muted-foreground">Tier</p>
                   <span className={cn(
-                    "text-[10px] font-semibold px-2 py-0.5 rounded-full",
+                    "text-[9px] sm:text-[10px] font-semibold px-1.5 sm:px-2 py-0.5 rounded-full",
                     usage.tier === "pro" ? "bg-purple-500/10 text-purple-600 dark:text-purple-400" :
                     usage.tier === "plus" ? "bg-primary/10 text-primary" :
                     "bg-muted text-muted-foreground"
@@ -337,14 +337,15 @@ export default function PustakaPage() {
                     {TIER_LABELS[usage.tier]}
                   </span>
                 </div>
-                <p className="text-sm font-medium mt-1">
-                  Maks {(usage.fileMaxBytes / 1024 / 1024).toFixed(0)} MB / file
+                <p className="text-xs sm:text-sm font-medium mt-1">
+                  Maks {(usage.fileMaxBytes / 1024 / 1024).toFixed(0)} MB
+                  <span className="hidden sm:inline"> / file</span>
                 </p>
               </div>
 
-              <div className="rounded-xl border border-border bg-card px-4 py-3">
-                <p className="text-xs text-muted-foreground">File tersimpan</p>
-                <p className="text-sm font-medium mt-1">
+              <div className="rounded-xl border border-border bg-card px-3 py-2.5 sm:px-4 sm:py-3">
+                <p className="text-[11px] sm:text-xs text-muted-foreground">File tersimpan</p>
+                <p className="text-xs sm:text-sm font-medium mt-1">
                   {usage.fileCount}
                   <span className="text-muted-foreground"> / {usage.fileLimit === -1 ? "∞" : usage.fileLimit}</span>
                 </p>
@@ -358,9 +359,12 @@ export default function PustakaPage() {
                 )}
               </div>
 
-              <div className="rounded-xl border border-border bg-card px-4 py-3">
-                <p className="text-xs text-muted-foreground">Halaman PDF/foto bulan ini</p>
-                <p className="text-sm font-medium mt-1">
+              <div className="rounded-xl border border-border bg-card px-3 py-2.5 sm:px-4 sm:py-3">
+                <p className="text-[11px] sm:text-xs text-muted-foreground">
+                  <span className="sm:hidden">Halaman bulan ini</span>
+                  <span className="hidden sm:inline">Halaman PDF/foto bulan ini</span>
+                </p>
+                <p className="text-xs sm:text-sm font-medium mt-1">
                   {usage.pagesUsed}
                   <span className="text-muted-foreground"> / {usage.pagesLimit}</span>
                 </p>
