@@ -1134,6 +1134,20 @@ async function grantTierBonusOnce(
 // ── GET /api/me/api-keys — list semua key user (tanpa value asli) ────────────
 app.get("/api/me/api-keys", requireAuth, async (req, res) => {
   const userId = (req as any).userId;
+
+  // Cek user premium — gating sama kayak POST biar frontend bisa nampilin UI upgrade
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("is_premium, premium_expires_at, role")
+    .eq("id", userId)
+    .single();
+  const isAdmin = profile?.role === "admin";
+  const isPremium = isAdmin || isPremiumActive(profile ?? {});
+  if (!isPremium) {
+    res.status(403).json({ error: "Fitur API key hanya untuk pengguna Plus." });
+    return;
+  }
+
   const { data, error } = await supabaseAdmin
     .from("api_keys")
     .select("id, name, key_prefix, created_at, last_used_at, revoked_at, key_encrypted")
