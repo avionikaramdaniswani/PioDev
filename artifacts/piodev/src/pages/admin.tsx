@@ -26,10 +26,10 @@ import {
 } from "recharts";
 import {
   LayoutDashboard, Users, ArrowLeft, Search,
-  Shield, ShieldOff, Trash2, RefreshCw,
+  Trash2, RefreshCw,
   Zap, MessageSquare, TrendingUp, Newspaper, Plus,
-  Star, StarOff, Check, Loader2, Calendar, Tag, AlertCircle,
-  MoreHorizontal, Pencil, Wallet, ChevronLeft, ChevronRight, ArrowUpDown,
+  Check, Loader2, Tag, AlertCircle,
+  MoreHorizontal, Pencil, ChevronLeft, ChevronRight, ArrowUpDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/logo";
@@ -164,7 +164,6 @@ function EditUserDialog({
   const [customDaysUnit, setCustomDaysUnit] = useState<"hari" | "bulan">("hari");
   const [balanceMode, setBalanceMode] = useState<"add" | "set">("add");
   const [balanceAmount, setBalanceAmount] = useState("");
-  const [balanceNote, setBalanceNote] = useState("");
   const [saving, setSaving] = useState(false);
 
   // Re-init form tiap kali user-nya beda.
@@ -178,7 +177,6 @@ function EditUserDialog({
     setCustomDaysUnit("hari");
     setBalanceMode("add");
     setBalanceAmount("");
-    setBalanceNote("");
   }, [user?.id]);
 
   if (!user) return null;
@@ -223,7 +221,6 @@ function EditUserDialog({
         const result = await updateCredit(user.id, {
           mode: balanceMode,
           amount_idr: balanceVal,
-          note: balanceNote.trim() || undefined,
         });
         if (result.delta !== 0) {
           const sign = result.delta > 0 ? "+" : "";
@@ -247,23 +244,17 @@ function EditUserDialog({
     <Dialog open={!!user} onOpenChange={(o) => { if (!o && !saving) onClose(); }}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-base">
-            <Pencil className="w-4 h-4 text-primary" />
-            Edit Pengguna
-          </DialogTitle>
+          <DialogTitle className="text-base">Edit Pengguna</DialogTitle>
           <p className="text-xs text-muted-foreground truncate mt-1">
             {user.full_name ? `${user.full_name} · ` : ""}{user.email}
           </p>
         </DialogHeader>
 
-        <div className="space-y-5 py-1 max-h-[60vh] overflow-y-auto pr-1">
+        <div className="space-y-6 py-1 max-h-[60vh] overflow-y-auto pr-1">
           {/* ── Role ─────────────────────────────────────────────────────── */}
           <section>
-            <div className="flex items-center gap-1.5 mb-2">
-              <Shield className="w-3.5 h-3.5 text-blue-500" />
-              <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">Role</h3>
-            </div>
-            <div className="grid grid-cols-2 gap-2">
+            <h3 className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Role</h3>
+            <div className="grid grid-cols-2 gap-1.5">
               {(["user", "admin"] as const).map((r) => {
                 const active = role === r;
                 return (
@@ -273,10 +264,10 @@ function EditUserDialog({
                     onClick={() => setRole(r)}
                     disabled={isSelf}
                     className={cn(
-                      "rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
+                      "rounded-md border px-3 py-2 text-sm transition-colors",
                       active
-                        ? "bg-blue-500 border-blue-500 text-white"
-                        : "border-border bg-muted/30 text-foreground hover:border-blue-400 hover:bg-blue-500/10",
+                        ? "bg-foreground text-background border-foreground font-medium"
+                        : "border-border bg-transparent text-foreground hover:bg-muted",
                       isSelf && "opacity-50 cursor-not-allowed",
                     )}
                   >
@@ -294,37 +285,25 @@ function EditUserDialog({
 
           {/* ── Tier ─────────────────────────────────────────────────────── */}
           <section>
-            <div className="flex items-center gap-1.5 mb-2">
-              <Star className="w-3.5 h-3.5 text-amber-500" />
-              <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">Tier Premium</h3>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {([
-                { id: "free", label: "Free" },
-                { id: "plus", label: "Plus" },
-                { id: "pro", label: "Pro" },
-              ] as const).map((t) => {
-                const active = tier === t.id;
-                const colorActive = t.id === "pro"
-                  ? "bg-amber-600 border-amber-600 text-white"
-                  : t.id === "plus"
-                    ? "bg-amber-500 border-amber-500 text-white"
-                    : "bg-muted border-border text-foreground";
+            <h3 className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Tier Premium</h3>
+            <div className="grid grid-cols-3 gap-1.5">
+              {(["free", "plus", "pro"] as const).map((t) => {
+                const active = tier === t;
                 return (
                   <button
-                    key={t.id}
+                    key={t}
                     type="button"
-                    onClick={() => setTier(t.id)}
+                    onClick={() => setTier(t)}
                     disabled={isSelf}
                     className={cn(
-                      "rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
+                      "rounded-md border px-3 py-2 text-sm transition-colors capitalize",
                       active
-                        ? colorActive
-                        : "border-border bg-muted/30 text-foreground hover:border-amber-400 hover:bg-amber-500/10",
+                        ? "bg-foreground text-background border-foreground font-medium"
+                        : "border-border bg-transparent text-foreground hover:bg-muted",
                       isSelf && "opacity-50 cursor-not-allowed",
                     )}
                   >
-                    {t.label}
+                    {t}
                   </button>
                 );
               })}
@@ -332,8 +311,8 @@ function EditUserDialog({
 
             {/* Durasi muncul cuma kalau tier-nya berubah ke Plus/Pro */}
             {tierUpgradingToPaid && (
-              <div className="mt-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/20 space-y-2">
-                <p className="text-[11px] font-medium text-muted-foreground">Durasi {tier === "pro" ? "Pro" : "Plus"}</p>
+              <div className="mt-3 space-y-2">
+                <p className="text-[11px] text-muted-foreground">Durasi</p>
                 <div className="grid grid-cols-3 gap-1.5">
                   {PRESET_DURATIONS.map((p) => (
                     <button
@@ -341,10 +320,10 @@ function EditUserDialog({
                       type="button"
                       onClick={() => { setPresetDays(p.days); setUseCustomDays(false); }}
                       className={cn(
-                        "rounded-md border px-2 py-1.5 text-xs font-medium transition-colors",
+                        "rounded-md border px-2 py-1.5 text-xs transition-colors",
                         !useCustomDays && presetDays === p.days
-                          ? "bg-amber-500 border-amber-500 text-white"
-                          : "border-border bg-background text-foreground hover:border-amber-400",
+                          ? "bg-foreground text-background border-foreground font-medium"
+                          : "border-border bg-transparent text-foreground hover:bg-muted",
                       )}
                     >
                       {p.label}
@@ -357,8 +336,8 @@ function EditUserDialog({
                   className={cn(
                     "w-full text-left text-[11px] px-2.5 py-1.5 rounded-md border transition-colors",
                     useCustomDays
-                      ? "border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                      : "border-dashed border-border text-muted-foreground hover:border-amber-400",
+                      ? "border-foreground bg-muted text-foreground"
+                      : "border-dashed border-border text-muted-foreground hover:bg-muted",
                   )}
                 >
                   Atau durasi kustom
@@ -381,7 +360,9 @@ function EditUserDialog({
                           onClick={() => setCustomDaysUnit(u)}
                           className={cn(
                             "px-2.5 text-xs transition-colors",
-                            customDaysUnit === u ? "bg-amber-500 text-white" : "text-muted-foreground hover:bg-muted",
+                            customDaysUnit === u
+                              ? "bg-foreground text-background"
+                              : "text-muted-foreground hover:bg-muted",
                           )}
                         >
                           {u}
@@ -393,7 +374,7 @@ function EditUserDialog({
                 {effectiveDays > 0 && (
                   <p className="text-[11px] text-muted-foreground">
                     Aktif sampai{" "}
-                    <span className="font-semibold text-foreground">
+                    <span className="text-foreground">
                       {new Date(Date.now() + effectiveDays * 86_400_000).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
                     </span>
                   </p>
@@ -404,16 +385,13 @@ function EditUserDialog({
 
           {/* ── Saldo ────────────────────────────────────────────────────── */}
           <section>
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-1.5">
-                <Wallet className="w-3.5 h-3.5 text-emerald-500" />
-                <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">Saldo</h3>
-              </div>
+            <div className="flex items-baseline justify-between mb-2">
+              <h3 className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Saldo</h3>
               <span className="text-xs text-muted-foreground tabular-nums">
-                Sekarang: {formatRupiah(user.credit_balance_idr)}
+                Saldo sekarang: <span className="text-foreground">{formatRupiah(user.credit_balance_idr)}</span>
               </span>
             </div>
-            <div className="flex rounded-lg border border-border overflow-hidden text-xs">
+            <div className="flex rounded-md border border-border overflow-hidden text-xs">
               {([
                 { id: "add", label: "Tambah / Kurangi" },
                 { id: "set", label: "Set Eksak" },
@@ -425,7 +403,7 @@ function EditUserDialog({
                   className={cn(
                     "flex-1 px-3 py-1.5 transition-colors",
                     balanceMode === m.id
-                      ? "bg-emerald-500 text-white"
+                      ? "bg-foreground text-background font-medium"
                       : "text-muted-foreground hover:bg-muted",
                   )}
                 >
@@ -434,29 +412,25 @@ function EditUserDialog({
               ))}
             </div>
             <div className="mt-2 flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Rp</span>
+              <span className="text-sm text-muted-foreground w-6">Rp</span>
               <Input
                 type="number"
-                placeholder={balanceMode === "add" ? "Bisa negatif (mis. -10000)" : "Saldo baru"}
+                placeholder={balanceMode === "add" ? "Boleh negatif untuk kurangi" : "Saldo baru"}
                 value={balanceAmount}
                 onChange={(e) => setBalanceAmount(e.target.value)}
                 className="flex-1 h-9 tabular-nums"
               />
             </div>
-            {balanceVal !== null && Number.isFinite(balanceVal) && (
+            {balanceVal !== null && Number.isFinite(balanceVal) && balanceVal !== 0 && (
               <p className="text-[11px] text-muted-foreground mt-1.5">
-                {balanceMode === "add"
-                  ? `Saldo akan jadi ${formatRupiah(Math.max(0, user.credit_balance_idr + balanceVal))}`
-                  : `Saldo akan jadi ${formatRupiah(Math.max(0, balanceVal))}`}
+                Saldo akan jadi{" "}
+                <span className="text-foreground tabular-nums">
+                  {balanceMode === "add"
+                    ? formatRupiah(Math.max(0, user.credit_balance_idr + balanceVal))
+                    : formatRupiah(Math.max(0, balanceVal))}
+                </span>
               </p>
             )}
-            <Input
-              placeholder="Catatan (opsional, mis. 'koreksi manual')"
-              value={balanceNote}
-              onChange={(e) => setBalanceNote(e.target.value)}
-              maxLength={200}
-              className="mt-2 h-8 text-xs"
-            />
           </section>
         </div>
 
