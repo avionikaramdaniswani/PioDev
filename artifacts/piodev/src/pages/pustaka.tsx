@@ -37,15 +37,36 @@ type Usage = {
   pagesLimit: number;
 };
 
+async function getValidToken(): Promise<string | null> {
+  for (let i = 0; i < 10; i++) {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) return session.access_token;
+    await new Promise((r) => setTimeout(r, 150));
+  }
+  return null;
+}
+
 async function authedFetch(path: string, init?: RequestInit) {
-  const { data: { session } } = await supabase.auth.getSession();
-  return fetch(path, {
+  let token = await getValidToken();
+  let res = await fetch(path, {
     ...init,
     headers: {
       ...(init?.headers || {}),
-      Authorization: `Bearer ${session?.access_token ?? ""}`,
+      Authorization: `Bearer ${token ?? ""}`,
     },
   });
+  if (res.status === 401) {
+    await new Promise((r) => setTimeout(r, 300));
+    token = await getValidToken();
+    res = await fetch(path, {
+      ...init,
+      headers: {
+        ...(init?.headers || {}),
+        Authorization: `Bearer ${token ?? ""}`,
+      },
+    });
+  }
+  return res;
 }
 
 function formatBytes(bytes: number): string {
@@ -114,6 +135,13 @@ export default function PustakaPage() {
       if (docsRes.ok) {
         const data = await docsRes.json();
         setDocuments(data.documents || []);
+      } else {
+        console.error("[Pustaka] list failed:", docsRes.status);
+        toast({
+          title: "Gagal memuat Pustaka",
+          description: `Status ${docsRes.status}. Coba refresh halaman.`,
+          variant: "destructive",
+        });
       }
       if (usageRes.ok) {
         const data = await usageRes.json();
