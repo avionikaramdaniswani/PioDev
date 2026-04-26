@@ -22,6 +22,7 @@ import { PustakaPickerDialog } from "@/components/pustaka-picker-dialog";
 import { VoiceModeOverlay } from "@/components/voice-mode-overlay";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
 
 const FREE_DAILY_LIMIT = 60_000;
 const PLUS_DAILY_LIMIT = 200_000;
@@ -366,13 +367,61 @@ export default function ChatPage() {
     e.target.value = "";
   };
 
+  // Ekstensi yang bisa langsung dibaca client sebagai text/code
+  const TEXT_EXT_RE = /\.(md|mdx|txt|log|js|mjs|cjs|ts|jsx|tsx|json|jsonc|json5|yaml|yml|html|htm|css|scss|sass|less|sh|bash|zsh|fish|ps1|sql|rs|go|java|cpp|cxx|cc|c|h|hpp|hh|rb|php|swift|kt|kts|dart|py|pyi|csv|tsv|toml|ini|env|conf|cfg|properties|xml|vue|svelte|astro|lua|r|jl|ex|exs|elm|hs|nim|zig|gd|sol|tf|tfvars|dockerfile|makefile|gradle|graphql|gql|prisma)$/i;
+  const BINARY_EXT_RE = /\.(pdf|docx)$/i;
+
+  const isTextLikeFile = (file: File) => {
+    if (file.type.startsWith("text/")) return true;
+    if (file.type === "application/json" || file.type === "application/xml") return true;
+    if (TEXT_EXT_RE.test(file.name)) return true;
+    return false;
+  };
+
+  const parseBinaryFileOnServer = async (file: File) => {
+    const { data: { session } } = await (await import("@/lib/supabase")).supabase.auth.getSession();
+    const token = session?.access_token ?? "";
+    const fd = new FormData();
+    fd.append("file", file);
+    const res = await fetch("/api/parse-file", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}` },
+      body: fd,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || `Gagal baca ${file.name}`);
+    }
+    const data = await res.json();
+    return data.content as string;
+  };
+
+  const ingestFile = async (file: File) => {
+    try {
+      if (isTextLikeFile(file)) {
+        const text = await file.text();
+        addFile(file.name, text);
+        return;
+      }
+      if (BINARY_EXT_RE.test(file.name) || file.type === "application/pdf") {
+        const placeholder = `(memproses ${file.name}…)`;
+        addFile(file.name, placeholder);
+        const content = await parseBinaryFileOnServer(file);
+        setAttachedFiles((prev) =>
+          prev.map((f) => (f.name === file.name && f.content === placeholder ? { name: file.name, content } : f)),
+        );
+        return;
+      }
+      toast({ title: "Tipe file belum didukung", description: file.name, variant: "destructive" });
+    } catch (e: any) {
+      setAttachedFiles((prev) => prev.filter((f) => f.name !== file.name));
+      toast({ title: "Gagal baca file", description: e?.message || String(e), variant: "destructive" });
+    }
+  };
+
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || []);
-    files.forEach((file) => {
-      const reader = new FileReader();
-      reader.onload = (ev) => addFile(file.name, ev.target?.result as string);
-      reader.readAsText(file);
-    });
+    files.forEach((file) => { ingestFile(file); });
     e.target.value = "";
   };
 
@@ -400,9 +449,7 @@ export default function ChatPage() {
       fileItems.forEach((item) => {
         const file = item.getAsFile();
         if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (ev) => addFile(file.name, ev.target?.result as string);
-        reader.readAsText(file);
+        ingestFile(file);
       });
       return;
     }
@@ -963,7 +1010,7 @@ export default function ChatPage() {
 
             {/* Hidden file inputs — support multiple */}
             <input ref={imageInputRef} type="file" accept="image/*" multiple onChange={handleImageSelect} className="hidden" />
-            <input ref={fileInputRef} type="file" accept=".txt,.md,.py,.js,.ts,.jsx,.tsx,.json,.csv,.yaml,.yml,.html,.css,.sh,.sql,.rs,.go,.java,.cpp,.c,.rb,.php,.swift,.kt,.dart" multiple onChange={handleFileSelect} className="hidden" />
+            <input ref={fileInputRef} type="file" accept=".pdf,.docx,.txt,.md,.mdx,.log,.json,.jsonc,.json5,.csv,.tsv,.html,.htm,.css,.scss,.sass,.less,.js,.mjs,.cjs,.ts,.jsx,.tsx,.py,.pyi,.java,.cpp,.cxx,.cc,.c,.h,.hpp,.rb,.php,.swift,.kt,.kts,.dart,.go,.rs,.sh,.bash,.zsh,.fish,.ps1,.sql,.yaml,.yml,.toml,.ini,.env,.conf,.cfg,.xml,.vue,.svelte,.astro,.lua,.r,.jl,.ex,.exs,.elm,.hs,.nim,.zig,.gd,.sol,.tf,.tfvars,.dockerfile,.makefile,.gradle,.graphql,.gql,.prisma" multiple onChange={handleFileSelect} className="hidden" />
 
             {/* Input container */}
             <div className="flex flex-col bg-card border border-border shadow-sm rounded-2xl focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/50 transition-all">

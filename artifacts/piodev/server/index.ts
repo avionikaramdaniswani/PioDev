@@ -5,6 +5,7 @@ import multer from "multer";
 import path from "path";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
+import mammoth from "mammoth";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
@@ -2140,7 +2141,9 @@ async function azureExtractText(
   throw new Error("Azure analysis timeout");
 }
 
-const TEXT_FILE_EXT_REGEX = /\.(md|txt|js|ts|jsx|tsx|json|yaml|yml|html|css|scss|sh|bash|sql|rs|go|java|cpp|cxx|c|h|hpp|rb|php|swift|kt|dart|py|csv|toml|ini|env|xml|vue|svelte|astro|mdx)$/i;
+const TEXT_FILE_EXT_REGEX = /\.(md|mdx|txt|log|js|mjs|cjs|ts|jsx|tsx|json|jsonc|json5|yaml|yml|html|htm|css|scss|sass|less|sh|bash|zsh|fish|ps1|sql|rs|go|java|cpp|cxx|cc|c|h|hpp|hh|rb|php|swift|kt|kts|dart|py|pyi|csv|tsv|toml|ini|env|conf|cfg|properties|xml|vue|svelte|astro|lua|r|jl|ex|exs|elm|hs|nim|zig|gd|sol|tf|tfvars|dockerfile|makefile|gradle|graphql|gql|prisma)$/i;
+
+const DOCX_MIME = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
 
 function isTextFile(mime: string, name: string): boolean {
   const m = (mime || "").toLowerCase();
@@ -2149,6 +2152,16 @@ function isTextFile(mime: string, name: string): boolean {
   if (m.includes("javascript") || m.includes("typescript")) return true;
   if (TEXT_FILE_EXT_REGEX.test(name)) return true;
   return false;
+}
+
+function isDocx(mime: string, name: string): boolean {
+  if ((mime || "").toLowerCase() === DOCX_MIME) return true;
+  return /\.docx$/i.test(name);
+}
+
+async function extractDocxText(buffer: Buffer): Promise<string> {
+  const result = await mammoth.extractRawText({ buffer });
+  return (result?.value || "").trim();
 }
 
 const pustakaUpload = multer({
@@ -2229,10 +2242,21 @@ app.post("/api/pustaka", requireAuth, pustakaUpload.single("file"), async (req, 
   const isPdf = mime === "application/pdf";
   const isImage = mime.startsWith("image/");
   const textFile = isTextFile(mime, file.originalname);
+  const docxFile = isDocx(mime, file.originalname);
 
   try {
     if (textFile) {
       const text = file.buffer.toString("utf8");
+      await supabaseAdmin
+        .from("documents")
+        .update({
+          extracted_text: text.slice(0, 500_000),
+          page_count: 0,
+          parse_status: "done",
+        })
+        .eq("id", docId);
+    } else if (docxFile) {
+      const text = await extractDocxText(file.buffer);
       await supabaseAdmin
         .from("documents")
         .update({
@@ -2300,6 +2324,70 @@ app.post("/api/pustaka", requireAuth, pustakaUpload.single("file"), async (req, 
     .single();
 
   res.json({ document: finalDoc });
+});
+
+// ── POST /api/parse-file — extract text dari file untuk attach chat (no DB) ──
+// Mendukung text/code, DOCX, PDF, image (Azure). Return { name, content, pageCount }
+const parseFileUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 50 * 1024 * 1024 }, // 50MB cap untuk attach chat
+});
+
+app.post("/api/parse-file", requireAuth, parseFileUpload.single("file"), async (req, res) => {
+  const userId = (req as any).userId;
+  const file = req.file;
+  if (!file) { res.status(400).json({ error: "File wajib di-attach" }); return; }
+
+  const mime = (file.mimetype || "").toLowerCase();
+  const name = file.originalname;
+
+  try {
+    if (isTextFile(mime, name)) {
+      const text = file.buffer.toString("utf8");
+      res.json({ name, content: text.slice(0, 500_000), pageCount: 0 });
+      return;
+    }
+
+    if (isDocx(mime, name)) {
+      const text = await extractDocxText(file.buffer);
+      res.json({ name, content: text.slice(0, 500_000), pageCount: 0 });
+      return;
+    }
+
+    const isPdf = mime === "application/pdf" || /\.pdf$/i.test(name);
+    const isImage = mime.startsWith("image/");
+    if (isPdf || isImage) {
+      // Cek kuota halaman bulanan (pakai sistem yg sama dgn Pustaka)
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("role, is_premium, premium_expires_at, tier")
+        .eq("id", userId)
+        .single();
+      const isAdmin = profile?.role === "admin";
+      const tier = getTier(profile);
+      const limits = getPustakaLimits(tier, isAdmin);
+      const monthUsage = await getMonthlyPageUsage(userId);
+      if (monthUsage.used >= limits.pagesPerMonth) {
+        res.status(403).json({ error: `Kuota halaman bulan ini habis (${limits.pagesPerMonth} hal/bulan untuk tier ${tier})` });
+        return;
+      }
+      const { text, pageCount } = await azureExtractText(file.buffer, file.mimetype);
+      if (monthUsage.used + pageCount > limits.pagesPerMonth) {
+        res.status(403).json({
+          error: `Butuh ${pageCount} halaman, sisa kuota ${limits.pagesPerMonth - monthUsage.used} halaman`,
+        });
+        return;
+      }
+      await incrementMonthlyPageUsage(userId, pageCount);
+      res.json({ name, content: text.slice(0, 500_000), pageCount });
+      return;
+    }
+
+    res.status(415).json({ error: `Tipe file belum didukung: ${mime || name}` });
+  } catch (e: any) {
+    console.error("[parse-file] error:", e);
+    res.status(500).json({ error: String(e?.message || e).slice(0, 500) });
+  }
 });
 
 // ── GET /api/pustaka — list dokumen user ──────────────────────────────────────

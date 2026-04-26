@@ -394,12 +394,12 @@ export default function PustakaPage() {
             multiple
             onChange={handleFileSelect}
             className="hidden"
-            accept=".pdf,.txt,.md,.json,.csv,.html,.css,.js,.ts,.jsx,.tsx,.py,.java,.cpp,.c,.rb,.php,.swift,.kt,.dart,.go,.rs,.sh,.sql,.yaml,.yml,.xml,.png,.jpg,.jpeg,.webp,.gif"
+            accept=".pdf,.docx,.txt,.md,.mdx,.log,.json,.jsonc,.json5,.csv,.tsv,.html,.htm,.css,.scss,.sass,.less,.js,.mjs,.cjs,.ts,.jsx,.tsx,.py,.pyi,.java,.cpp,.cxx,.cc,.c,.h,.hpp,.rb,.php,.swift,.kt,.kts,.dart,.go,.rs,.sh,.bash,.zsh,.fish,.ps1,.sql,.yaml,.yml,.toml,.ini,.env,.conf,.cfg,.xml,.vue,.svelte,.astro,.lua,.r,.jl,.ex,.exs,.elm,.hs,.nim,.zig,.gd,.sol,.tf,.tfvars,.dockerfile,.makefile,.gradle,.graphql,.gql,.prisma,.png,.jpg,.jpeg,.webp,.gif"
           />
           <Upload className="w-7 h-7 mx-auto text-muted-foreground mb-2" />
           <p className="text-sm font-medium">Drop file di sini atau klik buat upload</p>
           <p className="text-xs text-muted-foreground mt-1">
-            PDF, gambar (PNG/JPG/WebP), atau file teks/kode
+            PDF, DOCX, gambar (PNG/JPG/WebP), atau file teks/kode
           </p>
         </div>
 
