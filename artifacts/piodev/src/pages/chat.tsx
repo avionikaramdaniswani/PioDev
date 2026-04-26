@@ -54,6 +54,28 @@ const SUGGESTIONS = [
   { icon: Lightbulb, text: "Review kode saya" },
 ];
 
+function formatMessageTime(d: Date | string | undefined): string {
+  if (!d) return "";
+  const date = d instanceof Date ? d : new Date(d);
+  if (isNaN(date.getTime())) return "";
+  const now = new Date();
+  const sameDay =
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate();
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday =
+    date.getFullYear() === yesterday.getFullYear() &&
+    date.getMonth() === yesterday.getMonth() &&
+    date.getDate() === yesterday.getDate();
+  const time = date.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" });
+  if (sameDay) return time;
+  if (isYesterday) return `Kemarin ${time}`;
+  const dateStr = date.toLocaleDateString("id-ID", { day: "numeric", month: "short" });
+  return `${dateStr} ${time}`;
+}
+
 function CopyButton({ text, className }: { text: string; className?: string }) {
   const [copied, setCopied] = useState(false);
   const handleCopy = () => {
@@ -835,7 +857,12 @@ export default function ChatPage() {
                           {user.initials}
                         </div>
                       </div>
-                      <CopyButton text={msg.content || msg.attachedFileNames?.[0] || ""} className="mr-11 opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <div className="mr-11 flex items-center gap-2 justify-end">
+                        <CopyButton text={msg.content || msg.attachedFileNames?.[0] || ""} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <span className="text-[10px] text-muted-foreground/40 font-mono select-none" title={msg.timestamp instanceof Date ? msg.timestamp.toLocaleString("id-ID") : ""}>
+                          {formatMessageTime(msg.timestamp)}
+                        </span>
+                      </div>
                     </>
                   ) : (
                     <>
@@ -871,6 +898,9 @@ export default function ChatPage() {
                             ↑ {msg.tokenUsage.promptTokens.toLocaleString()} · ↓ {msg.tokenUsage.completionTokens.toLocaleString()} tokens
                           </span>
                         )}
+                        <span className="text-[10px] text-muted-foreground/40 font-mono select-none ml-auto" title={msg.timestamp instanceof Date ? msg.timestamp.toLocaleString("id-ID") : ""}>
+                          {formatMessageTime(msg.timestamp)}
+                        </span>
                       </div>
                     </>
                   )}
