@@ -43,6 +43,9 @@ export default function PremiumPricingPage() {
   const [, setLocation] = useLocation();
   const { status, isLoading, claimTrial } = usePremium(user?.id);
   const { toast, show: showToast } = useInlineToast();
+  // Pricing config dari server (dinamis, bisa di-edit admin) — harus dipanggil
+  // sebelum early-return apa pun supaya hook order tetap stabil tiap render.
+  const pricing = usePricingConfig();
 
   const [trialModalOpen, setTrialModalOpen] = useState(false);
   const [claiming, setClaiming] = useState(false);
