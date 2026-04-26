@@ -266,8 +266,8 @@ function EditUserDialog({
                     className={cn(
                       "rounded-md border px-3 py-2 text-sm transition-colors",
                       active
-                        ? "bg-foreground text-background border-foreground font-medium"
-                        : "border-border bg-transparent text-foreground hover:bg-muted",
+                        ? "bg-primary/10 text-foreground border-primary/40 font-medium"
+                        : "border-border bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
                       isSelf && "opacity-50 cursor-not-allowed",
                     )}
                   >
@@ -298,8 +298,8 @@ function EditUserDialog({
                     className={cn(
                       "rounded-md border px-3 py-2 text-sm transition-colors capitalize",
                       active
-                        ? "bg-foreground text-background border-foreground font-medium"
-                        : "border-border bg-transparent text-foreground hover:bg-muted",
+                        ? "bg-primary/10 text-foreground border-primary/40 font-medium"
+                        : "border-border bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
                       isSelf && "opacity-50 cursor-not-allowed",
                     )}
                   >
@@ -322,8 +322,8 @@ function EditUserDialog({
                       className={cn(
                         "rounded-md border px-2 py-1.5 text-xs transition-colors",
                         !useCustomDays && presetDays === p.days
-                          ? "bg-foreground text-background border-foreground font-medium"
-                          : "border-border bg-transparent text-foreground hover:bg-muted",
+                          ? "bg-primary/10 text-foreground border-primary/40 font-medium"
+                          : "border-border bg-transparent text-muted-foreground hover:bg-muted hover:text-foreground",
                       )}
                     >
                       {p.label}
@@ -336,7 +336,7 @@ function EditUserDialog({
                   className={cn(
                     "w-full text-left text-[11px] px-2.5 py-1.5 rounded-md border transition-colors",
                     useCustomDays
-                      ? "border-foreground bg-muted text-foreground"
+                      ? "border-primary/40 bg-primary/10 text-foreground"
                       : "border-dashed border-border text-muted-foreground hover:bg-muted",
                   )}
                 >
@@ -361,7 +361,7 @@ function EditUserDialog({
                           className={cn(
                             "px-2.5 text-xs transition-colors",
                             customDaysUnit === u
-                              ? "bg-foreground text-background"
+                              ? "bg-primary/15 text-foreground font-medium"
                               : "text-muted-foreground hover:bg-muted",
                           )}
                         >
@@ -403,7 +403,7 @@ function EditUserDialog({
                   className={cn(
                     "flex-1 px-3 py-1.5 transition-colors",
                     balanceMode === m.id
-                      ? "bg-foreground text-background font-medium"
+                      ? "bg-primary/10 text-foreground font-medium"
                       : "text-muted-foreground hover:bg-muted",
                   )}
                 >
