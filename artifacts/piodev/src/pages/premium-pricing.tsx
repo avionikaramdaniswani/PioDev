@@ -429,7 +429,6 @@ const COMPARISON_GROUPS: Array<{ title: string; rows: Row[] }> = [
       { label: "Token harian", free: "60.000", plus: "200.000", pro: "360.000" },
       { label: "Akses model premium (Plus, Coder)", free: { no: true }, plus: { yes: true }, pro: { yes: true } },
       { label: "Mode thinking & web search", free: { yes: true }, plus: { yes: true }, pro: { yes: true } },
-      { label: "Background generation (refresh-safe)", free: { yes: true }, plus: { yes: true }, pro: { yes: true } },
     ],
   },
   {
