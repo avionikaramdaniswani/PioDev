@@ -451,7 +451,7 @@ const COMPARISON_GROUPS: Array<{ title: string; rows: Row[] }> = [
     title: "Developer & API",
     rows: [
       { label: "API key (BYOK)", free: { no: true }, plus: { yes: true }, pro: { yes: true } },
-      { label: "Saldo IDR untuk pemakaian API", free: "—", plus: { yes: true }, pro: { yes: true } },
+      { label: "Saldo IDR untuk pemakaian API", free: { no: true }, plus: { yes: true }, pro: { yes: true } },
       { label: "Bonus saldo upgrade (satu kali)", free: "—", plus: "Rp 75.000", pro: "Rp 125.000" },
     ],
   },
