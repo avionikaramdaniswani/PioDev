@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Fragment } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { usePremium } from "@/hooks/use-premium";
@@ -100,7 +100,7 @@ export default function PremiumPricingPage() {
     {
       id: "free",
       name: "Gratis",
-      tagline: "Mulai eksplorasi PioCode",
+      tagline: "Coba dulu — gratis selamanya",
       price: "Rp 0",
       priceSuffix: "selamanya",
       features: [
@@ -108,6 +108,7 @@ export default function PremiumPricingPage() {
         "Akses model dasar",
         "7 gambar AI per hari",
         "3 video AI per bulan",
+        "Pustaka: 10 file (10 MB/file) · 100 hal/bulan",
       ],
       cta: !isPremium
         ? { label: "Paket Saat Ini", disabled: true }
@@ -117,7 +118,7 @@ export default function PremiumPricingPage() {
       id: "plus",
       name: "Plus",
       badge: "Populer",
-      tagline: "Untuk pengguna aktif",
+      tagline: "Volume gede buat power user individual",
       price: "Rp 10.000",
       priceSuffix: "per bulan · gratis lewat promo",
       highlight: true,
@@ -126,9 +127,9 @@ export default function PremiumPricingPage() {
         "Semua model premium",
         "25 gambar AI per hari",
         "12 video AI per bulan",
-        "Prioritas saat server sibuk",
+        "Pustaka: 20 file (20 MB/file) · 1.000 hal/bulan",
         "API key untuk developer",
-        "Bonus saldo Rp 75.000 saat upgrade",
+        "Bonus saldo Rp 75.000 (satu kali, saat upgrade)",
       ],
       cta: isAdmin
         ? { label: "Admin · Bypass", disabled: true }
@@ -147,7 +148,7 @@ export default function PremiumPricingPage() {
       id: "pro",
       name: "Pro",
       badge: "Baru",
-      tagline: "Untuk power user & developer",
+      tagline: "Untuk developer & creator pro",
       price: "Rp 18.000",
       priceSuffix: "per bulan",
       features: [
@@ -155,9 +156,9 @@ export default function PremiumPricingPage() {
         "Semua model premium",
         "40 gambar AI per hari",
         "20 video AI per bulan",
-        "Prioritas tertinggi saat sibuk",
+        "Pustaka: 35 file (30 MB/file) · 5.000 hal/bulan",
         "API key untuk developer",
-        "Bonus saldo Rp 125.000 saat upgrade",
+        "Bonus saldo Rp 125.000 (satu kali, saat upgrade)",
       ],
       cta: isAdmin
         ? { label: "Admin · Bypass", disabled: true }
@@ -197,6 +198,9 @@ export default function PremiumPricingPage() {
             <TierCard key={t.id} tier={t} />
           ))}
         </div>
+
+        {/* Comparison table — detail fitur per tier */}
+        <ComparisonTable userTier={userTier} isAdmin={isAdmin} />
       </main>
 
       {/* Toast — payment gateway segera hadir */}
@@ -412,5 +416,154 @@ function TierCard({ tier }: { tier: Tier }) {
         ))}
       </ul>
     </div>
+  );
+}
+
+type Cell = string | { yes: true } | { no: true };
+type Row = { label: string; free: Cell; plus: Cell; pro: Cell };
+
+const COMPARISON_GROUPS: Array<{ title: string; rows: Row[] }> = [
+  {
+    title: "Chat & Token",
+    rows: [
+      { label: "Token harian", free: "60.000", plus: "200.000", pro: "360.000" },
+      { label: "Akses model premium (Plus, Coder)", free: { no: true }, plus: { yes: true }, pro: { yes: true } },
+      { label: "Mode thinking & web search", free: { yes: true }, plus: { yes: true }, pro: { yes: true } },
+      { label: "Artifact panel (preview kode HTML/CSS/JS)", free: { yes: true }, plus: { yes: true }, pro: { yes: true } },
+      { label: "Background generation (refresh-safe)", free: { yes: true }, plus: { yes: true }, pro: { yes: true } },
+    ],
+  },
+  {
+    title: "Image & Video",
+    rows: [
+      { label: "Gambar AI per hari", free: "7", plus: "25", pro: "40" },
+      { label: "Video AI per bulan", free: "3", plus: "12", pro: "20" },
+    ],
+  },
+  {
+    title: "Pustaka (Knowledge Base)",
+    rows: [
+      { label: "Ukuran maksimum per file", free: "10 MB", plus: "20 MB", pro: "30 MB" },
+      { label: "Jumlah file maksimum", free: "10", plus: "20", pro: "35" },
+      { label: "Halaman parsing per bulan", free: "100", plus: "1.000", pro: "5.000" },
+      { label: "Attach dokumen ke chat", free: { yes: true }, plus: { yes: true }, pro: { yes: true } },
+    ],
+  },
+  {
+    title: "Developer & API",
+    rows: [
+      { label: "API key (BYOK)", free: { no: true }, plus: { yes: true }, pro: { yes: true } },
+      { label: "Saldo IDR untuk pemakaian API", free: { yes: true }, plus: { yes: true }, pro: { yes: true } },
+      { label: "Bonus saldo upgrade (satu kali)", free: "—", plus: "Rp 75.000", pro: "Rp 125.000" },
+    ],
+  },
+  {
+    title: "Lainnya",
+    rows: [
+      { label: "Personalisasi & custom system prompt", free: { yes: true }, plus: { yes: true }, pro: { yes: true } },
+      { label: "Dukungan email", free: { yes: true }, plus: { yes: true }, pro: { yes: true } },
+      { label: "Uji coba gratis 1 bulan (sekali per akun)", free: { yes: true }, plus: "—", pro: "—" },
+    ],
+  },
+];
+
+function ComparisonTable({ userTier, isAdmin }: { userTier: "free" | "plus" | "pro"; isAdmin: boolean }) {
+  const activeTier = isAdmin ? null : userTier;
+  const headerCell = (id: "free" | "plus" | "pro", label: string, color: string) => (
+    <th
+      scope="col"
+      className={cn(
+        "px-3 py-3 text-center text-xs font-semibold border-l border-border",
+        color,
+        activeTier === id && "bg-muted/40",
+      )}
+    >
+      <div className="flex flex-col items-center gap-0.5">
+        <span>{label}</span>
+        {activeTier === id && (
+          <span className="text-[9px] font-medium uppercase tracking-wide text-muted-foreground">
+            Paket Kamu
+          </span>
+        )}
+      </div>
+    </th>
+  );
+
+  return (
+    <section className="mt-16 sm:mt-20" aria-labelledby="comparison-heading">
+      <div className="text-center mb-8">
+        <h2 id="comparison-heading" className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
+          Bandingin lengkap
+        </h2>
+        <p className="text-sm text-muted-foreground mt-2">
+          Detail semua fitur yang kamu dapet di tiap paket.
+        </p>
+      </div>
+
+      <div className="overflow-x-auto rounded-2xl border border-border bg-card">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border">
+              <th scope="col" className="px-4 py-3 text-left text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Fitur
+              </th>
+              {headerCell("free", "Gratis", "text-foreground")}
+              {headerCell("plus", "Plus", "text-primary")}
+              {headerCell("pro", "Pro", "text-amber-600 dark:text-amber-400")}
+            </tr>
+          </thead>
+          <tbody>
+            {COMPARISON_GROUPS.map((group, gi) => (
+              <Fragment key={gi}>
+                <tr>
+                  <td
+                    colSpan={4}
+                    className="px-4 py-2 bg-muted/40 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground border-t border-border"
+                  >
+                    {group.title}
+                  </td>
+                </tr>
+                {group.rows.map((row, ri) => (
+                  <tr key={ri} className="border-t border-border/60">
+                    <th scope="row" className="px-4 py-3 text-left font-normal text-foreground/90 align-top">
+                      {row.label}
+                    </th>
+                    <CompCell value={row.free} active={activeTier === "free"} />
+                    <CompCell value={row.plus} active={activeTier === "plus"} />
+                    <CompCell value={row.pro} active={activeTier === "pro"} />
+                  </tr>
+                ))}
+              </Fragment>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      <p className="text-xs text-muted-foreground text-center mt-4">
+        Admin punya akses unlimited ke semua fitur. Limit akan reset otomatis sesuai jadwal (token harian, video bulanan).
+      </p>
+    </section>
+  );
+}
+
+function CompCell({ value, active }: { value: Cell; active: boolean }) {
+  const base = cn(
+    "px-3 py-3 text-center text-xs sm:text-sm border-l border-border align-middle",
+    active && "bg-muted/40",
+  );
+  if (typeof value === "string") {
+    return <td className={cn(base, "text-foreground/90")}>{value}</td>;
+  }
+  if ("yes" in value) {
+    return (
+      <td className={base}>
+        <Check className="w-4 h-4 inline text-emerald-600 dark:text-emerald-400" strokeWidth={2.5} />
+      </td>
+    );
+  }
+  return (
+    <td className={cn(base, "text-muted-foreground/50")}>
+      <XIcon className="w-4 h-4 inline" />
+    </td>
   );
 }
