@@ -26,11 +26,11 @@ const PRO_VIDEO_CREDITS  = 20;
 
 // ── Pustaka (Knowledge Base) limits per tier ───────────────────────────────────
 const FREE_PUSTAKA_FILE_BYTES = 10 * 1024 * 1024;   // 10 MB
-const PLUS_PUSTAKA_FILE_BYTES = 50 * 1024 * 1024;   // 50 MB
-const PRO_PUSTAKA_FILE_BYTES  = 200 * 1024 * 1024;  // 200 MB
-const FREE_PUSTAKA_FILE_COUNT = 25;
-const PLUS_PUSTAKA_FILE_COUNT = 250;
-const PRO_PUSTAKA_FILE_COUNT  = -1; // unlimited
+const PLUS_PUSTAKA_FILE_BYTES = 20 * 1024 * 1024;   // 20 MB
+const PRO_PUSTAKA_FILE_BYTES  = 30 * 1024 * 1024;   // 30 MB
+const FREE_PUSTAKA_FILE_COUNT = 10;
+const PLUS_PUSTAKA_FILE_COUNT = 20;
+const PRO_PUSTAKA_FILE_COUNT  = 35;
 const FREE_PUSTAKA_PAGES_MO   = 100;
 const PLUS_PUSTAKA_PAGES_MO   = 1000;
 const PRO_PUSTAKA_PAGES_MO    = 5000;
