@@ -11,6 +11,8 @@ export type AdminUser = {
   is_premium: boolean;
   tier: Tier;
   premium_expires_at: string | null;
+  credit_balance_idr: number;
+  trial_claimed_at: string | null;
   created_at: string;
   last_sign_in_at: string | null;
 };
@@ -109,11 +111,44 @@ export function useAdmin() {
       const data = await res.json();
       throw new Error(data.error || "Gagal mengubah status premium");
     }
+    // Hitung tanggal expires-at lokal supaya UI langsung update tanpa nunggu refetch.
+    let nextExpires: string | null = null;
+    if (is_premium) {
+      const d = new Date();
+      if (typeof days === "number" && days > 0) d.setDate(d.getDate() + days);
+      else d.setMonth(d.getMonth() + 1);
+      nextExpires = d.toISOString();
+    }
     setUsers((prev) =>
       prev.map((u) => (u.id === userId
-        ? { ...u, is_premium, tier: is_premium ? tier : "free" as const }
+        ? {
+            ...u,
+            is_premium,
+            tier: is_premium ? tier : "free" as const,
+            premium_expires_at: nextExpires,
+          }
         : u))
     );
+  }, []);
+
+  const updateCredit = useCallback(async (
+    userId: string,
+    opts: { mode: "set" | "add"; amount_idr: number; note?: string },
+  ) => {
+    const res = await fetch(`/api/admin/users/${userId}/credit`, {
+      method: "PATCH",
+      headers: { ...(await authHeader()), "Content-Type": "application/json" },
+      body: JSON.stringify(opts),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data?.error || "Gagal mengubah saldo");
+    const balance = typeof data?.balance_idr === "number" ? data.balance_idr : null;
+    if (balance !== null) {
+      setUsers((prev) =>
+        prev.map((u) => (u.id === userId ? { ...u, credit_balance_idr: balance } : u))
+      );
+    }
+    return data as { ok: boolean; balance_idr: number; delta: number };
   }, []);
 
   const deleteUser = useCallback(async (userId: string) => {
@@ -141,6 +176,6 @@ export function useAdmin() {
     users, stats, dailyUsage,
     isLoading, error,
     fetchUsers, fetchStats, fetchDailyUsage,
-    updateRole, updatePremium, deleteUser,
+    updateRole, updatePremium, updateCredit, deleteUser,
   };
 }

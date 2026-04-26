@@ -96,6 +96,19 @@ Tabel `video_jobs` menyimpan riwayat generate video per user (sinkron antar devi
 
 Kolom `video_credits` dan `video_credits_reset_date` di tabel `profiles`. Setiap user biasa mendapat 2 kredit/hari (reset otomatis jam 00:00 WIB). Admin mendapat unlimited. Kredit hanya dikurangi setelah video berhasil disubmit ke DashScope API. Konstanta: `DAILY_VIDEO_CREDITS = 2` di server/index.ts.
 
+### Admin Dashboard — Pengguna Tab
+
+Tab `Pengguna` di `/admin` (komponen `SectionPengguna` di `src/pages/admin.tsx`) sekarang punya:
+- **Filter**: Tier (free/plus/pro), Role (user/admin), Status (active/expiring ≤7h/expired).
+- **Sort**: Terbaru, Terlama, Login Terakhir, Saldo Tertinggi/Terendah, Expires Terdekat.
+- **Pagination**: 20 baris per halaman.
+- **Kolom**: Pengguna, Role/Tier, Saldo (Rupiah), Expires (badge dengan warna sesuai status), Bergabung.
+- **Aksi**: Tombol `⋮` (DropdownMenu) → "Edit" (buka `EditUserDialog`) atau "Hapus" (AlertDialog konfirmasi).
+
+`EditUserDialog` adalah dialog tunggal yang mengkonsolidasi semua editing user: role (user/admin), tier (free/plus/pro) + durasi (preset 7h–1th atau kustom hari/bulan), dan saldo (mode "Tambah/Kurangi" atau "Set Eksak" + catatan opsional). Dialog memanggil endpoint sesuai field yang berubah.
+
+**Endpoint baru**: `PATCH /api/admin/users/:id/credit` — body `{ mode: "set"|"add", amount_idr, note? }`. Mode `set` menimpa saldo (tidak boleh negatif), mode `add` menambah/mengurangi (clamp ≥ 0). Setiap perubahan dicatat ke `credit_transactions` sebagai `admin_credit_add`/`admin_credit_deduct` dengan metadata `{ admin_id, mode, note, previous_balance }` untuk audit trail. `GET /api/admin/users` juga sekarang mengembalikan `credit_balance_idr` dan `trial_claimed_at`.
+
 ## Development
 
 ```bash

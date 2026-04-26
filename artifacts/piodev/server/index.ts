@@ -250,6 +250,8 @@ app.get("/api/admin/users", requireAuth, requireAdmin, async (_req, res) => {
       is_premium: p?.is_premium ?? false,
       tier,
       premium_expires_at: p?.premium_expires_at ?? null,
+      credit_balance_idr: p?.credit_balance_idr ?? 0,
+      trial_claimed_at: p?.trial_claimed_at ?? null,
       created_at: u.created_at,
       last_sign_in_at: u.last_sign_in_at,
     };
@@ -965,6 +967,65 @@ app.patch("/api/admin/users/:id/premium", requireAuth, requireAdmin, async (req,
   }
 
   res.json({ ok: true, bonus_granted: bonusGranted, bonus_amount_idr: bonusAmount, tier: updatePayload.tier });
+});
+
+// PATCH /api/admin/users/:id/credit — admin set/adjust saldo user
+// Body: { mode: 'set' | 'add', amount_idr: number, note?: string }
+//   - mode='set' → langsung override saldo ke amount_idr
+//   - mode='add' → tambah/kurangi (negatif untuk kurangi)
+// Setiap perubahan dicatat ke credit_transactions sebagai audit trail.
+app.patch("/api/admin/users/:id/credit", requireAuth, requireAdmin, async (req, res) => {
+  const { id } = req.params;
+  let body: any = {};
+  try {
+    const raw = req.body instanceof Buffer ? req.body.toString("utf8") : req.body;
+    body = typeof raw === "string" ? JSON.parse(raw) : raw;
+  } catch { /**/ }
+
+  const mode = body?.mode === "set" ? "set" : "add";
+  const amountIdr = Math.round(Number(body?.amount_idr ?? 0));
+  const note = typeof body?.note === "string" ? body.note.slice(0, 200) : null;
+  const adminId = (req as any).userId ?? null;
+
+  if (!Number.isFinite(amountIdr)) {
+    res.status(400).json({ error: "amount_idr harus angka valid." });
+    return;
+  }
+
+  const current = await getCreditBalance(id);
+  let next: number;
+  let delta: number;
+  if (mode === "set") {
+    if (amountIdr < 0) {
+      res.status(400).json({ error: "Saldo tidak boleh negatif." });
+      return;
+    }
+    next = amountIdr;
+    delta = next - current;
+  } else {
+    next = Math.max(0, current + amountIdr);
+    delta = next - current;
+  }
+
+  if (delta === 0) {
+    res.json({ ok: true, balance_idr: current, delta: 0 });
+    return;
+  }
+
+  try {
+    await supabaseAdmin.from("profiles").update({ credit_balance_idr: next }).eq("id", id);
+    await supabaseAdmin.from("credit_transactions").insert({
+      user_id: id,
+      amount_idr: delta,
+      type: delta >= 0 ? "admin_credit_add" : "admin_credit_deduct",
+      metadata: { admin_id: adminId, mode, note, previous_balance: current },
+    });
+  } catch (e: any) {
+    res.status(500).json({ error: e?.message || "Gagal menyimpan perubahan saldo." });
+    return;
+  }
+
+  res.json({ ok: true, balance_idr: next, delta });
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════

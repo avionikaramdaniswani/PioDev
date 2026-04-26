@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/hooks/use-auth";
 import { useAdmin, type AdminUser } from "@/hooks/use-admin";
@@ -15,6 +15,13 @@ import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import {
+  Select, SelectTrigger, SelectContent, SelectValue, SelectItem,
+} from "@/components/ui/select";
+import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from "recharts";
 import {
@@ -22,6 +29,7 @@ import {
   Shield, ShieldOff, Trash2, RefreshCw,
   Zap, MessageSquare, TrendingUp, Newspaper, Plus,
   Star, StarOff, Check, Loader2, Calendar, Tag, AlertCircle,
+  MoreHorizontal, Pencil, Wallet, ChevronLeft, ChevronRight, ArrowUpDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/logo";
@@ -133,153 +141,334 @@ const PRESET_DURATIONS = [
   { label: "1 Tahun",  days: 365 },
 ];
 
-function PlusDurationDialog({ user, onConfirm, onClose }: {
+function formatRupiah(n: number): string {
+  return `Rp ${Math.round(n).toLocaleString("id-ID")}`;
+}
+
+function EditUserDialog({
+  user, isSelf, onClose, onSaved, updateRole, updatePremium, updateCredit,
+}: {
   user: AdminUser | null;
-  onConfirm: (u: AdminUser, days: number, tier: "plus" | "pro") => void;
+  isSelf: boolean;
   onClose: () => void;
+  onSaved: (msg: string, ok: boolean) => void;
+  updateRole: (id: string, role: "user" | "admin") => Promise<void>;
+  updatePremium: (id: string, is_premium: boolean, opts?: { days?: number; tier?: "plus" | "pro" }) => Promise<void>;
+  updateCredit: (id: string, opts: { mode: "set" | "add"; amount_idr: number; note?: string }) => Promise<{ ok: boolean; balance_idr: number; delta: number }>;
 }) {
-  const [selected, setSelected] = useState<number>(30);
-  const [customVal, setCustomVal] = useState("");
-  const [customUnit, setCustomUnit] = useState<"hari" | "bulan">("hari");
-  const [useCustom, setUseCustom] = useState(false);
-  const [tier, setTier] = useState<"plus" | "pro">("plus");
+  const [role, setRole] = useState<"user" | "admin">("user");
+  const [tier, setTier] = useState<"free" | "plus" | "pro">("free");
+  const [presetDays, setPresetDays] = useState<number>(30);
+  const [useCustomDays, setUseCustomDays] = useState(false);
+  const [customDaysVal, setCustomDaysVal] = useState("");
+  const [customDaysUnit, setCustomDaysUnit] = useState<"hari" | "bulan">("hari");
+  const [balanceMode, setBalanceMode] = useState<"add" | "set">("add");
+  const [balanceAmount, setBalanceAmount] = useState("");
+  const [balanceNote, setBalanceNote] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const effectiveDays = useCustom
-    ? Math.round(Number(customVal) * (customUnit === "bulan" ? 30 : 1))
-    : selected;
-
-  const valid = effectiveDays > 0 && Number.isFinite(effectiveDays);
+  // Re-init form tiap kali user-nya beda.
+  useEffect(() => {
+    if (!user) return;
+    setRole(user.role);
+    setTier(user.tier);
+    setPresetDays(30);
+    setUseCustomDays(false);
+    setCustomDaysVal("");
+    setCustomDaysUnit("hari");
+    setBalanceMode("add");
+    setBalanceAmount("");
+    setBalanceNote("");
+  }, [user?.id]);
 
   if (!user) return null;
 
-  const tierLabel = tier === "pro" ? "Pro" : "Plus";
-  const presetActiveClass = tier === "pro"
-    ? "bg-amber-600 border-amber-600 text-white"
-    : "bg-amber-500 border-amber-500 text-white";
+  const effectiveDays = useCustomDays
+    ? Math.round(Number(customDaysVal) * (customDaysUnit === "bulan" ? 30 : 1))
+    : presetDays;
+  const balanceVal = balanceAmount.trim() === "" ? null : Math.round(Number(balanceAmount));
+
+  const tierWillChange = tier !== user.tier;
+  const roleWillChange = role !== user.role;
+  const balanceWillChange = balanceVal !== null && Number.isFinite(balanceVal) && balanceVal !== 0
+    || (balanceMode === "set" && balanceVal !== null && Number.isFinite(balanceVal));
+
+  const tierUpgradingToPaid = tierWillChange && tier !== "free";
+  const daysValid = !tierUpgradingToPaid || (effectiveDays > 0 && Number.isFinite(effectiveDays));
+
+  const dirty = roleWillChange || tierWillChange || balanceWillChange;
+  const canSave = dirty && daysValid && !saving;
+
+  async function handleSave() {
+    if (!user || saving) return;
+    setSaving(true);
+    const messages: string[] = [];
+    try {
+      if (roleWillChange) {
+        if (isSelf) throw new Error("Tidak bisa mengubah role akun sendiri.");
+        await updateRole(user.id, role);
+        messages.push(role === "admin" ? "jadi Admin" : "jadi User");
+      }
+      if (tierWillChange) {
+        if (isSelf) throw new Error("Tidak bisa mengubah tier akun sendiri.");
+        if (tier === "free") {
+          await updatePremium(user.id, false);
+          messages.push("premium dicabut");
+        } else {
+          await updatePremium(user.id, true, { days: effectiveDays, tier });
+          messages.push(`${tier === "pro" ? "Pro" : "Plus"} ${effectiveDays} hari`);
+        }
+      }
+      if (balanceWillChange && balanceVal !== null) {
+        const result = await updateCredit(user.id, {
+          mode: balanceMode,
+          amount_idr: balanceVal,
+          note: balanceNote.trim() || undefined,
+        });
+        if (result.delta !== 0) {
+          const sign = result.delta > 0 ? "+" : "";
+          messages.push(`saldo ${sign}${formatRupiah(result.delta)}`);
+        }
+      }
+      if (messages.length === 0) {
+        onSaved("Tidak ada perubahan.", true);
+      } else {
+        onSaved(`✓ ${user.email}: ${messages.join(" · ")}.`, true);
+      }
+      onClose();
+    } catch (e: any) {
+      onSaved(e?.message || "Gagal menyimpan perubahan.", false);
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
-    <Dialog open={!!user} onOpenChange={(o) => { if (!o) onClose(); }}>
-      <DialogContent className="max-w-sm">
+    <Dialog open={!!user} onOpenChange={(o) => { if (!o && !saving) onClose(); }}>
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-base">
-            <Calendar className="w-4 h-4 text-amber-500" />
-            Beri {tierLabel} untuk {user.full_name || user.email.split("@")[0]}
+            <Pencil className="w-4 h-4 text-primary" />
+            Edit Pengguna
           </DialogTitle>
+          <p className="text-xs text-muted-foreground truncate mt-1">
+            {user.full_name ? `${user.full_name} · ` : ""}{user.email}
+          </p>
         </DialogHeader>
 
-        <div className="space-y-4 py-1">
-          {/* Tier selector */}
-          <div>
-            <p className="text-xs font-medium text-muted-foreground mb-1.5">Tier</p>
+        <div className="space-y-5 py-1 max-h-[60vh] overflow-y-auto pr-1">
+          {/* ── Role ─────────────────────────────────────────────────────── */}
+          <section>
+            <div className="flex items-center gap-1.5 mb-2">
+              <Shield className="w-3.5 h-3.5 text-blue-500" />
+              <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">Role</h3>
+            </div>
             <div className="grid grid-cols-2 gap-2">
-              {(["plus", "pro"] as const).map((t) => {
-                const active = tier === t;
-                const proStyle = t === "pro";
+              {(["user", "admin"] as const).map((r) => {
+                const active = role === r;
                 return (
                   <button
-                    key={t}
-                    onClick={() => setTier(t)}
-                    data-testid={`button-tier-${t}`}
+                    key={r}
+                    type="button"
+                    onClick={() => setRole(r)}
+                    disabled={isSelf}
                     className={cn(
                       "rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
                       active
-                        ? proStyle
-                          ? "bg-amber-600 border-amber-600 text-white"
-                          : "bg-amber-500 border-amber-500 text-white"
-                        : "border-border bg-muted/30 text-foreground hover:border-amber-400 hover:bg-amber-500/10"
+                        ? "bg-blue-500 border-blue-500 text-white"
+                        : "border-border bg-muted/30 text-foreground hover:border-blue-400 hover:bg-blue-500/10",
+                      isSelf && "opacity-50 cursor-not-allowed",
                     )}
                   >
-                    {t === "pro" ? "Pro · 360k/40/20" : "Plus · 200k/25/12"}
+                    {r === "admin" ? "Admin" : "User"}
                   </button>
                 );
               })}
             </div>
-          </div>
+            {isSelf && (
+              <p className="text-[11px] text-muted-foreground mt-1.5">
+                Tidak bisa mengubah role akun sendiri.
+              </p>
+            )}
+          </section>
 
-          {/* Preset chips */}
-          <div>
-            <p className="text-xs font-medium text-muted-foreground mb-1.5">Durasi</p>
-            <div className="grid grid-cols-3 gap-2">
-              {PRESET_DURATIONS.map((p) => (
-                <button
-                  key={p.days}
-                  onClick={() => { setSelected(p.days); setUseCustom(false); }}
-                  className={cn(
-                    "rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
-                    !useCustom && selected === p.days
-                      ? presetActiveClass
-                      : "border-border bg-muted/30 text-foreground hover:border-amber-400 hover:bg-amber-500/10"
-                  )}
-                >
-                  {p.label}
-                </button>
-              ))}
+          {/* ── Tier ─────────────────────────────────────────────────────── */}
+          <section>
+            <div className="flex items-center gap-1.5 mb-2">
+              <Star className="w-3.5 h-3.5 text-amber-500" />
+              <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">Tier Premium</h3>
             </div>
-          </div>
+            <div className="grid grid-cols-3 gap-2">
+              {([
+                { id: "free", label: "Free" },
+                { id: "plus", label: "Plus" },
+                { id: "pro", label: "Pro" },
+              ] as const).map((t) => {
+                const active = tier === t.id;
+                const colorActive = t.id === "pro"
+                  ? "bg-amber-600 border-amber-600 text-white"
+                  : t.id === "plus"
+                    ? "bg-amber-500 border-amber-500 text-white"
+                    : "bg-muted border-border text-foreground";
+                return (
+                  <button
+                    key={t.id}
+                    type="button"
+                    onClick={() => setTier(t.id)}
+                    disabled={isSelf}
+                    className={cn(
+                      "rounded-lg border px-3 py-2 text-sm font-medium transition-colors",
+                      active
+                        ? colorActive
+                        : "border-border bg-muted/30 text-foreground hover:border-amber-400 hover:bg-amber-500/10",
+                      isSelf && "opacity-50 cursor-not-allowed",
+                    )}
+                  >
+                    {t.label}
+                  </button>
+                );
+              })}
+            </div>
 
-          {/* Custom */}
-          <div className="space-y-1.5">
-            <button
-              onClick={() => setUseCustom(true)}
-              className={cn(
-                "w-full text-left text-xs px-3 py-2 rounded-lg border transition-colors",
-                useCustom
-                  ? "border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                  : "border-dashed border-border text-muted-foreground hover:border-amber-400"
-              )}
-            >
-              Atau masukkan durasi kustom
-            </button>
-            {useCustom && (
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  min={1}
-                  placeholder="Jumlah"
-                  value={customVal}
-                  onChange={(e) => setCustomVal(e.target.value)}
-                  className="flex-1"
-                  autoFocus
-                />
-                <div className="flex rounded-lg border border-border overflow-hidden">
-                  {(["hari", "bulan"] as const).map((u) => (
+            {/* Durasi muncul cuma kalau tier-nya berubah ke Plus/Pro */}
+            {tierUpgradingToPaid && (
+              <div className="mt-3 p-3 rounded-lg bg-amber-500/5 border border-amber-500/20 space-y-2">
+                <p className="text-[11px] font-medium text-muted-foreground">Durasi {tier === "pro" ? "Pro" : "Plus"}</p>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {PRESET_DURATIONS.map((p) => (
                     <button
-                      key={u}
-                      onClick={() => setCustomUnit(u)}
+                      key={p.days}
+                      type="button"
+                      onClick={() => { setPresetDays(p.days); setUseCustomDays(false); }}
                       className={cn(
-                        "px-3 text-sm transition-colors",
-                        customUnit === u ? "bg-amber-500 text-white" : "text-muted-foreground hover:bg-muted"
+                        "rounded-md border px-2 py-1.5 text-xs font-medium transition-colors",
+                        !useCustomDays && presetDays === p.days
+                          ? "bg-amber-500 border-amber-500 text-white"
+                          : "border-border bg-background text-foreground hover:border-amber-400",
                       )}
                     >
-                      {u}
+                      {p.label}
                     </button>
                   ))}
                 </div>
+                <button
+                  type="button"
+                  onClick={() => setUseCustomDays(true)}
+                  className={cn(
+                    "w-full text-left text-[11px] px-2.5 py-1.5 rounded-md border transition-colors",
+                    useCustomDays
+                      ? "border-amber-500 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                      : "border-dashed border-border text-muted-foreground hover:border-amber-400",
+                  )}
+                >
+                  Atau durasi kustom
+                </button>
+                {useCustomDays && (
+                  <div className="flex gap-2">
+                    <Input
+                      type="number"
+                      min={1}
+                      placeholder="Jumlah"
+                      value={customDaysVal}
+                      onChange={(e) => setCustomDaysVal(e.target.value)}
+                      className="flex-1 h-8 text-sm"
+                    />
+                    <div className="flex rounded-md border border-border overflow-hidden">
+                      {(["hari", "bulan"] as const).map((u) => (
+                        <button
+                          key={u}
+                          type="button"
+                          onClick={() => setCustomDaysUnit(u)}
+                          className={cn(
+                            "px-2.5 text-xs transition-colors",
+                            customDaysUnit === u ? "bg-amber-500 text-white" : "text-muted-foreground hover:bg-muted",
+                          )}
+                        >
+                          {u}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {effectiveDays > 0 && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Aktif sampai{" "}
+                    <span className="font-semibold text-foreground">
+                      {new Date(Date.now() + effectiveDays * 86_400_000).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })}
+                    </span>
+                  </p>
+                )}
               </div>
             )}
-          </div>
+          </section>
 
-          {valid && (
-            <p className="text-xs text-muted-foreground text-center">
-              {tierLabel} aktif selama <span className="font-semibold text-foreground">{effectiveDays} hari</span>
-              {" "}(hingga {new Date(Date.now() + effectiveDays * 86_400_000).toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" })})
-            </p>
-          )}
+          {/* ── Saldo ────────────────────────────────────────────────────── */}
+          <section>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center gap-1.5">
+                <Wallet className="w-3.5 h-3.5 text-emerald-500" />
+                <h3 className="text-xs font-semibold text-foreground uppercase tracking-wide">Saldo</h3>
+              </div>
+              <span className="text-xs text-muted-foreground tabular-nums">
+                Sekarang: {formatRupiah(user.credit_balance_idr)}
+              </span>
+            </div>
+            <div className="flex rounded-lg border border-border overflow-hidden text-xs">
+              {([
+                { id: "add", label: "Tambah / Kurangi" },
+                { id: "set", label: "Set Eksak" },
+              ] as const).map((m) => (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setBalanceMode(m.id)}
+                  className={cn(
+                    "flex-1 px-3 py-1.5 transition-colors",
+                    balanceMode === m.id
+                      ? "bg-emerald-500 text-white"
+                      : "text-muted-foreground hover:bg-muted",
+                  )}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Rp</span>
+              <Input
+                type="number"
+                placeholder={balanceMode === "add" ? "Bisa negatif (mis. -10000)" : "Saldo baru"}
+                value={balanceAmount}
+                onChange={(e) => setBalanceAmount(e.target.value)}
+                className="flex-1 h-9 tabular-nums"
+              />
+            </div>
+            {balanceVal !== null && Number.isFinite(balanceVal) && (
+              <p className="text-[11px] text-muted-foreground mt-1.5">
+                {balanceMode === "add"
+                  ? `Saldo akan jadi ${formatRupiah(Math.max(0, user.credit_balance_idr + balanceVal))}`
+                  : `Saldo akan jadi ${formatRupiah(Math.max(0, balanceVal))}`}
+              </p>
+            )}
+            <Input
+              placeholder="Catatan (opsional, mis. 'koreksi manual')"
+              value={balanceNote}
+              onChange={(e) => setBalanceNote(e.target.value)}
+              maxLength={200}
+              className="mt-2 h-8 text-xs"
+            />
+          </section>
         </div>
 
         <DialogFooter className="gap-2">
-          <Button variant="outline" size="sm" onClick={onClose}>Batal</Button>
+          <Button variant="outline" size="sm" onClick={onClose} disabled={saving}>Batal</Button>
           <Button
             size="sm"
-            disabled={!valid}
-            className={cn(
-              "text-white",
-              tier === "pro" ? "bg-amber-600 hover:bg-amber-700" : "bg-amber-500 hover:bg-amber-600",
-            )}
-            onClick={() => valid && onConfirm(user, effectiveDays, tier)}
+            disabled={!canSave}
+            onClick={handleSave}
           >
-            <Star className="w-3.5 h-3.5 mr-1.5" />
-            Aktifkan {tierLabel}
+            {saving ? <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" /> : <Check className="w-3.5 h-3.5 mr-1.5" />}
+            Simpan Perubahan
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -287,40 +476,172 @@ function PlusDurationDialog({ user, onConfirm, onClose }: {
   );
 }
 
+type TierFilter = "all" | "free" | "plus" | "pro";
+type RoleFilter = "all" | "user" | "admin";
+type StatusFilter = "all" | "active" | "expiring" | "expired";
+type SortKey = "newest" | "oldest" | "lastSignIn" | "balanceDesc" | "balanceAsc" | "expiresAsc";
+
+const PAGE_SIZE = 20;
+const EXPIRING_DAYS_THRESHOLD = 7;
+
+function expiresStatus(u: AdminUser): { label: string; tone: "active" | "soon" | "expired" | "none" } {
+  if (!u.is_premium || !u.premium_expires_at) return { label: "—", tone: "none" };
+  const ms = new Date(u.premium_expires_at).getTime() - Date.now();
+  const days = Math.ceil(ms / 86_400_000);
+  if (days < 0) return { label: `Expired ${-days}h lalu`, tone: "expired" };
+  if (days <= EXPIRING_DAYS_THRESHOLD) return { label: `${days}h lagi`, tone: "soon" };
+  if (days < 60) return { label: `${days}h lagi`, tone: "active" };
+  return { label: `${Math.round(days / 30)}bln lagi`, tone: "active" };
+}
+
 function SectionPengguna({
-  users, isLoading, error, currentUserId, onToggleRole, onTogglePremium, onRevokePlus, onDelete,
+  users, isLoading, error, currentUserId, onEdit, onDelete,
 }: {
   users: AdminUser[];
   isLoading: boolean;
   error: string | null;
   currentUserId?: string;
-  onToggleRole: (u: AdminUser) => void;
-  onTogglePremium: (u: AdminUser) => void;
-  onRevokePlus: (u: AdminUser) => void;
+  onEdit: (u: AdminUser) => void;
   onDelete: (u: AdminUser) => void;
 }) {
   const [search, setSearch] = useState("");
-  const filtered = users.filter(
-    (u) =>
-      u.email.toLowerCase().includes(search.toLowerCase()) ||
-      u.full_name.toLowerCase().includes(search.toLowerCase())
-  );
+  const [tierFilter, setTierFilter] = useState<TierFilter>("all");
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>("all");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [sortKey, setSortKey] = useState<SortKey>("newest");
+  const [page, setPage] = useState(1);
+
+  // Reset ke halaman 1 setiap filter/sort/search berubah.
+  useEffect(() => { setPage(1); }, [search, tierFilter, roleFilter, statusFilter, sortKey]);
+
+  const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    let arr = users.filter((u) => {
+      if (q && !u.email.toLowerCase().includes(q) && !u.full_name.toLowerCase().includes(q)) return false;
+      if (tierFilter !== "all" && u.tier !== tierFilter) return false;
+      if (roleFilter !== "all" && u.role !== roleFilter) return false;
+      if (statusFilter !== "all") {
+        const s = expiresStatus(u);
+        if (statusFilter === "active" && s.tone !== "active") return false;
+        if (statusFilter === "expiring" && s.tone !== "soon") return false;
+        if (statusFilter === "expired" && s.tone !== "expired") return false;
+      }
+      return true;
+    });
+
+    const t = (s: string | null) => (s ? new Date(s).getTime() : 0);
+    switch (sortKey) {
+      case "newest":      arr.sort((a, b) => t(b.created_at) - t(a.created_at)); break;
+      case "oldest":      arr.sort((a, b) => t(a.created_at) - t(b.created_at)); break;
+      case "lastSignIn":  arr.sort((a, b) => t(b.last_sign_in_at) - t(a.last_sign_in_at)); break;
+      case "balanceDesc": arr.sort((a, b) => b.credit_balance_idr - a.credit_balance_idr); break;
+      case "balanceAsc":  arr.sort((a, b) => a.credit_balance_idr - b.credit_balance_idr); break;
+      case "expiresAsc":  arr.sort((a, b) => {
+        const ax = a.is_premium && a.premium_expires_at ? t(a.premium_expires_at) : Number.POSITIVE_INFINITY;
+        const bx = b.is_premium && b.premium_expires_at ? t(b.premium_expires_at) : Number.POSITIVE_INFINITY;
+        return ax - bx;
+      }); break;
+    }
+    return arr;
+  }, [users, search, tierFilter, roleFilter, statusFilter, sortKey]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageItems = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
+
+  const activeFilterCount = (tierFilter !== "all" ? 1 : 0)
+    + (roleFilter !== "all" ? 1 : 0)
+    + (statusFilter !== "all" ? 1 : 0);
+
+  function clearFilters() {
+    setTierFilter("all");
+    setRoleFilter("all");
+    setStatusFilter("all");
+  }
 
   return (
     <div className="space-y-4">
-      <div>
-        <h2 className="text-base font-semibold text-foreground mb-1">Manajemen Pengguna</h2>
-        <p className="text-sm text-muted-foreground">{users.length} pengguna terdaftar</p>
+      <div className="flex items-end justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="text-base font-semibold text-foreground mb-1">Manajemen Pengguna</h2>
+          <p className="text-sm text-muted-foreground">
+            {filtered.length === users.length
+              ? `${users.length} pengguna terdaftar`
+              : `${filtered.length} dari ${users.length} pengguna`}
+          </p>
+        </div>
       </div>
 
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <Input
-          placeholder="Cari email atau nama..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="pl-9"
-        />
+      {/* ── Search + Filters bar ──────────────────────────────────────────── */}
+      <div className="space-y-2">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Cari email atau nama..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <Select value={tierFilter} onValueChange={(v) => setTierFilter(v as TierFilter)}>
+            <SelectTrigger className="h-9 w-[120px] text-xs">
+              <SelectValue placeholder="Tier" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Tier</SelectItem>
+              <SelectItem value="free">Free</SelectItem>
+              <SelectItem value="plus">Plus</SelectItem>
+              <SelectItem value="pro">Pro</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={roleFilter} onValueChange={(v) => setRoleFilter(v as RoleFilter)}>
+            <SelectTrigger className="h-9 w-[120px] text-xs">
+              <SelectValue placeholder="Role" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Role</SelectItem>
+              <SelectItem value="user">User</SelectItem>
+              <SelectItem value="admin">Admin</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as StatusFilter)}>
+            <SelectTrigger className="h-9 w-[140px] text-xs">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Status</SelectItem>
+              <SelectItem value="active">Aktif</SelectItem>
+              <SelectItem value="expiring">Hampir Habis (≤7h)</SelectItem>
+              <SelectItem value="expired">Expired</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <div className="ml-auto flex items-center gap-2">
+            {activeFilterCount > 0 && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="h-9 text-xs">
+                Reset filter
+              </Button>
+            )}
+            <Select value={sortKey} onValueChange={(v) => setSortKey(v as SortKey)}>
+              <SelectTrigger className="h-9 w-[160px] text-xs">
+                <ArrowUpDown className="w-3.5 h-3.5 mr-1.5 text-muted-foreground" />
+                <SelectValue placeholder="Urutkan" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="newest">Terbaru</SelectItem>
+                <SelectItem value="oldest">Terlama</SelectItem>
+                <SelectItem value="lastSignIn">Login Terakhir</SelectItem>
+                <SelectItem value="balanceDesc">Saldo Tertinggi</SelectItem>
+                <SelectItem value="balanceAsc">Saldo Terendah</SelectItem>
+                <SelectItem value="expiresAsc">Expires Terdekat</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
       </div>
 
       {error && (
@@ -336,94 +657,139 @@ function SectionPengguna({
             <thead>
               <tr className="border-b border-border bg-muted/40">
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Pengguna</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Role / Plus</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Bergabung</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Login Terakhir</th>
-                <th className="w-28 px-4 py-3"></th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Role / Tier</th>
+                <th className="text-right px-4 py-3 font-medium text-muted-foreground hidden sm:table-cell">Saldo</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden md:table-cell">Expires</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground hidden lg:table-cell">Bergabung</th>
+                <th className="w-12 px-2 py-3"></th>
               </tr>
             </thead>
             <tbody>
               {isLoading ? (
-                <tr><td colSpan={5} className="text-center py-14 text-muted-foreground text-sm">Memuat data...</td></tr>
-              ) : filtered.length === 0 ? (
-                <tr><td colSpan={5} className="text-center py-14 text-muted-foreground text-sm">
-                  {search ? "Tidak ada hasil." : "Belum ada pengguna."}
+                <tr><td colSpan={6} className="text-center py-14 text-muted-foreground text-sm">Memuat data...</td></tr>
+              ) : pageItems.length === 0 ? (
+                <tr><td colSpan={6} className="text-center py-14 text-muted-foreground text-sm">
+                  {search || activeFilterCount > 0 ? "Tidak ada hasil yang cocok." : "Belum ada pengguna."}
                 </td></tr>
               ) : (
-                filtered.map((u) => (
-                  <tr key={u.id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
-                    <td className="px-4 py-3 min-w-0">
-                      <div className="font-medium text-foreground truncate leading-tight">{u.email}</div>
-                      {u.full_name && <div className="text-xs text-muted-foreground mt-0.5 truncate">{u.full_name}</div>}
-                      {u.id === currentUserId && <div className="text-xs text-primary mt-0.5">Ini kamu</div>}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <Badge variant={u.role === "admin" ? "default" : "secondary"} className="shrink-0">
-                          {u.role === "admin" ? "Admin" : "User"}
-                        </Badge>
-                        {u.is_premium && (
-                          <Badge className={cn(
-                            "shrink-0 border hover:opacity-90",
-                            u.tier === "pro"
-                              ? "bg-amber-600/15 text-amber-700 dark:text-amber-300 border-amber-600/25"
-                              : "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20",
-                          )}>
-                            {u.tier === "pro" ? "Pro" : "Plus"}
+                pageItems.map((u) => {
+                  const exp = expiresStatus(u);
+                  const isSelf = u.id === currentUserId;
+                  return (
+                    <tr key={u.id} className="border-b border-border last:border-0 hover:bg-muted/20 transition-colors">
+                      <td className="px-4 py-3 min-w-0">
+                        <div className="font-medium text-foreground truncate leading-tight">{u.email}</div>
+                        {u.full_name && <div className="text-xs text-muted-foreground mt-0.5 truncate">{u.full_name}</div>}
+                        {isSelf && <div className="text-xs text-primary mt-0.5">Ini kamu</div>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <Badge variant={u.role === "admin" ? "default" : "secondary"} className="shrink-0">
+                            {u.role === "admin" ? "Admin" : "User"}
                           </Badge>
+                          {u.is_premium && (
+                            <Badge className={cn(
+                              "shrink-0 border hover:opacity-90",
+                              u.tier === "pro"
+                                ? "bg-amber-600/15 text-amber-700 dark:text-amber-300 border-amber-600/25"
+                                : "bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/20",
+                            )}>
+                              {u.tier === "pro" ? "Pro" : "Plus"}
+                            </Badge>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right tabular-nums hidden sm:table-cell whitespace-nowrap">
+                        <span className={cn(
+                          "text-sm",
+                          u.credit_balance_idr > 0 ? "text-foreground font-medium" : "text-muted-foreground",
+                        )}>
+                          {formatRupiah(u.credit_balance_idr)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 hidden md:table-cell whitespace-nowrap">
+                        {exp.tone === "none" ? (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        ) : (
+                          <span className={cn(
+                            "text-xs px-2 py-0.5 rounded-full border inline-block",
+                            exp.tone === "active" && "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+                            exp.tone === "soon"   && "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+                            exp.tone === "expired" && "bg-destructive/10 text-destructive border-destructive/20",
+                          )}>
+                            {exp.label}
+                          </span>
                         )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground text-sm hidden md:table-cell whitespace-nowrap">
-                      {new Date(u.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
-                    </td>
-                    <td className="px-4 py-3 text-muted-foreground text-sm hidden lg:table-cell whitespace-nowrap">
-                      {u.last_sign_in_at
-                        ? new Date(u.last_sign_in_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })
-                        : "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center justify-end gap-0.5">
-                        {/* Toggle Premium */}
-                        <button
-                          title={u.is_premium ? `Cabut ${u.tier === "pro" ? "Pro" : "Plus"}` : "Beri Plus / Pro"}
-                          disabled={u.id === currentUserId}
-                          onClick={() => u.is_premium ? onRevokePlus(u) : onTogglePremium(u)}
-                          className="p-1.5 rounded-md hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          {u.is_premium
-                            ? <StarOff className={cn("w-4 h-4", u.tier === "pro" ? "text-amber-600" : "text-amber-500")} />
-                            : <Star className="w-4 h-4 text-amber-400/60 hover:text-amber-500" />
-                          }
-                        </button>
-                        {/* Toggle Role */}
-                        <button
-                          title={u.role === "admin" ? "Turunkan ke User" : "Jadikan Admin"}
-                          disabled={u.id === currentUserId}
-                          onClick={() => onToggleRole(u)}
-                          className="p-1.5 rounded-md hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          {u.role === "admin"
-                            ? <ShieldOff className="w-4 h-4 text-orange-500" />
-                            : <Shield className="w-4 h-4 text-blue-500" />
-                          }
-                        </button>
-                        <button
-                          title="Hapus pengguna"
-                          disabled={u.id === currentUserId}
-                          onClick={() => onDelete(u)}
-                          className="p-1.5 rounded-md hover:bg-muted transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                        >
-                          <Trash2 className="w-4 h-4 text-destructive" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
+                      </td>
+                      <td className="px-4 py-3 text-muted-foreground text-sm hidden lg:table-cell whitespace-nowrap">
+                        {new Date(u.created_at).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}
+                      </td>
+                      <td className="px-2 py-3">
+                        <div className="flex items-center justify-end">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                aria-label="Aksi pengguna"
+                                className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground"
+                              >
+                                <MoreHorizontal className="w-4 h-4" />
+                              </button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-40">
+                              <DropdownMenuItem onClick={() => onEdit(u)} className="cursor-pointer">
+                                <Pencil className="w-3.5 h-3.5 mr-2" />
+                                Edit
+                              </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onClick={() => !isSelf && onDelete(u)}
+                                disabled={isSelf}
+                                className="cursor-pointer text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 mr-2" />
+                                Hapus
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
+
+        {/* ── Pagination footer ─────────────────────────────────────────── */}
+        {filtered.length > 0 && (
+          <div className="flex items-center justify-between gap-2 px-4 py-2.5 border-t border-border bg-muted/20 text-xs text-muted-foreground">
+            <div className="tabular-nums">
+              {(safePage - 1) * PAGE_SIZE + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} dari {filtered.length}
+            </div>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                disabled={safePage <= 1}
+                className="p-1 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                aria-label="Halaman sebelumnya"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <span className="px-2 tabular-nums">
+                Hal. {safePage} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                disabled={safePage >= totalPages}
+                className="p-1 rounded hover:bg-muted disabled:opacity-30 disabled:cursor-not-allowed"
+                aria-label="Halaman berikutnya"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -788,13 +1154,13 @@ export default function AdminPage() {
   const {
     users, stats, dailyUsage, isLoading, error,
     fetchUsers, fetchStats, fetchDailyUsage,
-    updateRole, updatePremium, deleteUser,
+    updateRole, updatePremium, updateCredit, deleteUser,
   } = useAdmin();
 
   const [activeSection, setActiveSection] = useState<Section>("ringkasan");
   const [toDelete, setToDelete] = useState<AdminUser | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [givePlusUser, setGivePlusUser] = useState<AdminUser | null>(null);
+  const [editingUser, setEditingUser] = useState<AdminUser | null>(null);
   const { toast, show: showToast } = useToast();
 
   useEffect(() => {
@@ -808,43 +1174,13 @@ export default function AdminPage() {
     fetchDailyUsage();
   }, [isAdmin]);
 
-  async function handleToggleRole(u: AdminUser) {
-    if (u.id === user?.id) { showToast("Tidak bisa mengubah role akun sendiri.", false); return; }
-    try {
-      const newRole = u.role === "admin" ? "user" : "admin";
-      await updateRole(u.id, newRole);
-      showToast(`Role ${u.email} diubah ke ${newRole}.`, true);
-    } catch (e: any) {
-      showToast(e.message, false);
-    }
-  }
-
-  function handleTogglePremium(u: AdminUser) {
-    if (u.id === user?.id) { showToast("Tidak bisa mengubah status premium akun sendiri.", false); return; }
-    setGivePlusUser(u);
-  }
-
-  async function handleGivePlus(u: AdminUser, days: number, tier: "plus" | "pro" = "plus") {
-    setGivePlusUser(null);
-    try {
-      await updatePremium(u.id, true, { days, tier });
-      const label = tier === "pro" ? "Pro" : "Plus";
-      showToast(`✓ ${u.email} diberi ${label} selama ${days} hari.`, true);
-    } catch (e: any) {
-      showToast(e.message, false);
-    }
-  }
-
-  async function handleRevokePlus(u: AdminUser) {
-    if (u.id === user?.id) { showToast("Tidak bisa mengubah status premium akun sendiri.", false); return; }
-    try {
-      await updatePremium(u.id, false);
-      const label = u.tier === "pro" ? "Pro" : "Plus";
-      showToast(`× ${label} ${u.email} dicabut.`, true);
-    } catch (e: any) {
-      showToast(e.message, false);
-    }
-  }
+  // Saat list user di-refetch, sync ulang `editingUser` dari data terbaru
+  // supaya nilai "Saldo sekarang" / tier yg ditampilin dialog selalu fresh.
+  useEffect(() => {
+    if (!editingUser) return;
+    const fresh = users.find((u) => u.id === editingUser.id);
+    if (fresh && fresh !== editingUser) setEditingUser(fresh);
+  }, [users]);
 
   async function handleDelete() {
     if (!toDelete) return;
@@ -966,9 +1302,7 @@ export default function AdminPage() {
               isLoading={isLoading}
               error={error}
               currentUserId={user?.id}
-              onToggleRole={handleToggleRole}
-              onTogglePremium={handleTogglePremium}
-              onRevokePlus={handleRevokePlus}
+              onEdit={setEditingUser}
               onDelete={setToDelete}
             />
           )}
@@ -1000,12 +1334,16 @@ export default function AdminPage() {
         </nav>
       </div>
 
-      {/* ── Delete confirm ─────────────────────────────────────────────────── */}
-      <PlusDurationDialog
-        key={givePlusUser?.id ?? "none"}
-        user={givePlusUser}
-        onConfirm={handleGivePlus}
-        onClose={() => setGivePlusUser(null)}
+      {/* ── Edit user (role / tier / saldo) ───────────────────────────────── */}
+      <EditUserDialog
+        key={editingUser?.id ?? "none"}
+        user={editingUser}
+        isSelf={editingUser?.id === user?.id}
+        onClose={() => setEditingUser(null)}
+        onSaved={(msg, ok) => showToast(msg, ok)}
+        updateRole={updateRole}
+        updatePremium={updatePremium}
+        updateCredit={updateCredit}
       />
 
       <AlertDialog open={!!toDelete} onOpenChange={(open) => !open && setToDelete(null)}>
