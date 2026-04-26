@@ -2427,6 +2427,290 @@ app.post("/api/parse-file", requireAuth, parseFileUpload.single("file"), async (
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CHAT BACKGROUND GENERATION
+// Memungkinkan generation tetap lanjut walaupun user refresh halaman.
+// Server simpan partial content ke DB tiap ~1500ms; client poll untuk update.
+// ─────────────────────────────────────────────────────────────────────────────
+
+async function bumpDailyTokenUsage(userId: string, promptTokens: number, completionTokens: number) {
+  const today = getTodayWIB();
+  try {
+    const { data: existing } = await supabaseAdmin
+      .from("daily_token_usage")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("date", today)
+      .maybeSingle();
+    if (existing) {
+      await supabaseAdmin
+        .from("daily_token_usage")
+        .update({
+          prompt_tokens: (existing.prompt_tokens || 0) + promptTokens,
+          completion_tokens: (existing.completion_tokens || 0) + completionTokens,
+          total_tokens: (existing.total_tokens || 0) + promptTokens + completionTokens,
+          messages: (existing.messages || 0) + 1,
+        })
+        .eq("user_id", userId)
+        .eq("date", today);
+    } else {
+      await supabaseAdmin.from("daily_token_usage").insert({
+        user_id: userId,
+        date: today,
+        prompt_tokens: promptTokens,
+        completion_tokens: completionTokens,
+        total_tokens: promptTokens + completionTokens,
+        messages: 1,
+      });
+    }
+  } catch (e) {
+    console.warn("[bumpDailyTokenUsage] error:", e);
+  }
+}
+
+// Background generation: streaming Qwen → akumulasi → simpan ke DB tiap 1.5s
+async function runChatGenerationBg(
+  aiMsgId: string,
+  userId: string,
+  models: string[],
+  history: any[],
+  enableThinking: boolean,
+) {
+  let fullContent = "";
+  let fullThinking = "";
+  let usage: { promptTokens: number; completionTokens: number; totalTokens: number } | null = null;
+  let succeeded = false;
+
+  for (const model of models) {
+    try {
+      const upstream = await fetch(`${DASHSCOPE_COMPATIBLE_BASE}/chat/completions`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${dashscopeApiKey}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model,
+          messages: history,
+          stream: true,
+          stream_options: { include_usage: true },
+          ...(enableThinking && { enable_thinking: true }),
+        }),
+      });
+
+      if (!upstream.ok || !upstream.body) {
+        console.warn(`[bg-gen] model ${model} responded ${upstream.status}, trying next`);
+        continue;
+      }
+
+      const reader = upstream.body.getReader();
+      const decoder = new TextDecoder();
+      let lastSave = Date.now();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const data = line.slice(6).trim();
+          if (data === "[DONE]") continue;
+          try {
+            const parsed = JSON.parse(data);
+            const delta = parsed.choices?.[0]?.delta;
+            if (delta?.reasoning_content) fullThinking += delta.reasoning_content;
+            if (delta?.content) fullContent += delta.content;
+            if (parsed.usage) {
+              usage = {
+                promptTokens: parsed.usage.prompt_tokens || 0,
+                completionTokens: parsed.usage.completion_tokens || 0,
+                totalTokens: parsed.usage.total_tokens || 0,
+              };
+            }
+          } catch {}
+        }
+        if (Date.now() - lastSave > 800 && fullContent) {
+          await supabaseAdmin
+            .from("messages")
+            .update({ content: fullContent })
+            .eq("id", aiMsgId);
+          lastSave = Date.now();
+        }
+      }
+
+      if (fullContent || fullThinking) {
+        succeeded = true;
+        break;
+      }
+    } catch (e) {
+      console.warn(`[bg-gen] model ${model} exception:`, e);
+      continue;
+    }
+  }
+
+  // Estimasi token kalau Qwen gak balikin usage
+  if (!usage) {
+    const estPrompt = Math.ceil(JSON.stringify(history).length / 4);
+    const estCompletion = Math.ceil(fullContent.length / 4);
+    usage = { promptTokens: estPrompt, completionTokens: estCompletion, totalTokens: estPrompt + estCompletion };
+  }
+
+  const finalContent = succeeded
+    ? fullContent
+    : (fullContent || "Gagal generate jawaban: semua model tidak tersedia. Coba lagi sebentar lagi.");
+
+  // Final save: tandai DONE dengan menyimpan total_tokens (konvensi: !=null = selesai)
+  await supabaseAdmin
+    .from("messages")
+    .update({
+      content: finalContent,
+      prompt_tokens: usage.promptTokens,
+      completion_tokens: usage.completionTokens,
+      total_tokens: usage.totalTokens,
+    })
+    .eq("id", aiMsgId);
+
+  if (succeeded) {
+    bumpDailyTokenUsage(userId, usage.promptTokens, usage.completionTokens).catch(() => {});
+  }
+}
+
+// POST /api/chat/bg-generate — start background generation, return immediately
+app.post("/api/chat/bg-generate", requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+  let body: any = {};
+  try {
+    const raw = req.body instanceof Buffer ? req.body.toString("utf8") : req.body;
+    body = typeof raw === "string" ? JSON.parse(raw) : raw;
+  } catch {}
+
+  const { chatId, aiMsgId, models, messages, enableThinking } = body || {};
+  if (!chatId || !aiMsgId || !Array.isArray(models) || !Array.isArray(messages)) {
+    res.status(400).json({ error: "Missing chatId/aiMsgId/models/messages" });
+    return;
+  }
+
+  // Verify chat ownership
+  const { data: convo } = await supabaseAdmin
+    .from("conversations")
+    .select("user_id")
+    .eq("id", chatId)
+    .maybeSingle();
+  if (!convo || convo.user_id !== userId) {
+    res.status(403).json({ error: "Chat tidak ditemukan atau bukan milik Anda" });
+    return;
+  }
+
+  // Tier & quota check
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("role, is_premium, premium_expires_at, tier")
+    .eq("id", userId)
+    .single();
+  const isAdmin = profile?.role === "admin";
+  const tier = getTier(profile ?? null);
+  const today = getTodayWIB();
+  const { tokenLimit } = getTierLimits(tier, isAdmin);
+  const { data: usageRow } = await supabaseAdmin
+    .from("daily_token_usage")
+    .select("total_tokens")
+    .eq("user_id", userId)
+    .eq("date", today)
+    .maybeSingle();
+  const todayTokens = usageRow?.total_tokens ?? 0;
+  if (todayTokens >= tokenLimit) {
+    res.status(429)
+      .set("X-Pioo-Error", "QUOTA_EXCEEDED")
+      .json({ error: `Limit harian ${tokenLimit.toLocaleString()} token sudah tercapai. Coba lagi besok ya!` });
+    return;
+  }
+
+  // Premium-model restriction
+  const isPremium = isAdmin || tier !== "free";
+  if (!isPremium) {
+    for (const m of models) {
+      if (PREMIUM_ONLY_MODELS.has(m)) {
+        res.status(403)
+          .set("X-Pioo-Error", "MODEL_RESTRICTED")
+          .json({ error: `Model "${m}" hanya tersedia untuk pengguna Plus.` });
+        return;
+      }
+    }
+  }
+
+  // Insert AI placeholder (idempotent: kalau aiMsgId sudah ada, skip)
+  const { data: existing } = await supabaseAdmin
+    .from("messages")
+    .select("id")
+    .eq("id", aiMsgId)
+    .maybeSingle();
+  if (!existing) {
+    const { error: insertErr } = await supabaseAdmin
+      .from("messages")
+      .insert({
+        id: aiMsgId,
+        conversation_id: chatId,
+        role: "ai",
+        content: "",
+      });
+    if (insertErr) {
+      res.status(500).json({ error: insertErr.message });
+      return;
+    }
+  }
+
+  // Bump conversation updated_at
+  supabaseAdmin
+    .from("conversations")
+    .update({ updated_at: new Date().toISOString() })
+    .eq("id", chatId)
+    .then(() => {});
+
+  // Return immediately, work continues in background
+  res.json({ ok: true, aiMsgId });
+
+  // Background work — TIDAK akan terhenti walau client refresh/disconnect
+  setImmediate(() => {
+    runChatGenerationBg(aiMsgId, userId, models, messages, !!enableThinking)
+      .catch((e) => console.error("[bg-gen] fatal:", e));
+  });
+});
+
+// GET /api/chat/bg-poll/:msgId — poll status pesan yang sedang di-generate
+app.get("/api/chat/bg-poll/:msgId", requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+  const msgId = req.params.msgId;
+
+  const { data: msg } = await supabaseAdmin
+    .from("messages")
+    .select("id, content, prompt_tokens, completion_tokens, total_tokens, conversation_id, created_at")
+    .eq("id", msgId)
+    .maybeSingle();
+  if (!msg) { res.status(404).json({ error: "Pesan tidak ditemukan" }); return; }
+
+  // Verify ownership via conversation
+  const { data: convo } = await supabaseAdmin
+    .from("conversations")
+    .select("user_id")
+    .eq("id", msg.conversation_id)
+    .maybeSingle();
+  if (!convo || convo.user_id !== userId) { res.status(403).json({ error: "Forbidden" }); return; }
+
+  const isDone = msg.total_tokens != null;
+  res.json({
+    content: msg.content || "",
+    status: isDone ? "done" : "generating",
+    tokenUsage: isDone ? {
+      promptTokens: msg.prompt_tokens || 0,
+      completionTokens: msg.completion_tokens || 0,
+      totalTokens: msg.total_tokens || 0,
+    } : null,
+  });
+});
+
 // ── GET /api/pustaka — list dokumen user ──────────────────────────────────────
 app.get("/api/pustaka", requireAuth, async (req, res) => {
   const userId = (req as any).userId;
