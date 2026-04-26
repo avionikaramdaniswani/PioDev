@@ -396,6 +396,11 @@ function TierCard({ tier }: { tier: Tier }) {
               <Tag className="w-2.5 h-2.5" strokeWidth={3} />
               {tier.discountPercent}% OFF
             </span>
+            {tier.discountLabel && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-amber-500/15 text-amber-700 dark:text-amber-300 tracking-wide">
+                🎉 {tier.discountLabel}
+              </span>
+            )}
           </div>
         )}
         <div className="text-2xl sm:text-3xl font-bold text-foreground tracking-tight leading-none tabular-nums flex items-baseline gap-0.5">
