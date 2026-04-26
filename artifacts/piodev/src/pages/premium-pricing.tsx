@@ -462,7 +462,7 @@ const COMPARISON_GROUPS: Array<{ title: string; rows: Row[] }> = [
     rows: [
       { label: "Personalisasi & custom system prompt", free: { yes: true }, plus: { yes: true }, pro: { yes: true } },
       { label: "Dukungan email", free: { yes: true }, plus: { yes: true }, pro: { yes: true } },
-      { label: "Uji coba gratis 1 bulan (sekali per akun)", free: { yes: true }, plus: "—", pro: "—" },
+      { label: "Uji coba gratis 1 bulan (sekali per akun)", free: "—", plus: { yes: true }, pro: { no: true } },
     ],
   },
 ];
