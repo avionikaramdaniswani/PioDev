@@ -858,7 +858,7 @@ export default function ChatPage() {
                         </div>
                       </div>
                       <div className="mr-11 flex items-center gap-2 justify-end">
-                        <CopyButton text={msg.content || msg.attachedFileNames?.[0] || ""} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <CopyButton text={msg.content || msg.attachedFileNames?.[0] || ""} />
                         <span className="text-[10px] text-muted-foreground/40 font-mono select-none" title={msg.timestamp instanceof Date ? msg.timestamp.toLocaleString("id-ID") : ""}>
                           {formatMessageTime(msg.timestamp)}
                         </span>
@@ -880,7 +880,7 @@ export default function ChatPage() {
                         </div>
                       </div>
                       <div className="pl-9 flex items-center gap-3 flex-wrap">
-                        <div className="flex items-center gap-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <div className="flex items-center gap-3">
                           <CopyButton text={msg.content} />
                           {idx === arr.length - 1 && !isTyping && (
                             <button
