@@ -1,0 +1,496 @@
+AI + machine learning
+(
+20
+)
+
+Azure Machine Learning
+AI Search
+Azure AI Video Indexer
+Anomaly detectors
+Bot Services
+Computer vision
+Content moderators
+Custom vision
+Document intelligences
+Face APIs
+Immersive readers
+Language
+Metrics advisors
+Microsoft Foundry
+Azure Native Arize AI Cloud Service
+Partner
+Azure OpenAI
+Personalizers
+Speech services
+Translators
+Azure Synapse Analytics
+Analytics
+(
+20
+)
+
+Analysis Services
+Data factories
+Data Lake Analytics
+Data Lake Storage Gen1
+Azure Databricks
+HDInsight clusters
+Informatica Intelligent Data Management Cloud - An Azure Native ISV Service
+Partner
+Microsoft Graph Data Connect
+Preview
+Azure Data Explorer Clusters
+Data Share Invitations
+Data Shares
+Power BI Embedded
+Apache Kafka® & Apache Flink® on Confluent Cloud™ - An Azure Native ISV Service
+Partner
+Event Hubs
+Log Analytics workspaces
+Managed Prometheus
+Stream Analytics clusters
+Stream Analytics jobs
+Azure Synapse Analytics
+Azure Synapse Analytics (private link hubs)
+Compute
+(
+33
+)
+
+Availability sets
+Community images
+Compute Fleet
+Azure compute galleries
+Compute infrastructure
+Host groups
+Image templates
+Images
+Lab accounts
+Proximity placement groups
+Restore Point Collections
+Preview
+SSH keys
+Azure Virtual Desktop
+Virtual machine scale sets
+Virtual machines
+VM application definitions
+VM application versions
+VM image definitions
+VM image versions
+App Services
+Cloud services (extended support)
+Azure Spring Apps
+Virtual Instances for SAP solutions
+Container Apps
+Container Apps Environments
+Function App
+Kubernetes service - Automatic
+Kubernetes services
+BareMetal Instances
+Batch accounts
+Quantum Workspaces
+Preview
+SAP HANA on Azure
+Preview
+Machines - Azure Arc
+Containers
+(
+12
+)
+
+Container instances
+Container registries
+Kubernetes center (preview)
+Kubernetes fleet manager
+Kubernetes service - Automatic
+Kubernetes services
+Azure Red Hat OpenShift clusters
+Service Fabric clusters
+Service Fabric managed clusters
+App Configuration
+Container App Jobs
+Container Apps
+Databases
+(
+16
+)
+
+Azure Cosmos DB
+Azure Database for PostgreSQL flexible servers
+Azure Database for MySQL flexible servers
+Azure DocumentDB (with MongoDB compatibility)
+Azure Managed Instance for Apache Cassandra
+MongoDB Atlas
+Partner
+Oracle AI Database@Azure
+Azure SQL
+Azure Arc data controllers
+SQL managed instances - Azure Arc
+SQL Server instances
+Azure Cache for Redis
+Azure Database Migration Services
+Elastic Job agents
+Managed databases
+Azure Managed Redis
+DevOps
+(
+23
+)
+
+Chaos Studio
+Azure Deployment Environments
+Dev centers
+Azure DevOps organizations
+DevTest Labs
+GitHub
+Azure Lab Services
+Azure Load Testing
+Managed DevOps Pools
+Microsoft Dev Box
+Azure Native LambdaTest - HyperExecute Cloud Service
+Partner
+Network connections
+Playwright Testing (Classic)
+Preview
+Projects
+API Connections
+API Management services
+App Configuration
+Application Insights
+Datadog - An Azure Native ISV Service
+Partner
+Elastic Cloud (Elasticsearch)
+Partner
+Monitor
+Azure Native Dynatrace Service
+Partner
+Azure Native New Relic Service
+Partner
+General
+(
+11
+)
+
+Cost Management + Billing
+Free services
+Quotas
+Reservations
+Operations center
+Resource Manager
+Education
+Preview features
+Preview
+Quickstart Center
+Help + support
+Service Health
+Hybrid + multicloud
+(
+24
+)
+
+Azure Arc data controllers
+Custom locations
+Guest Assignments
+Microsoft Entra ID
+Azure Network Function Manager – Devices
+Resource bridges
+SCVMM management servers
+Site manager - Azure Arc
+Preview
+Azure VMware Solution
+VMware vCenters
+Azure Arc
+Azure Arc private link scopes
+Azure Edge Hardware Center
+ExpressRoute circuits
+Azure Local
+Machines - Azure Arc
+Operator Nexus
+SQL Server instances
+Virtual WANs
+SQL managed instances - Azure Arc
+SQL Server databases
+Microsoft Entra Connect Health
+Microsoft Defender for Cloud
+Microsoft Sentinel
+Identity
+(
+18
+)
+
+Microsoft Entra Connect Health
+Azure AD B2C
+B2C Tenants
+Enterprise applications
+External Identities
+Access Connector for Azure Databricks
+Agent IDs
+Preview
+App registrations
+External Configuration Tenant
+Guest Usages
+Managed Identities
+Microsoft Entra Domain Services
+Microsoft Entra ID
+Microsoft Entra Privileged Identity Management
+Identity Governance
+Microsoft Entra ID Protection
+Microsoft Entra ID Security
+Verified ID
+Integration
+(
+15
+)
+
+App Configuration
+Integration accounts
+Logic apps
+Logic Apps Custom Connector
+API Connections
+Azure API for FHIR
+API Management services
+FHIR service
+Health Data Services workspace
+Apache Kafka® & Apache Flink® on Confluent Cloud™ - An Azure Native ISV Service
+Partner
+Event Grid
+Event Hubs
+Event Hubs Clusters
+Relays
+Service Bus
+Internet of Things
+(
+19
+)
+
+IoT Central Applications
+IoT Hub
+Device Update for IoT Hubs
+Azure IoT Hub Device Provisioning Services
+Microsoft Defender for IoT
+Azure Cosmos DB
+Azure Data Explorer Clusters
+Azure Digital Twins
+Event Hubs
+Function App
+Storage accounts
+Stream Analytics jobs
+Azure Synapse Analytics
+Logic apps
+Azure Machine Learning
+Azure Maps Accounts
+Azure Maps Creator Resources
+Power Platform
+Azure Stack Edge / Data Box Gateway
+Management and governance
+(
+36
+)
+
+Operations center
+Azure Center for SAP solutions
+Change Analysis
+Deployment Scripts
+Diagnostic settings
+Azure Monitors for SAP solutions
+Azure Resource Mover
+Rollouts
+Service groups
+Preview
+Subscriptions
+Template specs
+Virtual Instances for SAP solutions
+Azure Copilot admin center
+Advisor
+Automanage
+Automation Accounts
+Blueprints
+Preview
+Capacity Reservation Groups
+Carbon optimization
+Cost Management
+Guest Assignments
+Policy
+Azure Update Manager
+Machines - Azure Arc
+Microsoft Purview accounts
+Customer Lockbox for Microsoft Azure
+Azure Lighthouse
+Managed applications center
+Preview
+Intune
+Intune for Education
+Managed Desktop
+Universal Print
+Backup vaults
+Azure Native Qumulo Scalable File Service
+Partner
+Recovery Services vaults
+Resiliency
+Migration
+(
+5
+)
+
+Azure Database Migration Services
+Azure Migrate
+Azure Data Box
+Recovery Services vaults
+Azure Stack Edge / Data Box Gateway
+Monitor
+(
+25
+)
+
+Alerts
+Autoscale
+Change Analysis
+Diagnostic settings
+Log Analytics dedicated clusters
+Log Analytics workspaces
+Managed Prometheus
+Metrics
+Azure Monitor workspaces
+Azure Native Dynatrace Service
+Partner
+Azure Workbooks
+Application Insights
+Activity log
+Data collection endpoints
+Data collection rules
+Database watchers
+Preview
+Datadog - An Azure Native ISV Service
+Partner
+Elastic Cloud (Elasticsearch)
+Partner
+Log Analytics query packs
+Preview
+Azure Managed Grafana
+Monitor
+Azure Monitors for SAP solutions
+Azure Native New Relic Service
+Partner
+Network Watcher
+Service Health
+Networking
+(
+34
+)
+
+Bastions
+Custom IP Prefixes
+DNS private resolvers
+DNS zones
+NAT gateways
+Network interfaces
+Network managers
+Private DNS zones
+Private Link
+Public IP addresses
+Public IP Prefixes
+Route tables
+Virtual networks
+Communications Gateways
+Connections
+ExpressRoute circuits
+ExpressRoute traffic collectors
+Local network gateways
+Peering Services
+Peerings
+Virtual network gateways
+Virtual WANs
+DDoS protection plans
+Firewalls
+IP Groups
+Network security groups
+Web Application Firewall policies (WAF)
+Application gateways
+Load balancers
+Front Doors
+Microsoft Connected Cache for Internet Service Providers
+Monitor
+Network Watcher
+NGINXaaS
+Partner
+Security
+(
+22
+)
+
+App Compliance Automation Tool for Microsoft 365
+Preview
+Application security groups
+Confidential Ledgers
+Log Analytics workspaces
+Web Application Firewall policies (WAF)
+Artifact Signing Accounts
+Microsoft Entra Domain Services
+Microsoft Entra ID
+Microsoft Entra ID Security
+Microsoft Entra Privileged Identity Management
+Multifactor authentication
+Application gateways
+Azure Cloud HSMs
+DDoS protection plans
+Firewalls
+Azure Key Vault Managed HSMs
+Key vaults
+Virtual network gateways
+Microsoft Defender EASM
+Microsoft Defender for Cloud
+Microsoft Defender for IoT
+Microsoft Sentinel
+Storage
+(
+17
+)
+
+Azure Edge Hardware Center
+Azure Stack Edge / Data Box Gateway
+Disk Accesses
+Disk Encryption Sets
+Disks
+Elastic SANs
+Azure Native Pure Storage Cloud Service
+Partner
+Azure Native Qumulo Scalable File Service
+Partner
+Azure NetApp Files
+Snapshots
+Storage accounts
+Storage browser
+Azure Data Box
+Storage movers
+Data Lake Storage Gen1
+Azure Managed Lustre
+Storage Sync Services
+Web & Mobile
+(
+24
+)
+
+API Connections
+API Management services
+App Configuration
+App Service Certificates
+App Service Domains
+App Service Environments
+App Service plans
+Application Insights
+App Services
+Container Apps
+Function App
+Logic apps
+Azure Spring Apps
+Static Web Apps
+AI Search
+Communication Services
+Email Communication Services
+Fluid Relay
+Notification Hubs
+SignalR
+Virtual Appointments Builder
+Web PubSub for Socket.IO
+Web PubSub Service
+Community Training
