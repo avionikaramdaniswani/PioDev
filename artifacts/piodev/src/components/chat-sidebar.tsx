@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useMemo } from "react";
 import { useLocation } from "wouter";
-import { Plus, Settings, LogOut, MessageSquare, Trash2, Pencil, Search, X, MoreHorizontal, Star, Menu, Shield, Newspaper, Video, Key, Sparkles, Library } from "lucide-react";
+import { Plus, Settings, LogOut, MessageSquare, Trash2, Pencil, Search, X, MoreHorizontal, Star, Menu, Shield, Newspaper, Video, Key, Sparkles, Library, ChevronDown, ChevronRight, Mic, Image as ImageIcon, FolderOpen, Wand2 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
@@ -79,8 +79,30 @@ export function ChatSidebar({
   user, chats, activeChatId, createNewChat, selectChat, deleteChat, updateChatTitle, logout, isAdmin, collapsed, onExpand, onCollapse,
 }: ChatSidebarProps) {
   const [location, navigate] = useLocation();
-  const isOnStudio = location === "/video-studio";
+  const isOnVideoStudio = location === "/video-studio";
+  const isOnVoiceStudio = location === "/voice-studio";
+  const isOnImageStudio = location === "/image-studio";
+  const isOnGaleriStudio = location === "/galeri-studio";
+  const isOnStudio = isOnVideoStudio || isOnVoiceStudio || isOnImageStudio || isOnGaleriStudio;
   const isOnPustaka = location === "/pustaka";
+
+  // Pio Studio collapsible — auto-expand kalo lagi di sub-route Studio
+  const [studioExpanded, setStudioExpanded] = useState<boolean>(() => {
+    try {
+      const saved = localStorage.getItem("piodev_studio_expanded");
+      if (saved === "true") return true;
+      if (saved === "false") return false;
+    } catch {}
+    return false;
+  });
+  useEffect(() => {
+    if (isOnStudio) setStudioExpanded(true);
+  }, [isOnStudio]);
+  const toggleStudio = () => {
+    const next = !studioExpanded;
+    setStudioExpanded(next);
+    try { localStorage.setItem("piodev_studio_expanded", String(next)); } catch {}
+  };
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editingTitle, setEditingTitle] = useState("");
@@ -277,19 +299,39 @@ export function ChatSidebar({
           <Plus className="w-5 h-5" />
         </button>
 
-        {/* Pio Studio */}
-        <button
-          onClick={() => navigate("/video-studio")}
-          title="Pio Studio"
-          className={cn(
-            "w-10 h-10 flex items-center justify-center rounded-lg transition-colors",
-            isOnStudio
-              ? "bg-primary/15 text-primary"
-              : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
-          )}
-        >
-          <Video className="w-5 h-5" />
-        </button>
+        {/* Pio Studio — di mode collapsed, dropdown menu untuk pilih sub-studio */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              title="Pio Studio"
+              className={cn(
+                "w-10 h-10 flex items-center justify-center rounded-lg transition-colors",
+                isOnStudio
+                  ? "bg-primary/15 text-primary"
+                  : "text-sidebar-foreground/60 hover:text-sidebar-foreground hover:bg-sidebar-accent"
+              )}
+            >
+              <Sparkles className="w-5 h-5" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent side="right" align="start" className="w-52">
+            <DropdownMenuItem onClick={() => navigate("/galeri-studio")} className="gap-2 cursor-pointer">
+              <FolderOpen className="w-4 h-4" /> Galeri Studio
+              <span className="ml-auto text-[10px] text-muted-foreground">soon</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/image-studio")} className="gap-2 cursor-pointer">
+              <ImageIcon className="w-4 h-4" /> Image Studio
+              <span className="ml-auto text-[10px] text-muted-foreground">soon</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/voice-studio")} className="gap-2 cursor-pointer">
+              <Mic className="w-4 h-4" /> Voice Studio
+              <span className="ml-auto text-[10px] bg-primary/10 text-primary px-1.5 rounded">NEW</span>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => navigate("/video-studio")} className="gap-2 cursor-pointer">
+              <Video className="w-4 h-4" /> Video Studio
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
 
         {/* Pustaka */}
         <button
@@ -388,10 +430,10 @@ export function ChatSidebar({
         </button>
       </div>
 
-      {/* Pio Studio */}
+      {/* Pio Studio — collapsible parent dengan 4 sub-items */}
       <div className="px-3 pb-1.5">
         <button
-          onClick={() => navigate("/video-studio")}
+          onClick={toggleStudio}
           className={cn(
             "w-full flex items-center gap-2 px-3 py-2.5 rounded-xl font-medium transition-colors",
             isOnStudio
@@ -399,9 +441,75 @@ export function ChatSidebar({
               : "text-sidebar-foreground/70 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
           )}
         >
-          <Video className="w-4 h-4" />
-          Pio Studio
+          <Sparkles className="w-4 h-4" />
+          <span>Pio Studio</span>
+          <span className="ml-auto">
+            {studioExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+          </span>
         </button>
+
+        {studioExpanded && (
+          <div className="mt-1 ml-3 pl-3 border-l border-sidebar-border/60 flex flex-col gap-0.5">
+            {/* Galeri Studio (coming soon) */}
+            <button
+              onClick={() => navigate("/galeri-studio")}
+              className={cn(
+                "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors",
+                isOnGaleriStudio
+                  ? "bg-primary/10 text-primary"
+                  : "text-sidebar-foreground/65 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+              )}
+            >
+              <FolderOpen className="w-3.5 h-3.5" />
+              <span>Galeri Studio</span>
+              <span className="ml-auto text-[9px] uppercase text-sidebar-foreground/40">soon</span>
+            </button>
+
+            {/* Image Studio (coming soon) */}
+            <button
+              onClick={() => navigate("/image-studio")}
+              className={cn(
+                "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors",
+                isOnImageStudio
+                  ? "bg-primary/10 text-primary"
+                  : "text-sidebar-foreground/65 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+              )}
+            >
+              <ImageIcon className="w-3.5 h-3.5" />
+              <span>Image Studio</span>
+              <span className="ml-auto text-[9px] uppercase text-sidebar-foreground/40">soon</span>
+            </button>
+
+            {/* Voice Studio (NEW) */}
+            <button
+              onClick={() => navigate("/voice-studio")}
+              className={cn(
+                "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors",
+                isOnVoiceStudio
+                  ? "bg-primary/10 text-primary"
+                  : "text-sidebar-foreground/65 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+              )}
+            >
+              <Mic className="w-3.5 h-3.5" />
+              <span>Voice Studio</span>
+              <span className="ml-auto text-[9px] font-bold bg-primary/15 text-primary px-1.5 rounded">NEW</span>
+            </button>
+
+            {/* Video Studio */}
+            <button
+              onClick={() => navigate("/video-studio")}
+              className={cn(
+                "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors",
+                isOnVideoStudio
+                  ? "bg-primary/10 text-primary"
+                  : "text-sidebar-foreground/65 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
+              )}
+            >
+              <Video className="w-3.5 h-3.5" />
+              <span>Video Studio</span>
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Pustaka */}

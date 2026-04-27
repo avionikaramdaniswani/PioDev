@@ -25,6 +25,15 @@ const FREE_VIDEO_CREDITS = 3;
 const PLUS_VIDEO_CREDITS = 12;
 const PRO_VIDEO_CREDITS  = 20;
 
+// ── Voice Studio credits (BULANAN, mirror pattern video_credits) ───────────────
+// 1 TTS = 1 credit, 1 voice clone = 5 credits, 1 voice design = 10 credits.
+const FREE_VOICE_CREDITS = 10;
+const PLUS_VOICE_CREDITS = 60;
+const PRO_VOICE_CREDITS  = 200;
+const VOICE_COST_TTS    = 1;
+const VOICE_COST_CLONE  = 5;
+const VOICE_COST_DESIGN = 10;
+
 // ── Pustaka (Knowledge Base) limits per tier ───────────────────────────────────
 const FREE_PUSTAKA_FILE_BYTES = 10 * 1024 * 1024;   // 10 MB
 const PLUS_PUSTAKA_FILE_BYTES = 20 * 1024 * 1024;   // 20 MB
@@ -194,11 +203,12 @@ function getTierLimits(tier: Tier, isAdmin: boolean): {
   tokenLimit: number;
   imageLimit: number;
   videoMax: number;
+  voiceMax: number;
 } {
-  if (isAdmin) return { tokenLimit: 9_999_999, imageLimit: 9999, videoMax: 999 };
-  if (tier === "pro")  return { tokenLimit: PRO_TOKEN_LIMIT,  imageLimit: PRO_IMAGE_LIMIT,  videoMax: PRO_VIDEO_CREDITS };
-  if (tier === "plus") return { tokenLimit: PLUS_TOKEN_LIMIT, imageLimit: PLUS_IMAGE_LIMIT, videoMax: PLUS_VIDEO_CREDITS };
-  return { tokenLimit: FREE_TOKEN_LIMIT, imageLimit: FREE_IMAGE_LIMIT, videoMax: FREE_VIDEO_CREDITS };
+  if (isAdmin) return { tokenLimit: 9_999_999, imageLimit: 9999, videoMax: 999, voiceMax: 9999 };
+  if (tier === "pro")  return { tokenLimit: PRO_TOKEN_LIMIT,  imageLimit: PRO_IMAGE_LIMIT,  videoMax: PRO_VIDEO_CREDITS,  voiceMax: PRO_VOICE_CREDITS };
+  if (tier === "plus") return { tokenLimit: PLUS_TOKEN_LIMIT, imageLimit: PLUS_IMAGE_LIMIT, videoMax: PLUS_VIDEO_CREDITS, voiceMax: PLUS_VOICE_CREDITS };
+  return { tokenLimit: FREE_TOKEN_LIMIT, imageLimit: FREE_IMAGE_LIMIT, videoMax: FREE_VIDEO_CREDITS, voiceMax: FREE_VOICE_CREDITS };
 }
 
 const supabaseUrl = process.env.VITE_SUPABASE_URL!;
@@ -588,7 +598,7 @@ app.get("/api/me/usage-summary", requireAuth, async (req, res) => {
   const [usageRow, profileRow] = await Promise.all([
     supabaseAdmin.from("daily_token_usage").select("total_tokens").eq("user_id", userId).eq("date", today).single(),
     supabaseAdmin.from("profiles")
-      .select("role, is_premium, premium_expires_at, tier, video_credits, video_credits_reset_date, image_gen_count, image_gen_reset_date")
+      .select("role, is_premium, premium_expires_at, tier, video_credits, video_credits_reset_date, image_gen_count, image_gen_reset_date, voice_credits, voice_credits_reset_date")
       .eq("id", userId).single(),
   ]);
   const profile = profileRow.data;
@@ -609,6 +619,12 @@ app.get("/api/me/usage-summary", requireAuth, async (req, res) => {
   const videoUsed = storedMonth === thisMonth ? (profile?.video_credits ?? 0) : 0;
   const videoCredits = Math.max(0, videoMax - videoUsed);
 
+  // Voice credits (monthly) — voice_credits nyimpen TERPAKAI, bukan sisa
+  const voiceMax = getTierLimits(tier, isAdmin).voiceMax;
+  const storedVoiceMonth = (profile?.voice_credits_reset_date ?? "").slice(0, 7);
+  const voiceUsed = storedVoiceMonth === thisMonth ? (profile?.voice_credits ?? 0) : 0;
+  const voiceCredits = Math.max(0, voiceMax - voiceUsed);
+
   res.json({
     isPremium,
     isAdmin,
@@ -617,6 +633,7 @@ app.get("/api/me/usage-summary", requireAuth, async (req, res) => {
     token: { used: tokenUsed, limit: tokenLimit },
     image: { used: imgCount, limit: imgLimit },
     video: { credits: videoCredits, max: videoMax },
+    voice: { credits: voiceCredits, max: voiceMax },
   });
 });
 
@@ -837,6 +854,439 @@ app.delete("/api/video-jobs", requireAuth, async (req, res) => {
   const { error } = await supabaseAdmin.from("video_jobs").delete().eq("user_id", userId);
   if (error) { res.status(500).json({ error: error.message }); return; }
   res.json({ ok: true });
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// Voice Studio (Qwen TTS / Voice Cloning / Voice Design via DashScope)
+// ═══════════════════════════════════════════════════════════════════════════════
+// Konsep:
+// - Pake Qwen3-TTS family (qwen3-tts-flash, qwen3-tts-instruct-flash, cosyvoice-v3-flash, cosyvoice-v3-plus).
+// - Voice clone pake `voice-enrollment` (upload sample → dapet voice_id) + `qwen3-tts-vc` (generate dengan voice_id).
+// - Voice design pake `qwen-voice-design` (prompt teks → dapet voice_id) + `qwen3-tts-vd` (generate dengan voice_id).
+// - Credit per generate: 1 TTS = 1, 1 clone = 5, 1 design = 10.
+// - Tier limits: Free 10/bln, Plus 60/bln, Pro 200/bln (lihat FREE/PLUS/PRO_VOICE_CREDITS).
+// - Hasil audio TIDAK disimpan ke DB (Galeri Studio masih coming-soon). User tinggal download/share.
+// - Voice IDs (clone & design) DISIMPAN di tabel `user_voices` supaya reusable.
+
+// Multer instance khusus untuk upload audio sample voice cloning (max 10 MB)
+const voiceCloneUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024 },
+});
+
+// Voice presets bawaan Qwen3-TTS (id-friendly default + multilingual)
+const VOICE_STUDIO_PRESETS = [
+  { id: "Cherry",  name: "Cherry (Wanita, hangat)",     lang: "multi", gender: "female" },
+  { id: "Ethan",   name: "Ethan (Pria, dewasa)",        lang: "multi", gender: "male" },
+  { id: "Chelsie", name: "Chelsie (Wanita, ceria)",     lang: "multi", gender: "female" },
+  { id: "Serena",  name: "Serena (Wanita, kalem)",      lang: "multi", gender: "female" },
+  { id: "Dylan",   name: "Dylan (Pria, ramah)",         lang: "multi", gender: "male" },
+  { id: "Jada",    name: "Jada (Wanita, tegas)",        lang: "multi", gender: "female" },
+];
+
+// ── Voice credits helpers (reset BULANAN, mirror video_credits) ────────────────
+// voice_credits MENYIMPAN JUMLAH TERPAKAI bulan ini (BUKAN sisa).
+async function getVoiceCredits(userId: string): Promise<{ credits: number; maxCredits: number }> {
+  const thisMonth = getThisMonthWIB();
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("voice_credits, voice_credits_reset_date, role, is_premium, premium_expires_at, tier")
+    .eq("id", userId)
+    .single();
+
+  if (!profile) return { credits: 0, maxCredits: FREE_VOICE_CREDITS };
+  if (profile.role === "admin") return { credits: 9999, maxCredits: 9999 };
+
+  const tier = getTier(profile);
+  const { voiceMax: maxCredits } = getTierLimits(tier, false);
+
+  const storedMonth = (profile.voice_credits_reset_date ?? "").slice(0, 7);
+  if (storedMonth !== thisMonth) {
+    await supabaseAdmin
+      .from("profiles")
+      .update({ voice_credits: 0, voice_credits_reset_date: thisMonth })
+      .eq("id", userId);
+    return { credits: maxCredits, maxCredits };
+  }
+
+  const used = profile.voice_credits ?? 0;
+  return { credits: Math.max(0, maxCredits - used), maxCredits };
+}
+
+async function deductVoiceCredits(userId: string, cost: number): Promise<{ ok: boolean; error?: string }> {
+  if (cost <= 0) return { ok: true };
+  const thisMonth = getThisMonthWIB();
+  const { data: profile } = await supabaseAdmin
+    .from("profiles")
+    .select("role, is_premium, premium_expires_at, tier, voice_credits, voice_credits_reset_date")
+    .eq("id", userId)
+    .single();
+
+  if (!profile) return { ok: false, error: "Profile tidak ditemukan" };
+  if (profile.role === "admin") return { ok: true };
+
+  const tier = getTier(profile);
+  const { voiceMax: maxCredits } = getTierLimits(tier, false);
+
+  const storedMonth = (profile.voice_credits_reset_date ?? "").slice(0, 7);
+  const used = storedMonth === thisMonth ? (profile.voice_credits ?? 0) : 0;
+
+  if (used + cost > maxCredits) {
+    return { ok: false, error: `Kredit Voice Studio bulan ini gak cukup (butuh ${cost}, sisa ${Math.max(0, maxCredits - used)} dari ${maxCredits}).` };
+  }
+
+  const { error } = await supabaseAdmin
+    .from("profiles")
+    .update({ voice_credits: used + cost, voice_credits_reset_date: thisMonth })
+    .eq("id", userId);
+
+  if (error) return { ok: false, error: "Gagal update kredit." };
+  return { ok: true };
+}
+
+// ── DashScope helper: panggil TTS sync API ────────────────────────────────────
+// Endpoint: /api/v1/services/aigc/multimodal-generation/generation
+// Response shape: { output: { audio: { url } } } atau { output: { audio: { data } } } (base64)
+async function callDashscopeTTS(payload: {
+  model: string;
+  text: string;
+  voice: string;
+  language?: string;
+  instruction?: string;
+}): Promise<{ ok: true; audioBuffer: Buffer; mime: string } | { ok: false; status: number; error: string }> {
+  const body: any = {
+    model: payload.model,
+    input: {
+      text: payload.text,
+      voice: payload.voice,
+    },
+    parameters: {
+      language_type: payload.language || "Indonesian",
+      stream: false,
+    },
+  };
+  if (payload.instruction) {
+    body.input.instruct = payload.instruction;
+  }
+
+  const url = `${DASHSCOPE_BASE}/api/v1/services/aigc/multimodal-generation/generation`;
+  const upstream = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${dashscopeApiKey}`,
+      "Content-Type": "application/json",
+      "X-DashScope-Async": "disable",
+    },
+    body: JSON.stringify(body),
+  });
+
+  const txt = await upstream.text();
+  if (!upstream.ok) {
+    return { ok: false, status: upstream.status, error: txt.slice(0, 300) };
+  }
+
+  let json: any;
+  try { json = JSON.parse(txt); } catch { return { ok: false, status: 502, error: "Invalid JSON dari DashScope" }; }
+
+  // Audio bisa di output.audio.url (download) atau output.audio.data (base64)
+  const audio = json?.output?.audio;
+  if (!audio) {
+    return { ok: false, status: 502, error: "Audio kosong di response: " + JSON.stringify(json).slice(0, 200) };
+  }
+
+  let audioBuffer: Buffer;
+  let mime = "audio/mpeg";
+  if (audio.url) {
+    const dl = await fetch(audio.url);
+    if (!dl.ok) return { ok: false, status: 502, error: "Gagal download audio dari URL" };
+    audioBuffer = Buffer.from(await dl.arrayBuffer());
+    const ct = dl.headers.get("content-type") || "";
+    if (ct.includes("wav")) mime = "audio/wav";
+    else if (ct.includes("mp3") || ct.includes("mpeg")) mime = "audio/mpeg";
+  } else if (audio.data) {
+    audioBuffer = Buffer.from(audio.data, "base64");
+  } else {
+    return { ok: false, status: 502, error: "Format audio tidak dikenal" };
+  }
+
+  return { ok: true, audioBuffer, mime };
+}
+
+// ── GET /api/voice-studio/quota — kredit + max ────────────────────────────────
+app.get("/api/voice-studio/quota", requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+  const result = await getVoiceCredits(userId);
+  res.json({
+    ...result,
+    costs: { tts: VOICE_COST_TTS, clone: VOICE_COST_CLONE, design: VOICE_COST_DESIGN },
+  });
+});
+
+// ── GET /api/voice-studio/voices — list preset + user voices ───────────────────
+app.get("/api/voice-studio/voices", requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+  const { data, error } = await supabaseAdmin
+    .from("user_voices")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) { res.status(500).json({ error: error.message }); return; }
+  res.json({
+    presets: VOICE_STUDIO_PRESETS,
+    custom: data || [],
+  });
+});
+
+// ── DELETE /api/voice-studio/voices/:id — hapus voice user ────────────────────
+app.delete("/api/voice-studio/voices/:id", requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+  const { id } = req.params;
+  const { error } = await supabaseAdmin
+    .from("user_voices")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId);
+  if (error) { res.status(500).json({ error: error.message }); return; }
+  res.json({ ok: true });
+});
+
+// ── POST /api/voice-studio/tts — generate audio dari teks ─────────────────────
+// Body: { text, model?, voice?, language?, instruction? }
+// Response: audio binary (audio/mpeg atau audio/wav)
+app.post("/api/voice-studio/tts", requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+  const text = String(req.body?.text || "").trim();
+  if (!text) { res.status(400).json({ error: "Text kosong" }); return; }
+  if (text.length > 2000) { res.status(400).json({ error: "Text terlalu panjang (max 2000 karakter)" }); return; }
+
+  const model = String(req.body?.model || "qwen3-tts-flash");
+  const voice = String(req.body?.voice || "Cherry");
+  const language = String(req.body?.language || "Indonesian");
+  const instruction = req.body?.instruction ? String(req.body.instruction).slice(0, 200) : undefined;
+
+  // Cek dulu apakah masih ada kredit
+  const quota = await getVoiceCredits(userId);
+  if (quota.credits < VOICE_COST_TTS) {
+    res.status(429).json({ error: `Kredit Voice Studio habis (${quota.maxCredits}/bulan). Coba lagi bulan depan!` });
+    return;
+  }
+
+  const result = await callDashscopeTTS({ model, text, voice, language, instruction });
+  if (!result.ok) {
+    res.status(result.status).json({ error: "TTS gagal", detail: result.error });
+    return;
+  }
+
+  // Deduct setelah sukses
+  await deductVoiceCredits(userId, VOICE_COST_TTS);
+
+  res.setHeader("Content-Type", result.mime);
+  res.setHeader("Cache-Control", "no-cache");
+  res.send(result.audioBuffer);
+});
+
+// ── POST /api/voice-studio/clone — voice cloning dari sample audio ────────────
+// Multipart: { audio: File, name: string, language?: string }
+// Pake voice-enrollment API → dapet voice_id → simpan di user_voices
+app.post("/api/voice-studio/clone", requireAuth, voiceCloneUpload.single("audio"), async (req, res) => {
+  const userId = (req as any).userId;
+  const file = (req as any).file as Express.Multer.File | undefined;
+  const name = String(req.body?.name || "").trim() || `Clone ${new Date().toLocaleDateString("id-ID")}`;
+  const language = String(req.body?.language || "id");
+
+  if (!file || !file.buffer?.length) {
+    res.status(400).json({ error: "Audio sample tidak ditemukan (field 'audio')" });
+    return;
+  }
+  if (file.buffer.length < 10_000) {
+    res.status(400).json({ error: "Audio sample terlalu pendek (minimal ~10 detik)" });
+    return;
+  }
+
+  const quota = await getVoiceCredits(userId);
+  if (quota.credits < VOICE_COST_CLONE) {
+    res.status(429).json({ error: `Butuh ${VOICE_COST_CLONE} kredit, sisa ${quota.credits}. Tunggu bulan depan atau upgrade tier.` });
+    return;
+  }
+
+  // DashScope voice-enrollment endpoint:
+  // POST https://dashscope-intl.aliyuncs.com/api/v1/services/audio/tts/customization/voice-enrollment
+  // Multipart: model, prefix, audio (binary)
+  try {
+    const formData = new FormData();
+    formData.append("model", "voice-enrollment");
+    formData.append("target_model", "qwen3-tts-vc");
+    formData.append("prefix", `pio_${userId.slice(0, 8)}`);
+    const audioBlob = new Blob([file.buffer], { type: file.mimetype || "audio/wav" });
+    formData.append("audio", audioBlob, file.originalname || "sample.wav");
+
+    const enrollUrl = `${DASHSCOPE_BASE}/api/v1/services/audio/tts/customization/voice-enrollment`;
+    const upstream = await fetch(enrollUrl, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${dashscopeApiKey}` },
+      body: formData,
+    });
+
+    const txt = await upstream.text();
+    if (!upstream.ok) {
+      console.error("[Voice Clone] DashScope error:", upstream.status, txt.slice(0, 300));
+      res.status(upstream.status).json({ error: "Voice enrollment gagal", detail: txt.slice(0, 300) });
+      return;
+    }
+
+    let json: any;
+    try { json = JSON.parse(txt); } catch { res.status(502).json({ error: "Response invalid" }); return; }
+    const voiceId = json?.output?.voice_id || json?.voice_id;
+    if (!voiceId) {
+      res.status(502).json({ error: "voice_id tidak ditemukan di response", detail: JSON.stringify(json).slice(0, 200) });
+      return;
+    }
+
+    // Simpan ke DB
+    const { data: row, error: insertErr } = await supabaseAdmin
+      .from("user_voices")
+      .insert({
+        user_id: userId,
+        name,
+        type: "clone",
+        dashscope_voice_id: voiceId,
+        source_text: file.originalname || "audio sample",
+        language,
+      })
+      .select()
+      .single();
+
+    if (insertErr) {
+      console.error("[Voice Clone] DB insert error:", insertErr);
+      res.status(500).json({ error: "Gagal simpan voice ke database" });
+      return;
+    }
+
+    await deductVoiceCredits(userId, VOICE_COST_CLONE);
+    res.json({ ok: true, voice: row, remaining: (quota.credits - VOICE_COST_CLONE) });
+  } catch (err: any) {
+    console.error("[Voice Clone] Error:", err);
+    res.status(500).json({ error: "Voice cloning gagal", detail: err?.message });
+  }
+});
+
+// ── POST /api/voice-studio/design — voice design dari prompt ──────────────────
+// Body: { prompt, name, language? }
+app.post("/api/voice-studio/design", requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+  const prompt = String(req.body?.prompt || "").trim();
+  const name = String(req.body?.name || "").trim() || `Design ${new Date().toLocaleDateString("id-ID")}`;
+  const language = String(req.body?.language || "id");
+
+  if (!prompt) { res.status(400).json({ error: "Prompt deskripsi suara kosong" }); return; }
+  if (prompt.length > 500) { res.status(400).json({ error: "Prompt terlalu panjang (max 500 karakter)" }); return; }
+
+  const quota = await getVoiceCredits(userId);
+  if (quota.credits < VOICE_COST_DESIGN) {
+    res.status(429).json({ error: `Butuh ${VOICE_COST_DESIGN} kredit, sisa ${quota.credits}. Tunggu bulan depan atau upgrade tier.` });
+    return;
+  }
+
+  // DashScope qwen-voice-design endpoint
+  try {
+    const designUrl = `${DASHSCOPE_BASE}/api/v1/services/audio/tts/customization/voice-design`;
+    const upstream = await fetch(designUrl, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${dashscopeApiKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "qwen-voice-design",
+        input: { prompt },
+        parameters: { target_model: "qwen3-tts-vd" },
+      }),
+    });
+
+    const txt = await upstream.text();
+    if (!upstream.ok) {
+      console.error("[Voice Design] DashScope error:", upstream.status, txt.slice(0, 300));
+      res.status(upstream.status).json({ error: "Voice design gagal", detail: txt.slice(0, 300) });
+      return;
+    }
+
+    let json: any;
+    try { json = JSON.parse(txt); } catch { res.status(502).json({ error: "Response invalid" }); return; }
+    const voiceId = json?.output?.voice_id || json?.voice_id;
+    if (!voiceId) {
+      res.status(502).json({ error: "voice_id tidak ditemukan di response", detail: JSON.stringify(json).slice(0, 200) });
+      return;
+    }
+
+    const { data: row, error: insertErr } = await supabaseAdmin
+      .from("user_voices")
+      .insert({
+        user_id: userId,
+        name,
+        type: "design",
+        dashscope_voice_id: voiceId,
+        source_text: prompt,
+        language,
+      })
+      .select()
+      .single();
+
+    if (insertErr) {
+      console.error("[Voice Design] DB insert error:", insertErr);
+      res.status(500).json({ error: "Gagal simpan voice ke database" });
+      return;
+    }
+
+    await deductVoiceCredits(userId, VOICE_COST_DESIGN);
+    res.json({ ok: true, voice: row, remaining: (quota.credits - VOICE_COST_DESIGN) });
+  } catch (err: any) {
+    console.error("[Voice Design] Error:", err);
+    res.status(500).json({ error: "Voice design gagal", detail: err?.message });
+  }
+});
+
+// ── POST /api/voice-studio/tts-custom — TTS pake custom voice (clone/design) ──
+// Body: { text, voice_db_id } (voice_db_id = id row di user_voices)
+app.post("/api/voice-studio/tts-custom", requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+  const text = String(req.body?.text || "").trim();
+  const voiceDbId = String(req.body?.voice_db_id || "").trim();
+  const language = String(req.body?.language || "Indonesian");
+
+  if (!text) { res.status(400).json({ error: "Text kosong" }); return; }
+  if (!voiceDbId) { res.status(400).json({ error: "voice_db_id wajib" }); return; }
+  if (text.length > 2000) { res.status(400).json({ error: "Text terlalu panjang (max 2000 karakter)" }); return; }
+
+  const { data: voiceRow, error: voiceErr } = await supabaseAdmin
+    .from("user_voices")
+    .select("*")
+    .eq("id", voiceDbId)
+    .eq("user_id", userId)
+    .single();
+  if (voiceErr || !voiceRow) { res.status(404).json({ error: "Voice tidak ditemukan" }); return; }
+
+  const quota = await getVoiceCredits(userId);
+  if (quota.credits < VOICE_COST_TTS) {
+    res.status(429).json({ error: `Kredit habis. Tunggu bulan depan!` });
+    return;
+  }
+
+  const ttsModel = voiceRow.type === "clone" ? "qwen3-tts-vc" : "qwen3-tts-vd";
+  const result = await callDashscopeTTS({
+    model: ttsModel,
+    text,
+    voice: voiceRow.dashscope_voice_id,
+    language,
+  });
+  if (!result.ok) {
+    res.status(result.status).json({ error: "TTS gagal", detail: result.error });
+    return;
+  }
+
+  await deductVoiceCredits(userId, VOICE_COST_TTS);
+  res.setHeader("Content-Type", result.mime);
+  res.setHeader("Cache-Control", "no-cache");
+  res.send(result.audioBuffer);
 });
 
 // ── Premium Applications ───────────────────────────────────────────────────────
