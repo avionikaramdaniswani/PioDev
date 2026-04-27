@@ -160,14 +160,26 @@ const VISION_CHAIN = [
   "qwen-vl-ocr-2025-11-20",
   // Qwen2.5 VL Small
   "qwen2.5-vl-3b-instruct",
-  // Qwen Omni — multimodal (text + image + audio/video), non-realtime
+  // Qwen3.5 Omni — multimodal generasi 3.5 (Maret 2026, frontier multimodal)
+  "qwen3.5-omni-plus",
+  "qwen3.5-omni-plus-2026-03-15",
+  "qwen3.5-omni-flash",
+  "qwen3.5-omni-flash-2026-03-15",
+  // Qwen3.5 Omni Realtime
+  "qwen3.5-omni-plus-realtime",
+  "qwen3.5-omni-plus-realtime-2026-03-15",
+  "qwen3.5-omni-flash-realtime",
+  "qwen3.5-omni-flash-realtime-2026-03-15",
+  // Qwen Omni klasik — multimodal (text + image + audio/video), non-realtime
   "qwen-omni-turbo",
+  "qwen-omni-turbo-latest",
   "qwen-omni-turbo-2025-03-26",
   "qwen3-omni-flash",
   "qwen3-omni-flash-2025-09-15",
   "qwen2.5-omni-7b",
-  // Qwen Omni Realtime (voice/audio streaming)
+  // Qwen Omni klasik Realtime (voice/audio streaming)
   "qwen-omni-turbo-realtime",
+  "qwen-omni-turbo-realtime-latest",
   "qwen-omni-turbo-realtime-2025-05-08",
   "qwen3-omni-flash-realtime",
   "qwen3-omni-flash-realtime-2025-09-15",

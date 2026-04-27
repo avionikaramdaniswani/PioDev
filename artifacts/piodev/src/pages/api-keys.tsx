@@ -2067,15 +2067,28 @@ const CHAT_MODELS: ModelRow[] = [
   { id: "qwen2.5-vl-7b-instruct", label: "Qwen2.5-VL 7B Instruct", desc: "Dense VL ringan legacy.", access: "plus_pro" },
   { id: "qwen2.5-vl-3b-instruct", label: "Qwen2.5-VL 3B Instruct", desc: "Dense VL paling kecil.", access: "plus_pro" },
 
-  // ── Qwen Omni (multimodal text + image + audio/video) ───────────────────
-  { id: "qwen3-omni-flash", label: "Qwen3 Omni Flash", desc: "Multimodal generasi baru — text + image + audio + video, non-realtime.", access: "plus_pro" },
+  // ── Qwen3.5 Omni (multimodal generasi 3.5 — Maret 2026, frontier) ──────
+  { id: "qwen3.5-omni-plus", label: "Qwen3.5 Omni Plus", desc: "🔥 Multimodal generasi 3.5 flagship — text + image + audio + video, kualitas paling tinggi.", access: "pro_only" },
+  { id: "qwen3.5-omni-plus-2026-03-15", label: "Qwen3.5 Omni Plus (2026-03-15)", desc: "🔥 Snapshot dated qwen3.5-omni-plus.", access: "pro_only" },
+  { id: "qwen3.5-omni-plus-realtime", label: "Qwen3.5 Omni Plus Realtime", desc: "🔥 Realtime voice/audio streaming versi flagship 3.5.", access: "pro_only" },
+  { id: "qwen3.5-omni-plus-realtime-2026-03-15", label: "Qwen3.5 Omni Plus Realtime (2026-03-15)", desc: "🔥 Snapshot dated realtime plus 3.5.", access: "pro_only" },
+  { id: "qwen3.5-omni-flash", label: "Qwen3.5 Omni Flash", desc: "Multimodal 3.5 versi flash — cepat & murah.", access: "plus_pro" },
+  { id: "qwen3.5-omni-flash-2026-03-15", label: "Qwen3.5 Omni Flash (2026-03-15)", desc: "Snapshot dated qwen3.5-omni-flash.", access: "plus_pro" },
+  { id: "qwen3.5-omni-flash-realtime", label: "Qwen3.5 Omni Flash Realtime", desc: "Realtime voice/audio streaming flash 3.5.", access: "plus_pro" },
+  { id: "qwen3.5-omni-flash-realtime-2026-03-15", label: "Qwen3.5 Omni Flash Realtime (2026-03-15)", desc: "Snapshot dated realtime flash 3.5.", access: "plus_pro" },
+
+  // ── Qwen Omni klasik (multimodal text + image + audio/video) ───────────
+  { id: "qwen3-omni-flash", label: "Qwen3 Omni Flash", desc: "Multimodal generasi 3 — text + image + audio + video, non-realtime.", access: "plus_pro" },
   { id: "qwen3-omni-flash-2025-09-15", label: "Qwen3 Omni Flash (2025-09-15)", desc: "Snapshot dated qwen3-omni-flash.", access: "plus_pro" },
   { id: "qwen-omni-turbo", label: "Qwen Omni Turbo", desc: "Multimodal klasik turbo — non-realtime.", access: "plus_pro" },
+  { id: "qwen-omni-turbo-latest", label: "Qwen Omni Turbo Latest", desc: "Alias rolling untuk qwen-omni-turbo terbaru.", access: "plus_pro" },
   { id: "qwen-omni-turbo-2025-03-26", label: "Qwen Omni Turbo (2025-03-26)", desc: "Snapshot dated qwen-omni-turbo.", access: "plus_pro" },
-  { id: "qwen3-omni-flash-realtime", label: "Qwen3 Omni Flash Realtime", desc: "Multimodal generasi baru realtime — voice/audio streaming.", access: "plus_pro" },
-  { id: "qwen3-omni-flash-realtime-2025-09-15", label: "Qwen3 Omni Flash Realtime (2025-09-15)", desc: "Snapshot dated realtime omni baru.", access: "plus_pro" },
+  { id: "qwen3-omni-flash-realtime", label: "Qwen3 Omni Flash Realtime", desc: "Multimodal generasi 3 realtime — voice/audio streaming.", access: "plus_pro" },
+  { id: "qwen3-omni-flash-realtime-2025-09-15", label: "Qwen3 Omni Flash Realtime (2025-09-15)", desc: "Snapshot dated realtime omni 3.", access: "plus_pro" },
   { id: "qwen-omni-turbo-realtime", label: "Qwen Omni Turbo Realtime", desc: "Multimodal klasik realtime — voice/audio streaming.", access: "plus_pro" },
+  { id: "qwen-omni-turbo-realtime-latest", label: "Qwen Omni Turbo Realtime Latest", desc: "Alias rolling untuk realtime turbo terbaru.", access: "plus_pro" },
   { id: "qwen-omni-turbo-realtime-2025-05-08", label: "Qwen Omni Turbo Realtime (2025-05-08)", desc: "Snapshot dated realtime omni klasik.", access: "plus_pro" },
+  { id: "qwen2.5-omni-7b", label: "Qwen2.5 Omni 7B", desc: "Multimodal open-weight 7B legacy.", access: "plus_pro" },
 
   // ── Workhorse Qwen klasik ───────────────────────────────────────────────
   { id: "qwen-max", label: "Qwen Max", desc: "Workhorse Qwen2.x flagship klasik. Stabil & matang.", access: "plus_pro" },
@@ -2231,6 +2244,12 @@ function ModelTable({ models, defaultHint }: { models: ModelRow[]; defaultHint: 
 
   return (
     <div className="ml-7">
+      <div className="mb-2 flex items-center gap-2 text-xs text-muted-foreground">
+        <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-muted/50 border border-border font-medium tabular-nums">
+          {sortedModels.length} model
+        </span>
+        <span>tersedia</span>
+      </div>
       <div className="rounded-lg border border-border overflow-hidden">
         {/* Desktop table */}
         <table className="w-full text-sm hidden md:table">

@@ -121,6 +121,9 @@ const PRO_ONLY_MODELS = new Set([
   // ── Vision-Language — frontier ──────────────────────────────────────────
   "qwen3-vl-235b-a22b-instruct","qwen3-vl-235b-a22b-thinking",
   "qvq-max","qvq-max-latest","qvq-max-2025-03-25",
+  // ── Multimodal Omni — frontier (Qwen3.5 Plus generation, Maret 2026) ────
+  "qwen3.5-omni-plus","qwen3.5-omni-plus-2026-03-15",
+  "qwen3.5-omni-plus-realtime","qwen3.5-omni-plus-realtime-2026-03-15",
   // ── Image — premium quality & latest ────────────────────────────────────
   "qwen-image-max","qwen-image-max-2025-12-30",
   "qwen-image-2.0-pro","qwen-image-2.0-pro-2026-03-03","qwen-image-2.0-pro-2026-04-22",
