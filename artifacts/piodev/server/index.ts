@@ -90,6 +90,23 @@ const PREMIUM_ONLY_MODELS = new Set([
   "qwen3-coder-30b-a3b-instruct","qwen3-coder-flash","qwen3-coder-flash-2025-07-28",
 ]);
 
+// Model-model paling powerful — eksklusif untuk tier Pro (Plus akan kena 403 MODEL_PRO_ONLY)
+// Plus tetap bisa pakai semua model lain (workhorse + alternatif kuat).
+const PRO_ONLY_MODELS = new Set([
+  // Chat — frontier & top-tier
+  "qwen3-max","qwen3-max-preview","qwen3-max-2026-01-23","qwen3-max-2025-09-23",
+  "qwen3-235b-a22b-thinking-2507",
+  "qwen3-coder-plus","qwen3-coder-plus-2025-09-23","qwen3-coder-plus-2025-07-22",
+  // Image — premium quality & latest
+  "qwen-image-max",
+  "qwen-image-2.0-pro",
+  "qwen-image-edit-plus",
+  // Video — newest generation & best I2V
+  "wan2.6-t2v",
+  "wan2.6-i2v",
+  "wan2.2-i2v-plus",
+]);
+
 /** Tanggal hari ini dalam timezone WIB (UTC+7), format YYYY-MM-DD */
 function getTodayWIB(): string {
   const wib = new Date(Date.now() + 7 * 60 * 60 * 1000);
@@ -1131,15 +1148,16 @@ async function requireApiKey(
   // Cek user premium aktif
   const { data: profile } = await supabaseAdmin
     .from("profiles")
-    .select("is_premium, premium_expires_at, role")
+    .select("is_premium, premium_expires_at, role, tier")
     .eq("id", userId)
     .single();
 
   const isAdmin = profile?.role === "admin";
-  const isPremium = isAdmin || isPremiumActive(profile ?? {});
+  const userTier = getTier(profile ?? null); // "free" | "plus" | "pro"
+  const isPremium = isAdmin || userTier !== "free";
   if (!isPremium) {
     res.status(403).json({
-      error: { message: "API access requires an active Plus subscription.", type: "permission_denied" },
+      error: { message: "API access requires an active Plus or Pro subscription.", type: "permission_denied" },
     });
     return;
   }
@@ -1150,7 +1168,37 @@ async function requireApiKey(
   (req as any).apiUserId = userId;
   (req as any).apiKeyId = keyRow.id;
   (req as any).apiIsAdmin = isAdmin;
+  // Admin diperlakukan setara Pro untuk pembatasan model
+  (req as any).apiTier = isAdmin ? "pro" : userTier;
   next();
+}
+
+/**
+ * Cek apakah model boleh diakses oleh tier user.
+ * Return true kalau lolos. Return false dan sudah kirim 403 ke res kalau tidak.
+ */
+function assertProAccess(
+  res: express.Response,
+  model: string | undefined,
+  tier: string,
+  isAdmin: boolean,
+): boolean {
+  if (isAdmin || tier === "pro") return true;
+  if (!model) return true;
+  if (PRO_ONLY_MODELS.has(model)) {
+    res.status(403)
+      .set("X-Pioo-Error", "MODEL_PRO_ONLY")
+      .json({
+        error: {
+          message: `Model "${model}" eksklusif untuk pengguna Pro. Upgrade ke Pro untuk akses ke model frontier ini.`,
+          type: "permission_denied",
+          required_tier: "pro",
+          current_tier: tier,
+        },
+      });
+    return false;
+  }
+  return true;
 }
 
 // Helpers untuk usage harian API
@@ -1627,6 +1675,7 @@ app.get("/v1/models", requireApiKey, async (_req, res) => {
 app.post("/v1/chat/completions", requireApiKey, async (req, res) => {
   const userId = (req as any).apiUserId;
   const isAdmin = (req as any).apiIsAdmin;
+  const userTier = (req as any).apiTier as string;
 
   // Credit check: harus punya saldo (admin bypass)
   if (!isAdmin) {
@@ -1649,6 +1698,10 @@ app.post("/v1/chat/completions", requireApiKey, async (req, res) => {
   }
 
   const body = parseBody(req);
+
+  // Tier gating: model Pro-only hanya untuk user Pro/Admin
+  if (!assertProAccess(res, body.model, userTier, isAdmin)) return;
+
   const isStream = !!body.stream;
 
   let upstream: Response;
@@ -1758,6 +1811,7 @@ app.post("/v1/embeddings", requireApiKey, async (req, res) => {
 app.post("/v1/images/generations", requireApiKey, async (req, res) => {
   const userId = (req as any).apiUserId;
   const isAdmin = (req as any).apiIsAdmin;
+  const userTier = (req as any).apiTier as string;
 
   // Credit check: harus ada minimal 1 image worth saldo (admin bypass)
   if (!isAdmin) {
@@ -1779,6 +1833,10 @@ app.post("/v1/images/generations", requireApiKey, async (req, res) => {
     return;
   }
   const model = body.model || "wan2.2-t2i-flash";
+
+  // Tier gating: model Pro-only hanya untuk user Pro/Admin
+  if (!assertProAccess(res, model, userTier, isAdmin)) return;
+
   const n = Math.min(Math.max(body.n ?? 1, 1), 4);
   const size = body.size || "1024*1024";
 
@@ -1850,6 +1908,7 @@ app.post("/v1/images/generations", requireApiKey, async (req, res) => {
 app.post("/v1/videos/generations", requireApiKey, async (req, res) => {
   const userId = (req as any).apiUserId;
   const isAdmin = (req as any).apiIsAdmin;
+  const userTier = (req as any).apiTier as string;
 
   // Credit check: butuh minimal 1 video worth saldo
   if (!isAdmin) {
@@ -1871,6 +1930,10 @@ app.post("/v1/videos/generations", requireApiKey, async (req, res) => {
     return;
   }
   const model = body.model || "wan2.2-t2v-plus";
+
+  // Tier gating: model Pro-only hanya untuk user Pro/Admin
+  if (!assertProAccess(res, model, userTier, isAdmin)) return;
+
   const size = body.size || "1280*720";
 
   // Step 1: submit
