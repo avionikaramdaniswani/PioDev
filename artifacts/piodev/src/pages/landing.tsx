@@ -25,6 +25,51 @@ export default function LandingPage() {
     if (isAuthenticated) setLocation("/chat");
   }, [isAuthenticated]);
 
+  const features = [
+    {
+      icon: <MessageSquare className="w-5 h-5" />,
+      label: "Chat AI",
+      title: "Tanya apa aja, jawaban langsung ngalir.",
+      desc: "Streaming response, thinking mode, web search, sampe artifact code — semua built-in.",
+      href: "/register",
+    },
+    {
+      icon: <ImageIcon className="w-5 h-5" />,
+      label: "Image Studio",
+      title: "Generate gambar berkualitas tinggi.",
+      desc: "Pake Qwen-Image untuk bikin ilustrasi, foto, atau aset visual dari sekedar prompt.",
+      href: "/register",
+    },
+    {
+      icon: <Video className="w-5 h-5" />,
+      label: "Video Studio",
+      title: "Text-to-video & image-to-video.",
+      desc: "Bikin video pendek pake Wan 2.6 — cocok untuk konten sosmed atau presentasi.",
+      href: "/video-studio",
+    },
+    {
+      icon: <AudioWaveform className="w-5 h-5" />,
+      label: "Voice Studio",
+      title: "TTS, voice cloning & voice design.",
+      desc: "Konversi teks ke suara natural, atau bikin suara custom kamu sendiri.",
+      href: "/voice-studio",
+    },
+    {
+      icon: <Library className="w-5 h-5" />,
+      label: "Pustaka",
+      title: "Upload dokumen, AI bisa baca.",
+      desc: "PDF, gambar, file teks — semua bisa di-attach ke chat untuk konteks tambahan.",
+      href: "/pustaka",
+    },
+    {
+      icon: <Code2 className="w-5 h-5" />,
+      label: "Code Artifact",
+      title: "Preview kode HTML/CSS/JS langsung.",
+      desc: "Lihat hasil kode yang AI generate tanpa harus copy-paste ke editor sendiri.",
+      href: "/register",
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-[hsl(240,12%,4%)] text-white overflow-x-hidden relative">
       {/* Ambient blobs */}
@@ -63,8 +108,8 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* Hero — slim & sharp */}
-      <section className="relative z-10 max-w-4xl mx-auto px-6 sm:px-10 pt-16 pb-14 text-center">
+      {/* Hero */}
+      <section className="relative z-10 max-w-4xl mx-auto px-6 sm:px-10 pt-16 pb-16 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -100,78 +145,27 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* Bento Grid */}
-      <section className="relative z-10 max-w-6xl mx-auto px-6 sm:px-10 pb-16">
+      {/* Feature cards — uniform grid */}
+      <section className="relative z-10 max-w-6xl mx-auto px-6 sm:px-10 pb-20">
+        <div className="text-center mb-10">
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
+            Semua yang kamu butuhin
+          </h2>
+          <p className="text-white/50 text-base">
+            Enam fitur utama, satu tempat, satu akun.
+          </p>
+        </div>
+
         <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="grid grid-cols-1 md:grid-cols-3 auto-rows-[180px] gap-4"
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
         >
-          {/* Chat AI — big card */}
-          <BentoCard
-            href="/register"
-            className="md:col-span-2 md:row-span-2"
-            icon={<MessageSquare className="w-4 h-4" />}
-            label="Chat AI"
-            title="Tanya apa aja, jawaban langsung ngalir."
-            sub="Streaming, thinking mode, web search, sampe artifact code."
-          >
-            <ChatDemo />
-          </BentoCard>
-
-          {/* Image Gen — vertical */}
-          <BentoCard
-            href="/register"
-            className="md:row-span-2"
-            icon={<ImageIcon className="w-4 h-4" />}
-            label="Image Studio"
-            title="Generate gambar pake Qwen-Image."
-          >
-            <ImageDemo />
-          </BentoCard>
-
-          {/* Video Studio — wide */}
-          <BentoCard
-            href="/video-studio"
-            className="md:col-span-2"
-            icon={<Video className="w-4 h-4" />}
-            label="Video Studio"
-            title="Text-to-video dengan Wan 2.6."
-          >
-            <VideoDemo />
-          </BentoCard>
-
-          {/* Voice Studio */}
-          <BentoCard
-            href="/voice-studio"
-            icon={<AudioWaveform className="w-4 h-4" />}
-            label="Voice Studio"
-            title="TTS & voice cloning."
-          >
-            <VoiceDemo />
-          </BentoCard>
-
-          {/* Code Artifact — wide */}
-          <BentoCard
-            href="/register"
-            className="md:col-span-2"
-            icon={<Code2 className="w-4 h-4" />}
-            label="Code Artifact"
-            title="Preview HTML/CSS/JS langsung di chat."
-          >
-            <CodeDemo />
-          </BentoCard>
-
-          {/* Pustaka */}
-          <BentoCard
-            href="/pustaka"
-            icon={<Library className="w-4 h-4" />}
-            label="Pustaka"
-            title="Upload dokumen, AI bisa baca."
-          >
-            <PustakaDemo />
-          </BentoCard>
+          {features.map((f) => (
+            <FeatureCard key={f.label} {...f} />
+          ))}
         </motion.div>
       </section>
 
@@ -228,9 +222,7 @@ export default function LandingPage() {
       {/* Final CTA */}
       <section className="relative z-10 max-w-2xl mx-auto px-6 pb-24 text-center">
         <div className="bg-gradient-to-br from-primary/15 to-indigo-500/10 border border-primary/20 rounded-3xl p-10">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-3">
-            Siap mulai?
-          </h2>
+          <h2 className="text-2xl sm:text-3xl font-bold mb-3">Siap mulai?</h2>
           <p className="text-white/50 text-sm mb-7">
             Gratis selamanya. Tidak perlu kartu kredit.
           </p>
@@ -254,253 +246,35 @@ export default function LandingPage() {
   );
 }
 
-// ─────────────────────────── Bento Card Wrapper ──────────────────────────────
-function BentoCard({
-  href,
-  className = "",
+// ─────────────────────────── Feature Card ────────────────────────────────────
+function FeatureCard({
   icon,
   label,
   title,
-  sub,
-  children,
+  desc,
+  href,
 }: {
-  href: string;
-  className?: string;
   icon: React.ReactNode;
   label: string;
   title: string;
-  sub?: string;
-  children: React.ReactNode;
+  desc: string;
+  href: string;
 }) {
   return (
     <Link href={href}>
-      <div
-        className={`group relative overflow-hidden rounded-2xl border border-white/[0.07] bg-[hsl(240,10%,7%)] hover:bg-[hsl(240,10%,9%)] hover:border-white/15 transition-all hover:-translate-y-0.5 cursor-pointer flex flex-col h-full ${className}`}
-      >
-        {/* Glow on hover */}
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/0 via-primary/0 to-primary/0 group-hover:from-primary/5 group-hover:to-transparent transition-all pointer-events-none" />
-
-        {/* Visual area (top) */}
-        <div className="relative flex-1 min-h-0 overflow-hidden">{children}</div>
-
-        {/* Text footer */}
-        <div className="relative p-5 border-t border-white/[0.05]">
-          <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wider text-white/40 font-semibold mb-1.5">
-            <span className="text-primary">{icon}</span>
-            {label}
-          </div>
-          <div className="text-white text-sm font-semibold leading-snug">
-            {title}
-          </div>
-          {sub && (
-            <div className="text-white/45 text-xs mt-1 leading-relaxed">
-              {sub}
-            </div>
-          )}
+      <div className="group relative h-full rounded-2xl border border-white/[0.07] bg-[hsl(240,10%,7%)] hover:bg-[hsl(240,10%,9%)] hover:border-white/15 transition-all hover:-translate-y-0.5 cursor-pointer p-6">
+        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 text-primary mb-4 group-hover:bg-primary/15 transition-colors">
+          {icon}
         </div>
+        <div className="text-[10px] uppercase tracking-wider text-white/40 font-semibold mb-1.5">
+          {label}
+        </div>
+        <div className="text-white text-base font-semibold leading-snug mb-2">
+          {title}
+        </div>
+        <div className="text-white/50 text-sm leading-relaxed">{desc}</div>
       </div>
     </Link>
-  );
-}
-
-// ─────────────────────────── Mini Demos ──────────────────────────────────────
-function ChatDemo() {
-  return (
-    <div className="absolute inset-0 p-6 flex flex-col justify-end gap-3">
-      <motion.div
-        initial={{ opacity: 0, x: 20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4, delay: 0.2 }}
-        className="flex justify-end"
-      >
-        <div className="bg-primary/20 border border-primary/30 rounded-2xl rounded-tr-sm px-4 py-2 text-xs text-white/85 max-w-[60%]">
-          Bikinin landing page bento grid dong
-        </div>
-      </motion.div>
-      <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4, delay: 0.5 }}
-        className="flex gap-2"
-      >
-        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-primary to-indigo-400 flex items-center justify-center shrink-0 mt-0.5">
-          <Terminal className="w-3 h-3 text-white" />
-        </div>
-        <div className="bg-white/[0.04] border border-white/10 rounded-2xl rounded-tl-sm px-4 py-2 text-xs text-white/70 max-w-[70%]">
-          Sip! Aku susun grid 3 kolom asimetris pake Tailwind, tiap kotak
-          interaktif{" "}
-          <motion.span
-            animate={{ opacity: [0.2, 1, 0.2] }}
-            transition={{ duration: 1.4, repeat: Infinity }}
-            className="inline-block ml-0.5"
-          >
-            ▍
-          </motion.span>
-        </div>
-      </motion.div>
-    </div>
-  );
-}
-
-function ImageDemo() {
-  return (
-    <div className="absolute inset-0 p-5 flex items-center justify-center">
-      <div className="relative w-full aspect-square max-w-[180px] rounded-xl overflow-hidden border border-white/10">
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-br from-violet-500 via-primary to-indigo-400"
-          animate={{
-            background: [
-              "linear-gradient(135deg, #8b5cf6, #6366f1, #818cf8)",
-              "linear-gradient(135deg, #ec4899, #8b5cf6, #6366f1)",
-              "linear-gradient(135deg, #f59e0b, #ec4899, #8b5cf6)",
-              "linear-gradient(135deg, #8b5cf6, #6366f1, #818cf8)",
-            ],
-          }}
-          transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-        />
-        <motion.div
-          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-          animate={{ x: ["-100%", "100%"] }}
-          transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <div className="absolute bottom-2 left-2 right-2 flex items-center gap-1.5">
-          <div className="h-1 flex-1 rounded-full bg-black/30 overflow-hidden">
-            <motion.div
-              className="h-full bg-white rounded-full"
-              animate={{ width: ["0%", "100%", "0%"] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-            />
-          </div>
-          <Sparkles className="w-3 h-3 text-white/70" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function VideoDemo() {
-  return (
-    <div className="absolute inset-0 p-5 flex items-center justify-center gap-3">
-      {[0, 1, 2].map((i) => (
-        <motion.div
-          key={i}
-          className="relative aspect-video flex-1 rounded-lg border border-white/10 overflow-hidden bg-gradient-to-br from-indigo-500/30 to-primary/20"
-          animate={{
-            opacity: [0.4, 1, 0.4],
-          }}
-          transition={{
-            duration: 2.5,
-            delay: i * 0.4,
-            repeat: Infinity,
-          }}
-        >
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-6 h-6 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-              <div className="w-0 h-0 border-t-[4px] border-t-transparent border-b-[4px] border-b-transparent border-l-[6px] border-l-white ml-0.5" />
-            </div>
-          </div>
-        </motion.div>
-      ))}
-    </div>
-  );
-}
-
-function VoiceDemo() {
-  const bars = [0.4, 0.7, 0.5, 0.9, 0.3, 0.8, 0.6, 0.4, 0.7, 0.5, 0.85, 0.4];
-  return (
-    <div className="absolute inset-0 p-5 flex items-center justify-center gap-1">
-      {bars.map((h, i) => (
-        <motion.div
-          key={i}
-          className="w-1 rounded-full bg-gradient-to-t from-primary to-indigo-400"
-          animate={{
-            height: [`${h * 30}%`, `${h * 90}%`, `${h * 40}%`, `${h * 70}%`],
-          }}
-          transition={{
-            duration: 1.2,
-            delay: i * 0.08,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-function CodeDemo() {
-  return (
-    <div className="absolute inset-0 p-5 font-mono text-xs">
-      <div className="bg-black/40 border border-white/10 rounded-lg h-full p-3 overflow-hidden">
-        <div className="flex items-center gap-1.5 mb-2 pb-2 border-b border-white/5">
-          <div className="w-2 h-2 rounded-full bg-red-500/60" />
-          <div className="w-2 h-2 rounded-full bg-yellow-500/60" />
-          <div className="w-2 h-2 rounded-full bg-green-500/60" />
-          <span className="ml-1.5 text-[10px] text-white/30">App.tsx</span>
-        </div>
-        <div className="space-y-1 text-[11px] leading-relaxed">
-          <div>
-            <span className="text-pink-400">function</span>{" "}
-            <span className="text-yellow-300">App</span>
-            <span className="text-white/60">() {"{"}</span>
-          </div>
-          <div className="pl-4">
-            <span className="text-pink-400">return</span>{" "}
-            <span className="text-white/60">&lt;</span>
-            <span className="text-blue-300">div</span>
-            <span className="text-white/60">&gt;</span>
-            <motion.span
-              className="text-white/80"
-              animate={{ opacity: [0, 1] }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-            >
-              Hello PioCode
-            </motion.span>
-            <span className="text-white/60">&lt;/</span>
-            <span className="text-blue-300">div</span>
-            <span className="text-white/60">&gt;</span>
-            <motion.span
-              animate={{ opacity: [0, 1, 0] }}
-              transition={{ duration: 1, repeat: Infinity }}
-              className="text-primary"
-            >
-              ▍
-            </motion.span>
-          </div>
-          <div>
-            <span className="text-white/60">{"}"}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PustakaDemo() {
-  return (
-    <div className="absolute inset-0 p-5 flex items-center justify-center">
-      <div className="relative w-20 h-24">
-        {[0, 1, 2].map((i) => (
-          <motion.div
-            key={i}
-            className="absolute inset-0 rounded-lg border border-white/15 bg-gradient-to-br from-white/5 to-white/[0.02] backdrop-blur-sm flex items-center justify-center"
-            initial={{ y: i * 6, x: i * 4, rotate: i * 3 }}
-            animate={{
-              y: [i * 6, i * 6 - 3, i * 6],
-            }}
-            transition={{
-              duration: 2,
-              delay: i * 0.2,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-            style={{ zIndex: 3 - i }}
-          >
-            <div className="text-[8px] font-mono text-white/30">PDF</div>
-          </motion.div>
-        ))}
-      </div>
-    </div>
   );
 }
 
