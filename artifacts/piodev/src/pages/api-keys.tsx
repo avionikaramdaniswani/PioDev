@@ -1967,37 +1967,84 @@ interface ModelRow {
 }
 
 const CHAT_MODELS: ModelRow[] = [
-  // Plus & Pro
+  // ── Workhorse (Plus & Pro) ───────────────────────────────────────────────
   { id: "qwen-flash", label: "Qwen Flash", desc: "Paling cepat & murah. Cocok untuk task ringan, autocomplete, klasifikasi.", access: "plus_pro" },
   { id: "qwen-plus", label: "Qwen Plus", desc: "Sweet spot kecepatan, kualitas, dan biaya. Pilihan aman buat hampir semua use case.", access: "plus_pro" },
   { id: "qwen-turbo", label: "Qwen Turbo", desc: "Throughput tinggi, latency rendah. Bagus untuk produksi volume besar.", access: "plus_pro" },
+  { id: "qwen-max", label: "Qwen Max", desc: "Workhorse Qwen2.x flagship. Stabil & matang untuk produksi.", access: "plus_pro" },
+  { id: "qwen-max-2025-01-25", label: "Qwen Max (2025-01-25)", desc: "Snapshot dated dari qwen-max — pin versi untuk stabilitas produksi.", access: "plus_pro" },
+
+  // ── Qwen3 dense / MoE general (Plus & Pro) ───────────────────────────────
+  { id: "qwen3-14b", label: "Qwen3 14B", desc: "Dense model ukuran sedang — bagus untuk fine-grained task.", access: "plus_pro" },
+  { id: "qwen3-32b", label: "Qwen3 32B", desc: "Dense 32B, balance reasoning & cost untuk task kompleks ringan.", access: "plus_pro" },
+  { id: "qwen3-30b-a3b", label: "Qwen3 30B A3B", desc: "MoE 30B aktif 3B — efisien tapi tetap kuat.", access: "plus_pro" },
+  { id: "qwen3-30b-a3b-instruct-2507", label: "Qwen3 30B A3B Instruct (2507)", desc: "Varian instruct dated dari 30B-A3B.", access: "plus_pro" },
+  { id: "qwen3-30b-a3b-thinking-2507", label: "Qwen3 30B A3B Thinking (2507)", desc: "Varian thinking dari 30B-A3B — reasoning eksplisit.", access: "plus_pro" },
+  { id: "qwen3-next-80b-a3b-instruct", label: "Qwen3 Next 80B A3B Instruct", desc: "MoE generasi Next, instruct mode. Long context tinggi.", access: "plus_pro" },
+  { id: "qwen3-next-80b-a3b-thinking", label: "Qwen3 Next 80B A3B Thinking", desc: "Versi thinking dari Next 80B — reasoning panjang & kompleks.", access: "plus_pro" },
+
+  // ── Qwen3.5 series (Plus & Pro) ──────────────────────────────────────────
+  { id: "qwen3.5-plus", label: "Qwen3.5 Plus", desc: "Workhorse tier baru di Qwen3.5 — upgrade dari qwen-plus.", access: "plus_pro" },
+  { id: "qwen3.5-plus-2026-02-15", label: "Qwen3.5 Plus (2026-02-15)", desc: "Snapshot dated dari qwen3.5-plus.", access: "plus_pro" },
+  { id: "qwen3.5-27b", label: "Qwen3.5 27B", desc: "Dense 27B di seri Qwen3.5.", access: "plus_pro" },
+  { id: "qwen3.5-35b-a3b", label: "Qwen3.5 35B A3B", desc: "MoE 35B aktif 3B — efisien generasi 3.5.", access: "plus_pro" },
+  { id: "qwen3.5-122b-a10b", label: "Qwen3.5 122B A10B", desc: "MoE besar generasi 3.5 — alternatif untuk reasoning berat.", access: "plus_pro" },
+
+  // ── Reasoning / thinking (Plus & Pro) ───────────────────────────────────
+  { id: "qwq-plus", label: "QwQ Plus", desc: "Reasoning model dengan chain-of-thought eksplisit.", access: "plus_pro" },
+  { id: "qwen3-235b-a22b-instruct-2507", label: "Qwen3 235B A22B Instruct (2507)", desc: "MoE besar instruct — alternatif kuat untuk task umum.", access: "plus_pro" },
+  { id: "qwen3-235b-a22b", label: "Qwen3 235B A22B", desc: "Base MoE 235B aktif 22B.", access: "plus_pro" },
+
+  // ── Coder (Plus & Pro) ───────────────────────────────────────────────────
   { id: "qwen3-coder-flash", label: "Qwen3 Coder Flash", desc: "Coder versi cepat & murah untuk autocomplete IDE.", access: "plus_pro" },
+  { id: "qwen3-coder-flash-2025-07-28", label: "Qwen3 Coder Flash (2025-07-28)", desc: "Snapshot dated dari coder-flash.", access: "plus_pro" },
+  { id: "qwen3-coder-30b-a3b-instruct", label: "Qwen3 Coder 30B A3B Instruct", desc: "Coder MoE ukuran sedang.", access: "plus_pro" },
+  { id: "qwen3-coder-next", label: "Qwen3 Coder Next", desc: "Coder generasi Next — long context untuk repo besar.", access: "plus_pro" },
+
+  // ── Vision-Language / OCR (Plus & Pro) ───────────────────────────────────
+  { id: "qwen-vl-plus", label: "Qwen VL Plus", desc: "Vision-language model — input text + image. Cocok untuk analisa gambar.", access: "plus_pro" },
+  { id: "qwen-vl-max", label: "Qwen VL Max", desc: "Vision-language flagship — gambar + reasoning panjang.", access: "plus_pro" },
+  { id: "qwen-vl-ocr", label: "Qwen VL OCR", desc: "Spesialis OCR — extract teks dari gambar/dokumen scan.", access: "plus_pro" },
+
+  // ── Alternatif ekosistem (Plus & Pro) ────────────────────────────────────
   { id: "deepseek-v3.2", label: "DeepSeek V3.2", desc: "Alternatif kuat untuk reasoning & coding.", access: "plus_pro" },
-  // Pro only
+  { id: "qwen2.5-72b-instruct", label: "Qwen2.5 72B Instruct", desc: "Dense 72B legacy — masih kuat untuk task umum.", access: "plus_pro" },
+
+  // ── Frontier / Pro only ──────────────────────────────────────────────────
   { id: "qwen3-max", label: "Qwen3 Max", desc: "Frontier model — paling pintar untuk reasoning, analisa kompleks, long context.", access: "pro_only" },
+  { id: "qwen3-max-preview", label: "Qwen3 Max Preview", desc: "Preview build qwen3-max — fitur paling baru.", access: "pro_only" },
+  { id: "qwen3-max-2025-09-23", label: "Qwen3 Max (2025-09-23)", desc: "Snapshot dated dari qwen3-max — pin untuk stabilitas.", access: "pro_only" },
   { id: "qwen3-235b-a22b-thinking-2507", label: "Qwen3 235B Thinking", desc: "Mode thinking eksplisit. Bagus untuk math, logic, debugging.", access: "pro_only" },
+  { id: "qwen3.5-397b-a17b", label: "Qwen3.5 397B A17B", desc: "MoE raksasa generasi 3.5 — alternatif frontier.", access: "pro_only" },
   { id: "qwen3-coder-plus", label: "Qwen3 Coder Plus", desc: "Spesialis coding — code generation, refactor, review.", access: "pro_only" },
+  { id: "qwen3-coder-plus-2025-09-23", label: "Qwen3 Coder Plus (2025-09-23)", desc: "Snapshot dated dari coder-plus.", access: "pro_only" },
+  { id: "qwen3-coder-480b-a35b-instruct", label: "Qwen3 Coder 480B A35B", desc: "Coder MoE raksasa — paling kuat untuk task coding kompleks.", access: "pro_only" },
 ];
 
 const IMAGE_MODELS: ModelRow[] = [
-  // Plus & Pro
+  // ── Plus & Pro ───────────────────────────────────────────────────────────
   { id: "qwen-image", label: "Qwen Image", desc: "Balanced quality & speed. Aman buat hampir semua kebutuhan generate gambar.", access: "plus_pro" },
   { id: "qwen-image-plus", label: "Qwen Image Plus", desc: "Detail lebih tajam, fotorealistik lebih bagus.", access: "plus_pro" },
   { id: "z-image-turbo", label: "Z-Image Turbo", desc: "Generate super cepat untuk preview/iterasi.", access: "plus_pro" },
   { id: "wan2.2-t2i-flash", label: "Wan 2.2 T2I Flash", desc: "Wan series text-to-image, gaya artistik kuat.", access: "plus_pro" },
+  { id: "wan2.2-t2i-plus", label: "Wan 2.2 T2I Plus", desc: "Versi Plus dari Wan 2.2 T2I — kualitas lebih tinggi dari flash.", access: "plus_pro" },
   { id: "qwen-image-edit", label: "Qwen Image Edit", desc: "Edit gambar existing pakai prompt (image-to-image).", access: "plus_pro" },
-  // Pro only
+  { id: "wanx-style-repaint-v1", label: "Wanx Style Repaint v1", desc: "Stylize / repaint gambar dengan preset gaya.", access: "plus_pro" },
+
+  // ── Pro only ─────────────────────────────────────────────────────────────
   { id: "qwen-image-max", label: "Qwen Image Max", desc: "Output paling detail dan tajam.", access: "pro_only" },
   { id: "qwen-image-2.0-pro", label: "Qwen Image 2.0 Pro", desc: "Generasi terbaru, prompt adherence lebih akurat.", access: "pro_only" },
   { id: "qwen-image-edit-plus", label: "Qwen Image Edit Plus", desc: "Image edit dengan kontrol lebih presisi.", access: "pro_only" },
 ];
 
 const VIDEO_MODELS: ModelRow[] = [
-  // Plus & Pro
+  // ── Plus & Pro ───────────────────────────────────────────────────────────
   { id: "wan2.2-t2v-plus", label: "Wan 2.2 T2V Plus", desc: "Pilihan utama text-to-video. Output 5 detik 720p.", access: "plus_pro" },
   { id: "wan2.1-t2v-turbo", label: "Wan 2.1 T2V Turbo", desc: "Versi cepat untuk iterasi prompt.", access: "plus_pro" },
   { id: "wan2.2-i2v-flash", label: "Wan 2.2 I2V Flash", desc: "I2V versi cepat & murah.", access: "plus_pro" },
-  // Pro only
+  { id: "wan2.5-i2v-turbo", label: "Wan 2.5 I2V Turbo", desc: "Generasi 2.5 turbo — image-to-video lebih responsif.", access: "plus_pro" },
+
+  // ── Pro only ─────────────────────────────────────────────────────────────
   { id: "wan2.6-t2v", label: "Wan 2.6 T2V", desc: "Generasi terbaru, motion lebih smooth.", access: "pro_only" },
   { id: "wan2.2-i2v-plus", label: "Wan 2.2 I2V Plus", desc: "Image-to-video — kasih gambar awal + prompt motion.", access: "pro_only" },
   { id: "wan2.6-i2v", label: "Wan 2.6 I2V", desc: "I2V terbaru, kualitas paling baik.", access: "pro_only" },
