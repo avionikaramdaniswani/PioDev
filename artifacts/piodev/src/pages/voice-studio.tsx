@@ -8,6 +8,15 @@ import {
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
 import { useChat } from "@/hooks/use-chat";
+import {
+  Select,
+  SelectTrigger,
+  SelectValue,
+  SelectContent,
+  SelectGroup,
+  SelectLabel,
+  SelectItem,
+} from "@/components/ui/select";
 import { ChatSidebar } from "@/components/chat-sidebar";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
@@ -284,6 +293,30 @@ export default function VoiceStudio() {
       ? "bg-zinc-800/50 border-white/[0.06] placeholder:text-zinc-600"
       : "bg-zinc-50 border-black/[0.06] placeholder:text-zinc-400"
   );
+  // Custom Radix Select theming — match input look
+  const selectTriggerCls = cn(
+    "h-auto w-full rounded-xl px-4 py-2.5 text-sm border transition-all shadow-none",
+    "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40 data-[state=open]:ring-2 data-[state=open]:ring-primary/20",
+    isDark
+      ? "bg-zinc-800/50 border-white/[0.06] text-foreground hover:bg-zinc-800/70"
+      : "bg-zinc-50 border-black/[0.06] text-foreground hover:bg-zinc-100"
+  );
+  const selectContentCls = cn(
+    "rounded-xl border shadow-xl backdrop-blur-xl overflow-hidden",
+    isDark
+      ? "bg-zinc-900/95 border-white/[0.08] text-foreground"
+      : "bg-white/95 border-black/[0.08] text-foreground"
+  );
+  const selectLabelCls = cn(
+    "px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider",
+    isDark ? "text-zinc-500" : "text-zinc-400"
+  );
+  const selectItemCls = cn(
+    "rounded-lg mx-1 my-0.5 text-sm cursor-pointer",
+    isDark
+      ? "focus:bg-primary/15 focus:text-foreground data-[state=checked]:bg-primary/20"
+      : "focus:bg-primary/10 focus:text-foreground data-[state=checked]:bg-primary/15"
+  );
 
   const creditsBadge = (cost: number) => {
     if (!quota || quota.maxCredits >= 999) return null;
@@ -464,7 +497,6 @@ export default function VoiceStudio() {
                     <div>
                       <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Suara</label>
                       {(() => {
-                        // Anggap preset tanpa field provider sebagai dashscope (legacy/fallback)
                         const presetsWithProvider = voices.presets.map(p => ({
                           ...p,
                           provider: (p.provider as "azure" | "dashscope") || (p.id.startsWith("azure:") ? "azure" : "dashscope"),
@@ -473,57 +505,65 @@ export default function VoiceStudio() {
                         const azureOther = presetsWithProvider.filter(p => p.provider === "azure" && p.lang !== "id-ID");
                         const qwen = presetsWithProvider.filter(p => p.provider === "dashscope");
                         return (
-                          <select
-                            value={ttsVoiceKey}
-                            onChange={(e) => setTtsVoiceKey(e.target.value)}
-                            className={inputCls}
-                          >
-                            {azureID.length > 0 && (
-                              <optgroup label="Bahasa Indonesia">
-                                {azureID.map(p => (
-                                  <option key={p.id} value={`preset:${p.id}`}>{p.name.replace(/\s*⭐/g, "")}</option>
-                                ))}
-                              </optgroup>
-                            )}
-                            {azureOther.length > 0 && (
-                              <optgroup label="Bahasa Lain">
-                                {azureOther.map(p => (
-                                  <option key={p.id} value={`preset:${p.id}`}>{p.name}</option>
-                                ))}
-                              </optgroup>
-                            )}
-                            {qwen.length > 0 && (
-                              <optgroup label="Qwen Multilingual">
-                                {qwen.map(p => (
-                                  <option key={p.id} value={`preset:${p.id}`}>{p.name}</option>
-                                ))}
-                              </optgroup>
-                            )}
-                            {voices.custom.length > 0 && (
-                              <optgroup label="Suaraku">
-                                {voices.custom.map(c => (
-                                  <option key={c.id} value={`custom:${c.id}`}>
-                                    {c.name} · {c.type === "clone" ? "clone" : "design"}
-                                  </option>
-                                ))}
-                              </optgroup>
-                            )}
-                          </select>
+                          <Select value={ttsVoiceKey} onValueChange={setTtsVoiceKey}>
+                            <SelectTrigger className={selectTriggerCls}>
+                              <SelectValue placeholder="Pilih suara..." />
+                            </SelectTrigger>
+                            <SelectContent className={selectContentCls}>
+                              {azureID.length > 0 && (
+                                <SelectGroup>
+                                  <SelectLabel className={selectLabelCls}>Bahasa Indonesia</SelectLabel>
+                                  {azureID.map(p => (
+                                    <SelectItem key={p.id} value={`preset:${p.id}`} className={selectItemCls}>
+                                      {p.name.replace(/\s*⭐/g, "")}
+                                    </SelectItem>
+                                  ))}
+                                </SelectGroup>
+                              )}
+                              {azureOther.length > 0 && (
+                                <SelectGroup>
+                                  <SelectLabel className={selectLabelCls}>Bahasa Lain</SelectLabel>
+                                  {azureOther.map(p => (
+                                    <SelectItem key={p.id} value={`preset:${p.id}`} className={selectItemCls}>{p.name}</SelectItem>
+                                  ))}
+                                </SelectGroup>
+                              )}
+                              {qwen.length > 0 && (
+                                <SelectGroup>
+                                  <SelectLabel className={selectLabelCls}>Qwen Multilingual</SelectLabel>
+                                  {qwen.map(p => (
+                                    <SelectItem key={p.id} value={`preset:${p.id}`} className={selectItemCls}>{p.name}</SelectItem>
+                                  ))}
+                                </SelectGroup>
+                              )}
+                              {voices.custom.length > 0 && (
+                                <SelectGroup>
+                                  <SelectLabel className={selectLabelCls}>Suaraku</SelectLabel>
+                                  {voices.custom.map(c => (
+                                    <SelectItem key={c.id} value={`custom:${c.id}`} className={selectItemCls}>
+                                      {c.name} · {c.type === "clone" ? "clone" : "design"}
+                                    </SelectItem>
+                                  ))}
+                                </SelectGroup>
+                              )}
+                            </SelectContent>
+                          </Select>
                         );
                       })()}
                     </div>
                     {!isAzureVoice && (
                       <div>
                         <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Bahasa</label>
-                        <select
-                          value={ttsLanguage}
-                          onChange={(e) => setTtsLanguage(e.target.value)}
-                          className={inputCls}
-                        >
-                          {LANGUAGES.map(l => (
-                            <option key={l.id} value={l.id}>{l.label}</option>
-                          ))}
-                        </select>
+                        <Select value={ttsLanguage} onValueChange={setTtsLanguage}>
+                          <SelectTrigger className={selectTriggerCls}>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className={selectContentCls}>
+                            {LANGUAGES.map(l => (
+                              <SelectItem key={l.id} value={l.id} className={selectItemCls}>{l.label}</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                       </div>
                     )}
                   </div>
