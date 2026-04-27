@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { Key, Plus, Copy, Trash2, AlertTriangle, Check, ArrowLeft, ArrowRight, Code, Zap, Clock, Sparkles, MessageSquare, Image as ImageIcon, Video, FileText, ScanText, Lock, Lightbulb, AlertCircle, Rocket, BookOpen, Layers, Eye, EyeOff, Loader2, Activity, Pencil, X as XIcon, CreditCard, History, ArrowUp, ArrowDown, Gift, Wand2, ShieldCheck, Inbox, RefreshCw } from "lucide-react";
+import { Key, Plus, Copy, Trash2, AlertTriangle, Check, ArrowLeft, ArrowRight, Code, Zap, Clock, Sparkles, MessageSquare, Image as ImageIcon, Video, FileText, ScanText, Lock, Lightbulb, AlertCircle, Rocket, BookOpen, Layers, Eye, EyeOff, Loader2, Activity, Pencil, X as XIcon, CreditCard, History, ArrowUp, ArrowDown, Gift, Wand2, ShieldCheck, Inbox, RefreshCw, Cpu } from "lucide-react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useAuth } from "@/hooks/use-auth";
@@ -1511,10 +1511,11 @@ function Callout({ icon: Icon, color, children }: { icon: any; color: "blue" | "
 
 function Docs() {
   const baseUrl = typeof window !== "undefined" ? `${window.location.origin}/v1` : "https://your-domain.com/v1";
-  const [docTab, setDocTab] = useState<"start" | "chat" | "image" | "video" | "ocr" | "file" | "ref">("start");
+  const [docTab, setDocTab] = useState<"start" | "models" | "chat" | "image" | "video" | "ocr" | "file" | "ref">("start");
 
   const tabs: { id: typeof docTab; label: string; icon: any }[] = [
     { id: "start", label: "Mulai di sini", icon: Rocket },
+    { id: "models", label: "Models", icon: Cpu },
     { id: "chat", label: "Chat", icon: MessageSquare },
     { id: "image", label: "Gambar", icon: ImageIcon },
     { id: "video", label: "Video", icon: Video },
@@ -1655,6 +1656,9 @@ Invoke-RestMethod -Uri "${baseUrl}/chat/completions" \`
           </Card>
         </div>
       )}
+
+      {/* MODELS */}
+      {docTab === "models" && <ModelsSection />}
 
       {/* CHAT */}
       {docTab === "chat" && (
@@ -1972,6 +1976,221 @@ console.log(res.choices[0].message.content);`}</CodeBlock>
           </Card>
         </div>
       )}
+    </div>
+  );
+}
+
+type ModelTier = "free" | "plus" | "pro";
+
+interface ModelRow {
+  id: string;
+  label: string;
+  desc: string;
+  tiers: ModelTier[];
+  badge?: string;
+}
+
+const CHAT_MODELS: ModelRow[] = [
+  { id: "qwen-flash", label: "Qwen Flash", desc: "Paling cepat & murah. Cocok untuk task ringan, autocomplete, klasifikasi.", tiers: ["free", "plus", "pro"] },
+  { id: "qwen-plus", label: "Qwen Plus", desc: "Default rekomendasi. Balance antara kecepatan, kualitas, dan biaya.", tiers: ["free", "plus", "pro"], badge: "Default" },
+  { id: "qwen-turbo", label: "Qwen Turbo", desc: "Throughput tinggi, latency rendah. Bagus untuk produksi volume besar.", tiers: ["free", "plus", "pro"] },
+  { id: "qwen3-max", label: "Qwen3 Max", desc: "Frontier model — paling pintar untuk reasoning, analisa kompleks, long context.", tiers: ["plus", "pro"], badge: "Premium" },
+  { id: "qwen3-235b-a22b-thinking-2507", label: "Qwen3 235B Thinking", desc: "Mode thinking eksplisit. Bagus untuk math, logic, debugging.", tiers: ["plus", "pro"] },
+  { id: "qwen3-coder-plus", label: "Qwen3 Coder Plus", desc: "Spesialis coding — code generation, refactor, review.", tiers: ["plus", "pro"], badge: "Coding" },
+  { id: "qwen3-coder-flash", label: "Qwen3 Coder Flash", desc: "Coder versi cepat & murah untuk autocomplete IDE.", tiers: ["plus", "pro"] },
+  { id: "deepseek-v3.2", label: "DeepSeek V3.2", desc: "Alternatif kuat untuk reasoning & coding.", tiers: ["plus", "pro"] },
+];
+
+const IMAGE_MODELS: ModelRow[] = [
+  { id: "qwen-image", label: "Qwen Image", desc: "Default text-to-image, balanced quality & speed.", tiers: ["free", "plus", "pro"], badge: "Default" },
+  { id: "qwen-image-plus", label: "Qwen Image Plus", desc: "Detail lebih tajam, fotorealistik lebih bagus.", tiers: ["plus", "pro"] },
+  { id: "qwen-image-max", label: "Qwen Image Max", desc: "Premium quality, output paling detail.", tiers: ["plus", "pro"], badge: "Premium" },
+  { id: "qwen-image-2.0-pro", label: "Qwen Image 2.0 Pro", desc: "Generasi terbaru, prompt adherence lebih akurat.", tiers: ["plus", "pro"] },
+  { id: "z-image-turbo", label: "Z-Image Turbo", desc: "Generate sangat cepat untuk preview/iterasi.", tiers: ["free", "plus", "pro"] },
+  { id: "wan2.2-t2i-flash", label: "Wan 2.2 T2I Flash", desc: "Wan series text-to-image, gaya artistik kuat.", tiers: ["free", "plus", "pro"] },
+  { id: "qwen-image-edit", label: "Qwen Image Edit", desc: "Edit gambar existing pakai prompt (image-to-image).", tiers: ["free", "plus", "pro"], badge: "Edit" },
+  { id: "qwen-image-edit-plus", label: "Qwen Image Edit Plus", desc: "Image edit dengan kontrol lebih presisi.", tiers: ["plus", "pro"] },
+];
+
+const VIDEO_MODELS: ModelRow[] = [
+  { id: "wan2.2-t2v-plus", label: "Wan 2.2 T2V Plus", desc: "Default text-to-video. Output 5 detik 720p.", tiers: ["plus", "pro"], badge: "Default" },
+  { id: "wan2.6-t2v", label: "Wan 2.6 T2V", desc: "Generasi terbaru, motion lebih smooth.", tiers: ["plus", "pro"] },
+  { id: "wan2.1-t2v-turbo", label: "Wan 2.1 T2V Turbo", desc: "Versi cepat untuk iterasi prompt.", tiers: ["plus", "pro"] },
+  { id: "wan2.2-i2v-plus", label: "Wan 2.2 I2V Plus", desc: "Image-to-video — kasih gambar awal + prompt motion.", tiers: ["plus", "pro"], badge: "I2V" },
+  { id: "wan2.2-i2v-flash", label: "Wan 2.2 I2V Flash", desc: "I2V versi cepat & murah.", tiers: ["plus", "pro"] },
+  { id: "wan2.6-i2v", label: "Wan 2.6 I2V", desc: "I2V terbaru, kualitas paling baik.", tiers: ["plus", "pro"] },
+];
+
+function TierBadge({ tier }: { tier: ModelTier }) {
+  const styles: Record<ModelTier, string> = {
+    free: "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20",
+    plus: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
+    pro: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+  };
+  const labels: Record<ModelTier, string> = { free: "Free", plus: "Plus", pro: "Pro" };
+  return (
+    <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border", styles[tier])}>
+      {labels[tier]}
+    </span>
+  );
+}
+
+function ModelTable({ models, defaultHint }: { models: ModelRow[]; defaultHint: string }) {
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const handleCopy = (id: string) => {
+    navigator.clipboard.writeText(id);
+    setCopiedId(id);
+    toast({ title: "Model ID disalin", description: id });
+    setTimeout(() => setCopiedId((curr) => (curr === id ? null : curr)), 1500);
+  };
+
+  return (
+    <div className="ml-7">
+      <div className="rounded-lg border border-border overflow-hidden">
+        {/* Desktop table */}
+        <table className="w-full text-sm hidden md:table">
+          <thead className="bg-muted/40 text-xs text-muted-foreground">
+            <tr>
+              <th className="text-left px-3 py-2 font-medium">Model ID</th>
+              <th className="text-left px-3 py-2 font-medium">Nama</th>
+              <th className="text-left px-3 py-2 font-medium">Akses</th>
+              <th className="text-left px-3 py-2 font-medium">Catatan</th>
+              <th className="text-right px-3 py-2 font-medium w-12"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {models.map((m) => (
+              <tr key={m.id} className="border-t border-border hover:bg-muted/30 transition">
+                <td className="px-3 py-2.5 font-mono text-xs text-foreground/90 align-top">
+                  <div className="flex items-center gap-1.5">
+                    <span>{m.id}</span>
+                    {m.badge && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-primary/10 text-primary border border-primary/20 font-sans">
+                        {m.badge}
+                      </span>
+                    )}
+                  </div>
+                </td>
+                <td className="px-3 py-2.5 font-medium align-top">{m.label}</td>
+                <td className="px-3 py-2.5 align-top">
+                  <div className="flex flex-wrap gap-1">
+                    {m.tiers.map((t) => <TierBadge key={t} tier={t} />)}
+                  </div>
+                </td>
+                <td className="px-3 py-2.5 text-muted-foreground text-xs align-top">{m.desc}</td>
+                <td className="px-3 py-2.5 text-right align-top">
+                  <button
+                    onClick={() => handleCopy(m.id)}
+                    className="inline-flex items-center justify-center w-7 h-7 rounded-md hover:bg-muted transition text-muted-foreground hover:text-foreground"
+                    title="Copy model ID"
+                  >
+                    {copiedId === m.id ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+
+        {/* Mobile cards */}
+        <div className="md:hidden divide-y divide-border">
+          {models.map((m) => (
+            <div key={m.id} className="p-3 space-y-2">
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-sm">{m.label}</div>
+                  <div className="font-mono text-xs text-muted-foreground break-all mt-0.5">{m.id}</div>
+                </div>
+                <button
+                  onClick={() => handleCopy(m.id)}
+                  className="shrink-0 inline-flex items-center justify-center w-7 h-7 rounded-md hover:bg-muted transition text-muted-foreground hover:text-foreground"
+                  title="Copy model ID"
+                >
+                  {copiedId === m.id ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {m.badge && (
+                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-primary/10 text-primary border border-primary/20">
+                    {m.badge}
+                  </span>
+                )}
+                {m.tiers.map((t) => <TierBadge key={t} tier={t} />)}
+              </div>
+              <p className="text-xs text-muted-foreground">{m.desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+      <p className="mt-2 text-xs text-muted-foreground italic">{defaultHint}</p>
+    </div>
+  );
+}
+
+function ModelsSection() {
+  return (
+    <div className="space-y-6">
+      <Card className="bg-gradient-to-br from-primary/5 to-transparent">
+        <SectionHeader icon={Cpu} title="Daftar model siap pakai" subtitle="Semua model di bawah ini bisa dipakai langsung lewat API key kamu. Klik ikon copy untuk salin Model ID." />
+        <div className="ml-7 grid gap-2 sm:grid-cols-3 mt-2">
+          <div className="p-3 rounded-lg border border-border bg-background/40">
+            <div className="text-xs text-muted-foreground">Tarif Chat</div>
+            <div className="font-semibold text-sm mt-0.5">Rp 1 / 2 token</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">Berlaku semua model chat</div>
+          </div>
+          <div className="p-3 rounded-lg border border-border bg-background/40">
+            <div className="text-xs text-muted-foreground">Tarif Gambar</div>
+            <div className="font-semibold text-sm mt-0.5">Rp 4.000 / gambar</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">Per output image</div>
+          </div>
+          <div className="p-3 rounded-lg border border-border bg-background/40">
+            <div className="text-xs text-muted-foreground">Tarif Video</div>
+            <div className="font-semibold text-sm mt-0.5">Rp 50.000 / video</div>
+            <div className="text-[11px] text-muted-foreground mt-0.5">Per output video</div>
+          </div>
+        </div>
+        <div className="ml-7 mt-3">
+          <Callout icon={Lightbulb} color="blue">
+            Badge <TierBadge tier="free" /> <TierBadge tier="plus" /> <TierBadge tier="pro" /> menunjukkan tier akun yang bisa pakai model tsb.
+            Saldo IDR tetep dipotong dari balance kamu, terlepas dari tier.
+          </Callout>
+        </div>
+      </Card>
+
+      <Card>
+        <SectionHeader icon={MessageSquare} title="Chat (LLM)" subtitle="Endpoint: POST /v1/chat/completions" />
+        <ModelTable
+          models={CHAT_MODELS}
+          defaultHint="Belum tau pilih yang mana? Mulai dari qwen-plus — itu sweet spot kualitas vs harga."
+        />
+      </Card>
+
+      <Card>
+        <SectionHeader icon={ImageIcon} title="Gambar" subtitle="Endpoint: POST /v1/images/generations · POST /v1/images/edits" />
+        <ModelTable
+          models={IMAGE_MODELS}
+          defaultHint="Default rekomendasi: qwen-image. Untuk hasil premium pakai qwen-image-max."
+        />
+      </Card>
+
+      <Card>
+        <SectionHeader icon={Video} title="Video" subtitle="Endpoint: POST /v1/videos/generations" />
+        <ModelTable
+          models={VIDEO_MODELS}
+          defaultHint="Default text-to-video: wan2.2-t2v-plus. Untuk image-to-video pakai wan2.2-i2v-plus."
+        />
+      </Card>
+
+      <Card className="bg-muted/30">
+        <SectionHeader icon={AlertCircle} title="Catatan penting" />
+        <ul className="ml-7 space-y-2 text-sm text-muted-foreground list-disc list-inside">
+          <li>List ini adalah model rekomendasi yang paling stabil. Server juga support varian dated (mis. <code className="px-1 py-0.5 bg-muted rounded text-xs">qwen-plus-2025-09-11</code>) untuk pin versi.</li>
+          <li>Model dengan badge <span className="px-1.5 py-0.5 rounded text-[10px] bg-primary/10 text-primary border border-primary/20">Premium</span> butuh tier Plus atau Pro. Free tier akan dapat error <code className="px-1 py-0.5 bg-muted rounded text-xs">MODEL_RESTRICTED</code>.</li>
+          <li>Pricing per token = total prompt + completion tokens. Hitungan: <code className="px-1 py-0.5 bg-muted rounded text-xs">ceil(total_tokens / 2)</code> rupiah.</li>
+          <li>Daftar model bisa berubah seiring rilis baru — selalu cek halaman ini sebelum hardcode di production.</li>
+        </ul>
+      </Card>
     </div>
   );
 }
