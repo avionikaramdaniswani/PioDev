@@ -538,11 +538,11 @@ export default function ApiKeysPage() {
                 <table className="w-full text-sm">
                   <thead className="bg-muted/50">
                     <tr>
-                      <th className="text-left px-4 py-3 font-medium">Nama</th>
+                      <th className="text-left px-4 py-3 font-medium whitespace-nowrap">Nama</th>
                       <th className="text-left px-4 py-3 font-medium">Key</th>
-                      <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Dibuat</th>
-                      <th className="text-left px-4 py-3 font-medium hidden md:table-cell">Terakhir dipakai</th>
-                      <th className="px-4 py-3"></th>
+                      <th className="text-left px-4 py-3 font-medium hidden md:table-cell whitespace-nowrap">Dibuat</th>
+                      <th className="text-left px-4 py-3 font-medium hidden md:table-cell whitespace-nowrap">Terakhir dipakai</th>
+                      <th className="px-4 py-3 w-12"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -587,25 +587,26 @@ export default function ApiKeysPage() {
                             )}
                           </td>
                           <td className="px-4 py-3 align-top">
-                            <div className="flex items-center gap-1.5 flex-wrap">
+                            <div className="flex items-center gap-1.5 min-w-0">
                               <code
                                 className={cn(
-                                  "font-mono text-xs px-2 py-1 rounded border break-all",
+                                  "font-mono text-xs px-2 py-1 rounded border whitespace-nowrap overflow-hidden text-ellipsis flex-1 min-w-0 max-w-[22rem]",
                                   isRevealed
                                     ? "bg-primary/5 border-primary/30 text-foreground"
                                     : "bg-muted/50 border-transparent text-muted-foreground"
                                 )}
+                                title={isRevealed ? revealed[k.id] : k.key_prefix}
                                 data-testid={`text-key-${k.id}`}
                               >
                                 {isRevealed ? revealed[k.id] : k.key_prefix}
                               </code>
 
                               {k.revealable ? (
-                                <>
+                                <div className="flex items-center gap-0.5 shrink-0">
                                   <button
                                     onClick={() => handleReveal(k.id)}
                                     disabled={isRevealing}
-                                    title={isRevealed ? "Sembunyikan" : "Tampilkan & salin"}
+                                    title={isRevealed ? "Sembunyikan" : "Tampilkan key"}
                                     className="p-1.5 rounded-md hover:bg-muted transition text-muted-foreground hover:text-foreground disabled:opacity-50"
                                     data-testid={`button-reveal-${k.id}`}
                                   >
@@ -621,7 +622,7 @@ export default function ApiKeysPage() {
                                   {isRevealed && (
                                     <button
                                       onClick={() => handleCopyRow(k.id)}
-                                      title="Salin"
+                                      title="Salin key"
                                       className="p-1.5 rounded-md hover:bg-muted transition text-muted-foreground hover:text-foreground"
                                       data-testid={`button-copy-${k.id}`}
                                     >
@@ -634,14 +635,14 @@ export default function ApiKeysPage() {
                                   )}
 
                                   {justCopied && !isRevealing && (
-                                    <span className="text-[10px] text-green-500 font-medium">Disalin</span>
+                                    <span className="text-[10px] text-green-500 font-medium ml-1 whitespace-nowrap">Disalin</span>
                                   )}
-                                </>
+                                </div>
                               ) : null}
                             </div>
                           </td>
-                          <td className="px-4 py-3 text-muted-foreground hidden md:table-cell align-top">{formatDate(k.created_at)}</td>
-                          <td className="px-4 py-3 text-muted-foreground hidden md:table-cell align-top">{formatDate(k.last_used_at)}</td>
+                          <td className="px-4 py-3 text-muted-foreground hidden md:table-cell align-top whitespace-nowrap">{formatDate(k.created_at)}</td>
+                          <td className="px-4 py-3 text-muted-foreground hidden md:table-cell align-top whitespace-nowrap">{formatDate(k.last_used_at)}</td>
                           <td className="px-4 py-3 text-right align-top">
                             <button
                               onClick={() => askRevoke(k)}
