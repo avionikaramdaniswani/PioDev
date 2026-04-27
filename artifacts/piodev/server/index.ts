@@ -1099,6 +1099,97 @@ async function callDashscopeTTS(payload: {
   return { ok: true, audioBuffer, mime };
 }
 
+// ── Voice Studio: TTS history helpers ─────────────────────────────────────────
+// Bucket dibuat lewat scripts/run-tts-history-migration.ts.
+// Tabel public.tts_history harus dibuat lewat SQL editor (file: tts-history-migration.sql).
+const TTS_BUCKET = "voice-studio-tts";
+const TTS_HISTORY_MAX_PER_USER = 50; // auto-prune entry paling lama lebih dari 50
+
+async function saveTtsHistory(params: {
+  userId: string;
+  text: string;
+  voiceKey: string;
+  voiceLabel: string | null;
+  language: string;
+  model: string;
+  instruction?: string;
+  audioBuffer: Buffer;
+  mime: string;
+}): Promise<{ id: string; storagePath: string } | null> {
+  try {
+    const id = crypto.randomUUID();
+    const ext = params.mime.includes("wav") ? "wav" : "mp3";
+    const storagePath = `${params.userId}/${id}.${ext}`;
+
+    const { error: upErr } = await supabaseAdmin.storage
+      .from(TTS_BUCKET)
+      .upload(storagePath, params.audioBuffer, {
+        contentType: params.mime,
+        upsert: false,
+      });
+    if (upErr) {
+      console.error("[tts-history] storage upload failed:", upErr.message);
+      return null;
+    }
+
+    const { error: insErr } = await supabaseAdmin.from("tts_history").insert({
+      id,
+      user_id: params.userId,
+      text: params.text.slice(0, 2000),
+      voice_key: params.voiceKey,
+      voice_label: params.voiceLabel,
+      language: params.language,
+      model: params.model,
+      instruction: params.instruction || null,
+      storage_path: storagePath,
+      mime: params.mime,
+      size_bytes: params.audioBuffer.length,
+    });
+    if (insErr) {
+      console.error("[tts-history] db insert failed:", insErr.message);
+      // Bersihin file kalau insert gagal supaya gak ada storage orphan.
+      await supabaseAdmin.storage.from(TTS_BUCKET).remove([storagePath]);
+      return null;
+    }
+
+    // Auto-prune: hapus entry paling lama kalau total > MAX_PER_USER.
+    pruneTtsHistory(params.userId).catch(() => {
+      /* best-effort */
+    });
+
+    return { id, storagePath };
+  } catch (err: any) {
+    console.error("[tts-history] unexpected:", err?.message || err);
+    return null;
+  }
+}
+
+async function pruneTtsHistory(userId: string): Promise<void> {
+  const { data, error } = await supabaseAdmin
+    .from("tts_history")
+    .select("id, storage_path")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error || !data) return;
+  if (data.length <= TTS_HISTORY_MAX_PER_USER) return;
+  const toDelete = data.slice(TTS_HISTORY_MAX_PER_USER);
+  const ids = toDelete.map((r) => r.id);
+  const paths = toDelete.map((r) => r.storage_path).filter(Boolean);
+  if (paths.length) {
+    await supabaseAdmin.storage.from(TTS_BUCKET).remove(paths);
+  }
+  if (ids.length) {
+    await supabaseAdmin.from("tts_history").delete().in("id", ids);
+  }
+}
+
+function presetLabel(voiceKey: string): string | null {
+  if (!voiceKey.startsWith("preset:")) return null;
+  const id = voiceKey.slice(7);
+  const found = VOICE_STUDIO_PRESETS.find((p) => p.id === id);
+  return found ? found.name : id;
+}
+
 // ── GET /api/voice-studio/quota — kredit + max ────────────────────────────────
 app.get("/api/voice-studio/quota", requireAuth, async (req, res) => {
   const userId = (req as any).userId;
@@ -1171,8 +1262,25 @@ app.post("/api/voice-studio/tts", requireAuth, async (req, res) => {
   // Deduct setelah sukses
   await deductVoiceCredits(userId, VOICE_COST_TTS);
 
+  // Simpan ke history (best-effort; kalau gagal, audio tetap dikirim ke user).
+  const saved = await saveTtsHistory({
+    userId,
+    text,
+    voiceKey: `preset:${voice}`,
+    voiceLabel: presetLabel(`preset:${voice}`),
+    language,
+    model,
+    instruction,
+    audioBuffer: result.audioBuffer,
+    mime: result.mime,
+  });
+
   res.setHeader("Content-Type", result.mime);
   res.setHeader("Cache-Control", "no-cache");
+  if (saved) {
+    res.setHeader("X-Tts-History-Id", saved.id);
+    res.setHeader("Access-Control-Expose-Headers", "X-Tts-History-Id");
+  }
   res.send(result.audioBuffer);
 });
 
@@ -1375,9 +1483,106 @@ app.post("/api/voice-studio/tts-custom", requireAuth, async (req, res) => {
   }
 
   await deductVoiceCredits(userId, VOICE_COST_TTS);
+
+  const saved = await saveTtsHistory({
+    userId,
+    text,
+    voiceKey: `custom:${voiceDbId}`,
+    voiceLabel: voiceRow.name || null,
+    language,
+    model: ttsModel,
+    audioBuffer: result.audioBuffer,
+    mime: result.mime,
+  });
+
   res.setHeader("Content-Type", result.mime);
   res.setHeader("Cache-Control", "no-cache");
+  if (saved) {
+    res.setHeader("X-Tts-History-Id", saved.id);
+    res.setHeader("Access-Control-Expose-Headers", "X-Tts-History-Id");
+  }
   res.send(result.audioBuffer);
+});
+
+// ── GET /api/voice-studio/history — list TTS history user (signed URLs) ───────
+app.get("/api/voice-studio/history", requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+  const limit = Math.min(Math.max(Number(req.query.limit) || 20, 1), 50);
+
+  const { data, error } = await supabaseAdmin
+    .from("tts_history")
+    .select(
+      "id, text, voice_key, voice_label, language, model, instruction, storage_path, mime, size_bytes, created_at",
+    )
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error) {
+    res.status(500).json({ error: error.message });
+    return;
+  }
+
+  // Bikin signed URL (expire 1 jam) buat tiap entry.
+  const items = await Promise.all(
+    (data || []).map(async (row) => {
+      const { data: signed } = await supabaseAdmin.storage
+        .from(TTS_BUCKET)
+        .createSignedUrl(row.storage_path, 3600);
+      return {
+        id: row.id,
+        text: row.text,
+        voiceKey: row.voice_key,
+        voiceLabel: row.voice_label,
+        language: row.language,
+        model: row.model,
+        instruction: row.instruction,
+        mime: row.mime,
+        sizeBytes: row.size_bytes,
+        createdAt: row.created_at,
+        audioUrl: signed?.signedUrl || null,
+      };
+    }),
+  );
+
+  res.json({ items });
+});
+
+// ── DELETE /api/voice-studio/history/:id — hapus 1 entry history ──────────────
+app.delete("/api/voice-studio/history/:id", requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+  const { id } = req.params;
+
+  const { data: row, error: fetchErr } = await supabaseAdmin
+    .from("tts_history")
+    .select("storage_path")
+    .eq("id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (fetchErr) {
+    res.status(500).json({ error: fetchErr.message });
+    return;
+  }
+  if (!row) {
+    res.status(404).json({ error: "Entry tidak ditemukan" });
+    return;
+  }
+
+  if (row.storage_path) {
+    await supabaseAdmin.storage.from(TTS_BUCKET).remove([row.storage_path]);
+  }
+  const { error: delErr } = await supabaseAdmin
+    .from("tts_history")
+    .delete()
+    .eq("id", id)
+    .eq("user_id", userId);
+
+  if (delErr) {
+    res.status(500).json({ error: delErr.message });
+    return;
+  }
+  res.json({ ok: true });
 });
 
 // ── Premium Applications ───────────────────────────────────────────────────────
