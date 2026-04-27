@@ -89,6 +89,7 @@ export default function ApiKeysPage() {
   // Reveal state per key id: full plaintext key (kalo lagi ditampilin)
   const [revealed, setRevealed] = useState<Record<string, string>>({});
   const [revealingId, setRevealingId] = useState<string | null>(null);
+  const [copyingId, setCopyingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Inline rename state
@@ -282,12 +283,34 @@ export default function ApiKeysPage() {
   }
 
   async function handleCopyRow(id: string) {
-    const val = revealed[id];
-    if (!val) return;
-    await navigator.clipboard.writeText(val);
-    setCopiedId(id);
-    toast({ title: "Key disalin" });
-    setTimeout(() => setCopiedId(null), 2000);
+    let val = revealed[id];
+    if (!val) {
+      setCopyingId(id);
+      try {
+        const res = await authedFetch(`/api/me/api-keys/${id}/reveal`);
+        const data = await res.json();
+        if (!res.ok) {
+          const msg = data.error || "Gagal salin key";
+          toast({ title: "Gagal salin key", description: msg, variant: "destructive" });
+          return;
+        }
+        val = data.key;
+      } catch (e: any) {
+        const msg = e?.message || "Gagal salin key";
+        toast({ title: "Gagal salin key", description: msg, variant: "destructive" });
+        return;
+      } finally {
+        setCopyingId(null);
+      }
+    }
+    try {
+      await navigator.clipboard.writeText(val);
+      setCopiedId(id);
+      toast({ title: "Key disalin" });
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch {
+      toast({ title: "Gagal salin", description: "Clipboard tidak tersedia.", variant: "destructive" });
+    }
   }
 
   const activeKeys = keys.filter((k) => !k.revoked_at);
@@ -386,6 +409,7 @@ export default function ApiKeysPage() {
                 {activeKeys.map((k) => {
                   const isRevealed = !!revealed[k.id];
                   const isRevealing = revealingId === k.id;
+                  const isCopying = copyingId === k.id;
                   const justCopied = copiedId === k.id;
                   const isEditing = editingId === k.id;
                   const isSavingEdit = savingEditId === k.id;
@@ -492,22 +516,23 @@ export default function ApiKeysPage() {
                                 <Eye className="w-4 h-4" />
                               )}
                             </button>
-                            {isRevealed && (
-                              <button
-                                type="button"
-                                onClick={() => handleCopyRow(k.id)}
-                                title="Salin"
-                                aria-label="Salin key"
-                                className="p-1.5 rounded-md hover:bg-background/60 active:bg-background/60 text-muted-foreground hover:text-foreground transition touch-manipulation"
-                                data-testid={`button-copy-mobile-${k.id}`}
-                              >
-                                {justCopied ? (
-                                  <Check className="w-4 h-4 text-green-500" />
-                                ) : (
-                                  <Copy className="w-4 h-4" />
-                                )}
-                              </button>
-                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleCopyRow(k.id)}
+                              disabled={isCopying}
+                              title="Salin key"
+                              aria-label="Salin key"
+                              className="p-1.5 rounded-md hover:bg-background/60 active:bg-background/60 text-muted-foreground hover:text-foreground transition touch-manipulation disabled:opacity-50"
+                              data-testid={`button-copy-mobile-${k.id}`}
+                            >
+                              {isCopying ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : justCopied ? (
+                                <Check className="w-4 h-4 text-green-500" />
+                              ) : (
+                                <Copy className="w-4 h-4" />
+                              )}
+                            </button>
                           </div>
                         ) : null}
                       </div>
@@ -549,6 +574,7 @@ export default function ApiKeysPage() {
                     {activeKeys.map((k) => {
                       const isRevealed = !!revealed[k.id];
                       const isRevealing = revealingId === k.id;
+                      const isCopying = copyingId === k.id;
                       const justCopied = copiedId === k.id;
                       const isEditing = editingId === k.id;
                       const isSavingEdit = savingEditId === k.id;
@@ -619,22 +645,23 @@ export default function ApiKeysPage() {
                                     )}
                                   </button>
 
-                                  {isRevealed && (
-                                    <button
-                                      onClick={() => handleCopyRow(k.id)}
-                                      title="Salin key"
-                                      className="p-1.5 rounded-md hover:bg-muted transition text-muted-foreground hover:text-foreground"
-                                      data-testid={`button-copy-${k.id}`}
-                                    >
-                                      {justCopied ? (
-                                        <Check className="w-3.5 h-3.5 text-green-500" />
-                                      ) : (
-                                        <Copy className="w-3.5 h-3.5" />
-                                      )}
-                                    </button>
-                                  )}
+                                  <button
+                                    onClick={() => handleCopyRow(k.id)}
+                                    disabled={isCopying}
+                                    title="Salin key"
+                                    className="p-1.5 rounded-md hover:bg-muted transition text-muted-foreground hover:text-foreground disabled:opacity-50"
+                                    data-testid={`button-copy-${k.id}`}
+                                  >
+                                    {isCopying ? (
+                                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                    ) : justCopied ? (
+                                      <Check className="w-3.5 h-3.5 text-green-500" />
+                                    ) : (
+                                      <Copy className="w-3.5 h-3.5" />
+                                    )}
+                                  </button>
 
-                                  {justCopied && !isRevealing && (
+                                  {justCopied && !isRevealing && !isCopying && (
                                     <span className="text-[10px] text-green-500 font-medium ml-1 whitespace-nowrap">Disalin</span>
                                   )}
                                 </div>
