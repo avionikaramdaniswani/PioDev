@@ -272,13 +272,6 @@ export default function ApiKeysPage() {
         return;
       }
       setRevealed((p) => ({ ...p, [id]: data.key }));
-      // Auto-copy ke clipboard kayak Gemini
-      try {
-        await navigator.clipboard.writeText(data.key);
-        setCopiedId(id);
-        toast({ title: "Key disalin", description: "Langsung tempel di tempat yang kamu butuh." });
-        setTimeout(() => setCopiedId(null), 2000);
-      } catch { /* clipboard mungkin di-block */ }
     } catch (e: any) {
       const msg = e?.message || "Gagal menampilkan key";
       setError(msg);
