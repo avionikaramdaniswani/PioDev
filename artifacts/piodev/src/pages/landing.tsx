@@ -1,7 +1,7 @@
 import { Link, useLocation } from "wouter";
-import { motion } from "framer-motion";
+import { motion, useInView, type Variants } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
-import { useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Sparkles,
   ArrowRight,
@@ -79,44 +79,43 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="relative z-10 max-w-4xl mx-auto px-6 sm:px-10 pt-20 pb-32 text-center">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <h1 className="text-5xl sm:text-6xl font-bold leading-[1.05] tracking-tight mb-5">
-            Satu AI,{" "}
-            <span className="bg-gradient-to-r from-primary via-indigo-400 to-violet-400 bg-clip-text text-transparent">
-              semua kebutuhan
-            </span>
+      <ScrollSection className="relative z-10 max-w-4xl mx-auto px-6 sm:px-10 pt-20 pb-32 text-center">
+        <motion.div variants={staggerContainer}>
+          <motion.h1
+            variants={itemVar}
+            className="text-5xl sm:text-6xl font-bold leading-[1.05] tracking-tight mb-5"
+          >
+            Satu AI buat
             <br />
-            kreatifmu.
-          </h1>
+            <TypingHeroPhrase />
+          </motion.h1>
 
-          <p className="text-lg text-white/50 max-w-xl mx-auto mb-8 leading-relaxed">
+          <motion.p
+            variants={itemVar}
+            className="text-lg text-white/50 max-w-xl mx-auto mb-8 leading-relaxed"
+          >
             Chat, gambar, video, suara, sampe baca dokumen — semua dalam satu
             tempat, mulai dari gratis.
-          </p>
+          </motion.p>
 
-          <div className="flex items-center justify-center gap-3">
+          <motion.div
+            variants={itemVar}
+            className="flex items-center justify-center gap-3"
+          >
             <Link href="/register">
               <button className="flex items-center gap-2 px-6 py-3 bg-primary hover:bg-primary/90 text-white rounded-xl font-semibold text-sm shadow-xl shadow-primary/25 hover:-translate-y-0.5 transition-all group">
                 Coba gratis sekarang
                 <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
               </button>
             </Link>
-          </div>
+          </motion.div>
         </motion.div>
-      </section>
+      </ScrollSection>
 
       {/* Feature strip — single dark card with icons + labels */}
-      <section className="relative z-10 max-w-5xl mx-auto px-6 sm:px-10 pb-32">
+      <ScrollSection className="relative z-10 max-w-5xl mx-auto px-6 sm:px-10 pb-32">
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5 }}
+          variants={itemVar}
           className="rounded-2xl border border-white/[0.08] bg-[hsl(240,12%,8%)] p-6 sm:p-8"
         >
           <div className="flex items-center justify-center gap-2 mb-6 text-white/80 text-sm font-semibold">
@@ -124,64 +123,78 @@ export default function LandingPage() {
             Satu Platform, Berbagai Fitur
             <Sparkles className="w-4 h-4 text-primary" />
           </div>
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 sm:gap-2">
+          <motion.div
+            variants={staggerContainer}
+            className="grid grid-cols-3 sm:grid-cols-6 gap-4 sm:gap-2"
+          >
             {features.map((f) => (
-              <FeatureItem key={f.label} icon={f.icon} label={f.label} />
+              <motion.div key={f.label} variants={itemVar}>
+                <FeatureItem icon={f.icon} label={f.label} />
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         </motion.div>
-      </section>
+      </ScrollSection>
 
       {/* Pricing teaser */}
-      <section className="relative z-10 max-w-5xl mx-auto px-6 sm:px-10 pb-24">
-        <div className="text-center mb-10">
+      <ScrollSection className="relative z-10 max-w-5xl mx-auto px-6 sm:px-10 pb-24">
+        <motion.div variants={itemVar} className="text-center mb-10">
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
             Mulai gratis. Upgrade kalau butuh.
           </h2>
           <p className="text-white/50 text-base">
             Tanpa kartu kredit. Bisa cancel kapan aja.
           </p>
-        </div>
+        </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <PricingCard
-            tier="Free"
-            priceLabel="Rp 0"
-            features={["60K token/hari", "7 gambar/hari", "Akses chat dasar"]}
-          />
-          <PricingCard
-            tier="Plus"
-            priceLabel={formatIDR(discountedPrice(pricing.plus))}
-            originalPrice={
-              pricing.plus.discount_percent > 0
-                ? formatIDR(pricing.plus.price_idr)
-                : undefined
-            }
-            discountLabel={pricing.plus.discount_label}
-            highlighted
-            features={[
-              "200K token/hari",
-              "25 gambar + 12 video/bln",
-              "Semua model premium",
-            ]}
-          />
-          <PricingCard
-            tier="Pro"
-            priceLabel={formatIDR(discountedPrice(pricing.pro))}
-            originalPrice={
-              pricing.pro.discount_percent > 0
-                ? formatIDR(pricing.pro.price_idr)
-                : undefined
-            }
-            discountLabel={pricing.pro.discount_label}
-            features={[
-              "360K token/hari",
-              "40 gambar + 20 video/bln",
-              "Frontier models (Qwen3-Max)",
-            ]}
-          />
-        </div>
-      </section>
+        <motion.div
+          variants={staggerContainer}
+          className="grid grid-cols-1 md:grid-cols-3 gap-4"
+        >
+          <motion.div variants={itemVar}>
+            <PricingCard
+              tier="Free"
+              priceLabel="Rp 0"
+              features={["60K token/hari", "7 gambar/hari", "Akses chat dasar"]}
+            />
+          </motion.div>
+          <motion.div variants={itemVar}>
+            <PricingCard
+              tier="Plus"
+              priceLabel={formatIDR(discountedPrice(pricing.plus))}
+              originalPrice={
+                pricing.plus.discount_percent > 0
+                  ? formatIDR(pricing.plus.price_idr)
+                  : undefined
+              }
+              discountLabel={pricing.plus.discount_label}
+              highlighted
+              features={[
+                "200K token/hari",
+                "25 gambar + 12 video/bln",
+                "Semua model premium",
+              ]}
+            />
+          </motion.div>
+          <motion.div variants={itemVar}>
+            <PricingCard
+              tier="Pro"
+              priceLabel={formatIDR(discountedPrice(pricing.pro))}
+              originalPrice={
+                pricing.pro.discount_percent > 0
+                  ? formatIDR(pricing.pro.price_idr)
+                  : undefined
+              }
+              discountLabel={pricing.pro.discount_label}
+              features={[
+                "360K token/hari",
+                "40 gambar + 20 video/bln",
+                "Frontier models (Qwen3-Max)",
+              ]}
+            />
+          </motion.div>
+        </motion.div>
+      </ScrollSection>
 
       {/* Footer */}
       <footer className="relative z-10 border-t border-white/5 py-8 text-center">
@@ -192,6 +205,109 @@ export default function LandingPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+// ─────────────────────────── Scroll-aware section wrapper ────────────────────
+const sectionVar: Variants = {
+  hidden: { opacity: 0, y: 40 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
+const staggerContainer: Variants = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.08, delayChildren: 0.05 } },
+};
+
+const itemVar: Variants = {
+  hidden: { opacity: 0, y: 20 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.5, ease: [0.22, 1, 0.36, 1] },
+  },
+};
+
+function ScrollSection({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
+  const ref = useRef<HTMLElement | null>(null);
+  const inView = useInView(ref, { amount: 0.2 });
+  return (
+    <motion.section
+      ref={ref}
+      variants={sectionVar}
+      initial="hidden"
+      animate={inView ? "show" : "hidden"}
+      className={className}
+    >
+      {children}
+    </motion.section>
+  );
+}
+
+// ─────────────────────────── Hero typing phrase ──────────────────────────────
+const HERO_PHRASES = [
+  "ngobrolin idemu.",
+  "bikin gambar AI.",
+  "edit video pendek.",
+  "voice clone-mu.",
+];
+
+function TypingHeroPhrase() {
+  const [idx, setIdx] = useState(0);
+  const current = HERO_PHRASES[idx];
+  const total = current.length;
+
+  const [count, setCount] = useState(0);
+  const [phase, setPhase] = useState<"typing" | "holding" | "deleting" | "pausing">("typing");
+
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout>;
+    if (phase === "typing") {
+      if (count < total) {
+        t = setTimeout(() => setCount((c) => c + 1), 70);
+      } else {
+        t = setTimeout(() => setPhase("holding"), 0);
+      }
+    } else if (phase === "holding") {
+      t = setTimeout(() => setPhase("deleting"), 1800);
+    } else if (phase === "deleting") {
+      if (count > 0) {
+        t = setTimeout(() => setCount((c) => c - 1), 28);
+      } else {
+        t = setTimeout(() => setPhase("pausing"), 0);
+      }
+    } else {
+      t = setTimeout(() => {
+        setIdx((i) => (i + 1) % HERO_PHRASES.length);
+        setPhase("typing");
+      }, 350);
+    }
+    return () => clearTimeout(t);
+  }, [phase, count, total]);
+
+  const visible = current.slice(0, count);
+
+  return (
+    <span className="inline-flex items-baseline">
+      <span className="bg-gradient-to-r from-primary via-indigo-400 to-violet-400 bg-clip-text text-transparent">
+        {visible || "\u00A0"}
+      </span>
+      <motion.span
+        className="inline-block ml-1 w-[4px] h-[0.85em] align-middle bg-primary translate-y-[0.05em]"
+        animate={{ opacity: [1, 1, 0, 0] }}
+        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+      />
+    </span>
   );
 }
 
