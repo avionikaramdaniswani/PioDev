@@ -2141,12 +2141,12 @@ function ModelsSection() {
           </div>
           <div className="p-3 rounded-lg border border-border bg-background/40">
             <div className="text-xs text-muted-foreground">Tarif Gambar</div>
-            <div className="font-semibold text-sm mt-0.5">Rp 4.000 / gambar</div>
+            <div className="font-semibold text-sm mt-0.5">Rp 1.000 / gambar</div>
             <div className="text-[11px] text-muted-foreground mt-0.5">Per output image</div>
           </div>
           <div className="p-3 rounded-lg border border-border bg-background/40">
             <div className="text-xs text-muted-foreground">Tarif Video</div>
-            <div className="font-semibold text-sm mt-0.5">Rp 50.000 / video</div>
+            <div className="font-semibold text-sm mt-0.5">Rp 10.000 / video</div>
             <div className="text-[11px] text-muted-foreground mt-0.5">Per output video</div>
           </div>
         </div>

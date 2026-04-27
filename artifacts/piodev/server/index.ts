@@ -50,8 +50,8 @@ const API_DAILY_REQUEST_LIMIT = 1_000;
 // Konversi: 2 token = Rp 1 (cost = ceil(tokens / 2))
 const IDR_PER_TOKEN_NUM = 1;
 const IDR_PER_TOKEN_DEN = 2;
-const IMAGE_COST_IDR = 4_000;     // per gambar
-const VIDEO_COST_IDR = 50_000;    // per video
+const IMAGE_COST_IDR = 1_000;     // per gambar
+const VIDEO_COST_IDR = 10_000;    // per video
 const PLUS_UPGRADE_BONUS_IDR = 75_000;   // bonus sekali saat upgrade ke Plus
 const PRO_UPGRADE_BONUS_IDR  = 125_000;  // bonus sekali saat upgrade ke Pro
 

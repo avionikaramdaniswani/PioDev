@@ -6,7 +6,7 @@
 --  - Persistent balance, NO daily reset
 --  - Bonus Rp 100.000 sekali saat upgrade ke Plus
 --  - Top up beneran segera hadir
---  - Cost: 2 token = Rp 1, image Rp 4.000, video Rp 50.000
+--  - Cost: 2 token = Rp 1, image Rp 1.000, video Rp 10.000
 -- ============================================================
 
 -- 1. Tambah kolom saldo credit ke profiles
