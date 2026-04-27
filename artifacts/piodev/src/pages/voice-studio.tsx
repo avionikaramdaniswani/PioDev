@@ -479,28 +479,28 @@ export default function VoiceStudio() {
                             className={inputCls}
                           >
                             {azureID.length > 0 && (
-                              <optgroup label="🇮🇩 Bahasa Indonesia (Microsoft Neural)">
+                              <optgroup label="Bahasa Indonesia">
                                 {azureID.map(p => (
-                                  <option key={p.id} value={`preset:${p.id}`}>{p.name}</option>
+                                  <option key={p.id} value={`preset:${p.id}`}>{p.name.replace(/\s*⭐/g, "")}</option>
                                 ))}
                               </optgroup>
                             )}
                             {azureOther.length > 0 && (
-                              <optgroup label="🌍 Bahasa lain (Microsoft Neural)">
+                              <optgroup label="Bahasa Lain">
                                 {azureOther.map(p => (
                                   <option key={p.id} value={`preset:${p.id}`}>{p.name}</option>
                                 ))}
                               </optgroup>
                             )}
                             {qwen.length > 0 && (
-                              <optgroup label="🎤 Qwen3-TTS (multilingual)">
+                              <optgroup label="Qwen Multilingual">
                                 {qwen.map(p => (
                                   <option key={p.id} value={`preset:${p.id}`}>{p.name}</option>
                                 ))}
                               </optgroup>
                             )}
                             {voices.custom.length > 0 && (
-                              <optgroup label="🧬 Suaraku (Custom)">
+                              <optgroup label="Suaraku">
                                 {voices.custom.map(c => (
                                   <option key={c.id} value={`custom:${c.id}`}>
                                     {c.name} · {c.type === "clone" ? "clone" : "design"}
@@ -570,16 +570,6 @@ export default function VoiceStudio() {
                     </div>
                   )}
 
-                  {/* Provider hint */}
-                  {isAzureVoice && (
-                    <div className={cn(
-                      "text-[11px] flex items-start gap-2 px-3 py-2 rounded-lg",
-                      isDark ? "bg-blue-500/10 text-blue-400" : "bg-blue-50 text-blue-700"
-                    )}>
-                      <Sparkles className="w-3 h-3 mt-0.5 shrink-0" />
-                      <span>Voice ini pakai <strong>Microsoft Neural TTS</strong> — kualitas natural khusus Bahasa Indonesia.</span>
-                    </div>
-                  )}
 
                   {/* Bottom row: credits + Generate (mirror video-studio) */}
                   <div className="flex items-center gap-2 justify-end pt-1">

@@ -883,8 +883,8 @@ const VOICE_STUDIO_PRESETS: Array<{
   provider: "azure" | "dashscope";
 }> = [
   // Azure Neural — kualitas terbaik untuk Bahasa Indonesia
-  { id: "azure:id-ID-GadisNeural", name: "Gadis (Wanita, Indonesia) ⭐", lang: "id-ID", gender: "female", provider: "azure" },
-  { id: "azure:id-ID-ArdiNeural",  name: "Ardi (Pria, Indonesia) ⭐",    lang: "id-ID", gender: "male",   provider: "azure" },
+  { id: "azure:id-ID-GadisNeural", name: "Gadis (Wanita, Indonesia)", lang: "id-ID", gender: "female", provider: "azure" },
+  { id: "azure:id-ID-ArdiNeural",  name: "Ardi (Pria, Indonesia)",    lang: "id-ID", gender: "male",   provider: "azure" },
   // Azure English (kualitas premium)
   { id: "azure:en-US-AvaNeural",      name: "Ava (Wanita, US English)",    lang: "en-US", gender: "female", provider: "azure" },
   { id: "azure:en-US-AndrewNeural",   name: "Andrew (Pria, US English)",   lang: "en-US", gender: "male",   provider: "azure" },
