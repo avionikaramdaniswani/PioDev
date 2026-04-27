@@ -7,7 +7,25 @@
 -- Sisa = max_credits (per tier) - voice_credits.
 ALTER TABLE public.profiles
   ADD COLUMN IF NOT EXISTS voice_credits INTEGER NOT NULL DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS voice_credits_reset_date DATE;
+  ADD COLUMN IF NOT EXISTS voice_credits_reset_date TEXT DEFAULT '';
+
+-- Jika kolom sudah ada sebagai DATE (dari versi sebelumnya), convert ke TEXT
+-- supaya bisa nyimpan format YYYY-MM (sama kayak video_credits_reset_date)
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'profiles'
+      AND column_name = 'voice_credits_reset_date'
+      AND data_type = 'date'
+  ) THEN
+    ALTER TABLE public.profiles
+      ALTER COLUMN voice_credits_reset_date TYPE TEXT USING TO_CHAR(voice_credits_reset_date, 'YYYY-MM');
+    ALTER TABLE public.profiles
+      ALTER COLUMN voice_credits_reset_date SET DEFAULT '';
+  END IF;
+END $$;
 
 -- ── 2. Tabel user_voices — voice clone + voice design (persistent voice IDs) ──
 -- Setiap user bisa simpan beberapa voice (cloned dari sample, atau didesain dari prompt).

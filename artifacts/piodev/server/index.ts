@@ -959,7 +959,7 @@ async function getVoiceCredits(userId: string): Promise<{ credits: number; maxCr
   if (storedMonth !== thisMonth) {
     await supabaseAdmin
       .from("profiles")
-      .update({ voice_credits: 0, voice_credits_reset_date: thisMonth })
+      .update({ voice_credits: 0, voice_credits_reset_date: `${thisMonth}-01` })
       .eq("id", userId);
     return { credits: maxCredits, maxCredits };
   }
@@ -992,10 +992,13 @@ async function deductVoiceCredits(userId: string, cost: number): Promise<{ ok: b
 
   const { error } = await supabaseAdmin
     .from("profiles")
-    .update({ voice_credits: used + cost, voice_credits_reset_date: thisMonth })
+    .update({ voice_credits: used + cost, voice_credits_reset_date: `${thisMonth}-01` })
     .eq("id", userId);
 
-  if (error) return { ok: false, error: "Gagal update kredit." };
+  if (error) {
+    console.error("[deductVoiceCredits] update failed:", error);
+    return { ok: false, error: "Gagal update kredit." };
+  }
   return { ok: true };
 }
 
