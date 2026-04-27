@@ -303,11 +303,12 @@ export default function VoiceStudio() {
   );
   const selectContentCls = cn(
     "rounded-xl border shadow-xl backdrop-blur-xl",
-    "max-h-[260px] [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]",
+    "[&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]",
     isDark
       ? "bg-zinc-900/95 border-white/[0.08] text-foreground"
       : "bg-white/95 border-black/[0.08] text-foreground"
   );
+  const selectContentStyle: React.CSSProperties = { maxHeight: 240 };
   const selectLabelCls = cn(
     "px-3 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-wider",
     isDark ? "text-zinc-500" : "text-zinc-400"
@@ -510,7 +511,7 @@ export default function VoiceStudio() {
                             <SelectTrigger className={selectTriggerCls}>
                               <SelectValue placeholder="Pilih suara..." />
                             </SelectTrigger>
-                            <SelectContent className={selectContentCls}>
+                            <SelectContent className={selectContentCls} style={selectContentStyle}>
                               {azureID.length > 0 && (
                                 <SelectGroup>
                                   <SelectLabel className={selectLabelCls}>Bahasa Indonesia</SelectLabel>
@@ -559,7 +560,7 @@ export default function VoiceStudio() {
                           <SelectTrigger className={selectTriggerCls}>
                             <SelectValue />
                           </SelectTrigger>
-                          <SelectContent className={selectContentCls}>
+                          <SelectContent className={selectContentCls} style={selectContentStyle}>
                             {LANGUAGES.map(l => (
                               <SelectItem key={l.id} value={l.id} className={selectItemCls}>{l.label}</SelectItem>
                             ))}
