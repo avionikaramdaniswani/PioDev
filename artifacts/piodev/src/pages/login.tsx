@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, ArrowRight, Sun, Moon, Loader2, MessageSquare, Image as ImageIcon, Video, Mic, Code2 } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, ArrowLeft, Sun, Moon, Loader2, MessageSquare, Image as ImageIcon, Video, Mic, Code2 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
@@ -64,6 +64,11 @@ export default function Login() {
 
       {/* Panel kanan — form */}
       <div className="flex-1 flex flex-col relative overflow-hidden">
+        <Link href="/"
+          className="absolute top-5 left-5 z-50 inline-flex items-center gap-1.5 pl-2 pr-3 py-2 rounded-xl bg-muted/60 hover:bg-muted border border-border text-muted-foreground hover:text-foreground text-sm transition-colors group">
+          <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
+          <span>Kembali</span>
+        </Link>
         <button onClick={toggleTheme}
           className="absolute top-5 right-5 z-50 p-2 rounded-xl bg-muted/60 hover:bg-muted border border-border text-muted-foreground hover:text-foreground transition-colors">
           {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
