@@ -19,6 +19,7 @@ interface VoicePreset {
   name: string;
   lang: string;
   gender: string;
+  provider: "azure" | "dashscope";
 }
 interface UserVoice {
   id: string;
@@ -113,7 +114,7 @@ export default function VoiceStudio() {
   // ── TTS state ────────────────────────────────────────────────────
   const [ttsText, setTtsText] = useState("");
   const [ttsModel, setTtsModel] = useState(TTS_MODELS[0].id);
-  const [ttsVoiceKey, setTtsVoiceKey] = useState("preset:Cherry");
+  const [ttsVoiceKey, setTtsVoiceKey] = useState("preset:azure:id-ID-GadisNeural");
   const [ttsLanguage, setTtsLanguage] = useState(LANGUAGES[0].id);
   const [ttsInstruction, setTtsInstruction] = useState("");
   const [ttsLoading, setTtsLoading] = useState(false);
@@ -123,7 +124,11 @@ export default function VoiceStudio() {
   const [audioPlaying, setAudioPlaying] = useState(false);
 
   const isInstructModel = ttsModel === "qwen3-tts-instruct-flash";
-  const isPresetVoice = ttsVoiceKey.startsWith("preset:");
+  const selectedPreset = ttsVoiceKey.startsWith("preset:")
+    ? voices.presets.find(p => `preset:${p.id}` === ttsVoiceKey)
+    : null;
+  const isAzureVoice = !!selectedPreset && selectedPreset.provider === "azure";
+  const isDashscopePreset = !!selectedPreset && selectedPreset.provider === "dashscope";
 
   const handleGenerateTTS = async () => {
     if (!ttsText.trim()) { setTtsError("Teks gak boleh kosong"); return; }
@@ -451,7 +456,7 @@ export default function VoiceStudio() {
                   </div>
 
                   {/* Voice + Bahasa */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div className={cn("grid gap-3", isAzureVoice ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2")}>
                     <div>
                       <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Suara</label>
                       <select
@@ -459,13 +464,27 @@ export default function VoiceStudio() {
                         onChange={(e) => setTtsVoiceKey(e.target.value)}
                         className={inputCls}
                       >
-                        <optgroup label="Preset Qwen3-TTS">
-                          {voices.presets.map(p => (
+                        <optgroup label="🇮🇩 Bahasa Indonesia (Microsoft Neural — recommended)">
+                          {voices.presets.filter(p => p.provider === "azure" && p.lang === "id-ID").map(p => (
                             <option key={p.id} value={`preset:${p.id}`}>{p.name}</option>
                           ))}
                         </optgroup>
+                        {voices.presets.filter(p => p.provider === "azure" && p.lang !== "id-ID").length > 0 && (
+                          <optgroup label="🌍 Bahasa lain (Microsoft Neural)">
+                            {voices.presets.filter(p => p.provider === "azure" && p.lang !== "id-ID").map(p => (
+                              <option key={p.id} value={`preset:${p.id}`}>{p.name}</option>
+                            ))}
+                          </optgroup>
+                        )}
+                        {voices.presets.filter(p => p.provider === "dashscope").length > 0 && (
+                          <optgroup label="🎤 Qwen3-TTS (multilingual)">
+                            {voices.presets.filter(p => p.provider === "dashscope").map(p => (
+                              <option key={p.id} value={`preset:${p.id}`}>{p.name}</option>
+                            ))}
+                          </optgroup>
+                        )}
                         {voices.custom.length > 0 && (
-                          <optgroup label="Suaraku (Custom)">
+                          <optgroup label="🧬 Suaraku (Custom)">
                             {voices.custom.map(c => (
                               <option key={c.id} value={`custom:${c.id}`}>
                                 {c.name} · {c.type === "clone" ? "clone" : "design"}
@@ -475,22 +494,24 @@ export default function VoiceStudio() {
                         )}
                       </select>
                     </div>
-                    <div>
-                      <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Bahasa</label>
-                      <select
-                        value={ttsLanguage}
-                        onChange={(e) => setTtsLanguage(e.target.value)}
-                        className={inputCls}
-                      >
-                        {LANGUAGES.map(l => (
-                          <option key={l.id} value={l.id}>{l.label}</option>
-                        ))}
-                      </select>
-                    </div>
+                    {!isAzureVoice && (
+                      <div>
+                        <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Bahasa</label>
+                        <select
+                          value={ttsLanguage}
+                          onChange={(e) => setTtsLanguage(e.target.value)}
+                          className={inputCls}
+                        >
+                          {LANGUAGES.map(l => (
+                            <option key={l.id} value={l.id}>{l.label}</option>
+                          ))}
+                        </select>
+                      </div>
+                    )}
                   </div>
 
-                  {/* Model picker (preset voices only — custom pake model bawaan) */}
-                  {isPresetVoice && (
+                  {/* Model picker (Qwen3-TTS preset voices only) */}
+                  {isDashscopePreset && (
                     <div>
                       <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Model</label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -515,8 +536,8 @@ export default function VoiceStudio() {
                     </div>
                   )}
 
-                  {/* Instruct input (conditional) */}
-                  {isPresetVoice && isInstructModel && (
+                  {/* Instruct input (Qwen instruct model only) */}
+                  {isDashscopePreset && isInstructModel && (
                     <div>
                       <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
                         Instruksi gaya <span className="text-muted-foreground/60 font-normal normal-case">(opsional)</span>
@@ -528,6 +549,17 @@ export default function VoiceStudio() {
                         placeholder='Contoh: "ucapkan dengan ceria dan ramah"'
                         className={inputCls}
                       />
+                    </div>
+                  )}
+
+                  {/* Provider hint */}
+                  {isAzureVoice && (
+                    <div className={cn(
+                      "text-[11px] flex items-start gap-2 px-3 py-2 rounded-lg",
+                      isDark ? "bg-blue-500/10 text-blue-400" : "bg-blue-50 text-blue-700"
+                    )}>
+                      <Sparkles className="w-3 h-3 mt-0.5 shrink-0" />
+                      <span>Voice ini pakai <strong>Microsoft Neural TTS</strong> — kualitas natural khusus Bahasa Indonesia.</span>
                     </div>
                   )}
 

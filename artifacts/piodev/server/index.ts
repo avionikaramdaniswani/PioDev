@@ -874,15 +874,70 @@ const voiceCloneUpload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-// Voice presets bawaan Qwen3-TTS — multilingual, support Bahasa Indonesia di model qwen3-tts-flash
-const VOICE_STUDIO_PRESETS = [
-  { id: "Cherry",  name: "Cherry (Wanita, hangat)",     lang: "multi", gender: "female" },
-  { id: "Ethan",   name: "Ethan (Pria, dewasa)",        lang: "multi", gender: "male"   },
-  { id: "Chelsie", name: "Chelsie (Wanita, ceria)",     lang: "multi", gender: "female" },
-  { id: "Serena",  name: "Serena (Wanita, kalem)",      lang: "multi", gender: "female" },
-  { id: "Dylan",   name: "Dylan (Pria, ramah)",         lang: "multi", gender: "male"   },
-  { id: "Jada",    name: "Jada (Wanita, tegas)",        lang: "multi", gender: "female" },
+// Voice presets — Azure (id-ID neural, BEST untuk Bahasa Indonesia) + Qwen3-TTS (multilingual)
+const VOICE_STUDIO_PRESETS: Array<{
+  id: string;
+  name: string;
+  lang: string;
+  gender: string;
+  provider: "azure" | "dashscope";
+}> = [
+  // Azure Neural — kualitas terbaik untuk Bahasa Indonesia
+  { id: "azure:id-ID-GadisNeural", name: "Gadis (Wanita, Indonesia) ⭐", lang: "id-ID", gender: "female", provider: "azure" },
+  { id: "azure:id-ID-ArdiNeural",  name: "Ardi (Pria, Indonesia) ⭐",    lang: "id-ID", gender: "male",   provider: "azure" },
+  // Azure English (kualitas premium)
+  { id: "azure:en-US-AvaNeural",      name: "Ava (Wanita, US English)",    lang: "en-US", gender: "female", provider: "azure" },
+  { id: "azure:en-US-AndrewNeural",   name: "Andrew (Pria, US English)",   lang: "en-US", gender: "male",   provider: "azure" },
+  { id: "azure:en-US-EmmaNeural",     name: "Emma (Wanita, US English)",   lang: "en-US", gender: "female", provider: "azure" },
+  { id: "azure:ja-JP-NanamiNeural",   name: "Nanami (Wanita, Jepang)",     lang: "ja-JP", gender: "female", provider: "azure" },
+  // Qwen3-TTS (multilingual, untuk style unik atau bahasa lain)
+  { id: "Cherry",  name: "Cherry (Wanita, hangat)",     lang: "multi", gender: "female", provider: "dashscope" },
+  { id: "Ethan",   name: "Ethan (Pria, dewasa)",        lang: "multi", gender: "male",   provider: "dashscope" },
+  { id: "Chelsie", name: "Chelsie (Wanita, ceria)",     lang: "multi", gender: "female", provider: "dashscope" },
+  { id: "Serena",  name: "Serena (Wanita, kalem)",      lang: "multi", gender: "female", provider: "dashscope" },
+  { id: "Dylan",   name: "Dylan (Pria, ramah)",         lang: "multi", gender: "male",   provider: "dashscope" },
+  { id: "Jada",    name: "Jada (Wanita, tegas)",        lang: "multi", gender: "female", provider: "dashscope" },
 ];
+
+// Helper: panggil Azure Speech TTS (reuse infra Azure yang sudah ada untuk voice mode chat)
+async function callAzureTTS(payload: {
+  text: string;
+  voiceName: string;  // contoh "id-ID-GadisNeural"
+}): Promise<{ ok: true; audioBuffer: Buffer; mime: string } | { ok: false; status: number; error: string }> {
+  const azureKey = process.env.AZURE_SPEECH_KEY ?? "";
+  const azureRegion = process.env.AZURE_SPEECH_REGION ?? "southeastasia";
+  if (!azureKey) {
+    return { ok: false, status: 503, error: "Azure Speech belum dikonfigurasi (AZURE_SPEECH_KEY missing)" };
+  }
+  const lang = payload.voiceName.split("-").slice(0, 2).join("-");
+  const escaped = payload.text
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&apos;");
+  const ssml = `<speak version="1.0" xml:lang="${lang}"><voice name="${payload.voiceName}"><prosody rate="0%">${escaped}</prosody></voice></speak>`;
+  const url = `https://${azureRegion}.tts.speech.microsoft.com/cognitiveservices/v1`;
+  try {
+    const upstream = await fetch(url, {
+      method: "POST",
+      headers: {
+        "Ocp-Apim-Subscription-Key": azureKey,
+        "Content-Type": "application/ssml+xml",
+        "X-Microsoft-OutputFormat": "audio-24khz-48kbitrate-mono-mp3",
+        "User-Agent": "PioCode-VoiceStudio",
+      },
+      body: ssml,
+    });
+    if (!upstream.ok) {
+      const errText = await upstream.text();
+      console.error("[voice-studio][Azure TTS] HTTP", upstream.status, errText.slice(0, 300));
+      return { ok: false, status: upstream.status, error: errText.slice(0, 300) || `Azure HTTP ${upstream.status}` };
+    }
+    const audioBuffer = Buffer.from(await upstream.arrayBuffer());
+    return { ok: true, audioBuffer, mime: "audio/mpeg" };
+  } catch (err: any) {
+    console.error("[voice-studio][Azure TTS] error:", err?.message);
+    return { ok: false, status: 502, error: `Network error ke Azure: ${err?.message || err}` };
+  }
+}
 
 // ── Voice credits helpers (reset BULANAN, mirror video_credits) ────────────────
 // voice_credits MENYIMPAN JUMLAH TERPAKAI bulan ini (BUKAN sisa).
@@ -1089,7 +1144,7 @@ app.post("/api/voice-studio/tts", requireAuth, async (req, res) => {
   if (text.length > 2000) { res.status(400).json({ error: "Text terlalu panjang (max 2000 karakter)" }); return; }
 
   const model = String(req.body?.model || "qwen3-tts-flash");
-  const voice = String(req.body?.voice || "Cherry");
+  const voice = String(req.body?.voice || "azure:id-ID-GadisNeural");
   const language = String(req.body?.language || "Auto");
   const instruction = req.body?.instruction ? String(req.body.instruction).slice(0, 200) : undefined;
 
@@ -1100,7 +1155,11 @@ app.post("/api/voice-studio/tts", requireAuth, async (req, res) => {
     return;
   }
 
-  const result = await callDashscopeTTS({ model, text, voice, language, instruction });
+  // Routing: prefix "azure:" → Azure Speech Neural; selain itu → DashScope/Qwen3-TTS
+  const result = voice.startsWith("azure:")
+    ? await callAzureTTS({ text, voiceName: voice.slice(6) })
+    : await callDashscopeTTS({ model, text, voice, language, instruction });
+
   if (!result.ok) {
     res.status(result.status).json({ error: "TTS gagal", detail: result.error });
     return;
