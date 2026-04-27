@@ -1516,6 +1516,65 @@ app.get("/api/me/credit", requireAuth, async (req, res) => {
   });
 });
 
+// ── GET /api/me/credit/transactions — riwayat saldo paginated ────────────────
+// Query: ?limit=20&offset=0  → returns { transactions, total, has_more, summary? }
+// summary (last 30 days) hanya disertakan saat offset=0 supaya hemat query.
+app.get("/api/me/credit/transactions", requireAuth, async (req, res) => {
+  const userId = (req as any).userId;
+  const limit = Math.min(100, Math.max(1, parseInt((req.query.limit as string) || "20", 10)));
+  const offset = Math.max(0, parseInt((req.query.offset as string) || "0", 10));
+
+  try {
+    const summaryPromise = offset === 0
+      ? supabaseAdmin
+          .from("credit_transactions")
+          .select("amount_idr, type")
+          .eq("user_id", userId)
+          .gte("created_at", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
+      : Promise.resolve({ data: null as any });
+
+    const [pageRes, summaryRes] = await Promise.all([
+      supabaseAdmin
+        .from("credit_transactions")
+        .select("id, amount_idr, type, metadata, created_at", { count: "exact" })
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .range(offset, offset + limit - 1),
+      summaryPromise,
+    ]);
+
+    if (pageRes.error) throw pageRes.error;
+
+    let summary: { days: number; count: number; total_spent: number; total_top_up: number; total_bonus: number } | null = null;
+    if (summaryRes.data) {
+      let spent = 0, topUp = 0, bonus = 0;
+      for (const t of summaryRes.data as any[]) {
+        const amt = t.amount_idr ?? 0;
+        if (amt < 0) spent += -amt;
+        else if (t.type === "top_up") topUp += amt;
+        else bonus += amt;
+      }
+      summary = {
+        days: 30,
+        count: (summaryRes.data as any[]).length,
+        total_spent: spent,
+        total_top_up: topUp,
+        total_bonus: bonus,
+      };
+    }
+
+    const total = pageRes.count ?? 0;
+    res.json({
+      transactions: pageRes.data ?? [],
+      total,
+      has_more: offset + (pageRes.data?.length ?? 0) < total,
+      summary,
+    });
+  } catch (e: any) {
+    res.status(500).json({ error: e?.message || "Gagal memuat riwayat saldo" });
+  }
+});
+
 // ── POST /api/me/credit/top-up — placeholder, segera hadir ───────────────────
 app.post("/api/me/credit/top-up", requireAuth, async (_req, res) => {
   res.status(503).json({
