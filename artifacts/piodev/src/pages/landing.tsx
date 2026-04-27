@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { useAuth } from "@/hooks/use-auth";
 import { useEffect } from "react";
 import {
-  Terminal,
   Sparkles,
   ArrowRight,
   MessageSquare,
@@ -16,58 +15,29 @@ import {
   Check,
 } from "lucide-react";
 import { Logo } from "@/components/logo";
+import {
+  usePricingConfig,
+  discountedPrice,
+  formatIDR,
+  type TierPricing,
+} from "@/hooks/use-pricing-config";
 
 export default function LandingPage() {
   const { isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
+  const pricing = usePricingConfig();
 
   useEffect(() => {
     if (isAuthenticated) setLocation("/chat");
   }, [isAuthenticated]);
 
   const features = [
-    {
-      icon: <MessageSquare className="w-5 h-5" />,
-      label: "Chat AI",
-      title: "Tanya apa aja, jawaban langsung ngalir.",
-      desc: "Streaming response, thinking mode, web search, sampe artifact code — semua built-in.",
-      href: "/register",
-    },
-    {
-      icon: <ImageIcon className="w-5 h-5" />,
-      label: "Image Studio",
-      title: "Generate gambar berkualitas tinggi.",
-      desc: "Pake Qwen-Image untuk bikin ilustrasi, foto, atau aset visual dari sekedar prompt.",
-      href: "/register",
-    },
-    {
-      icon: <Video className="w-5 h-5" />,
-      label: "Video Studio",
-      title: "Text-to-video & image-to-video.",
-      desc: "Bikin video pendek pake Wan 2.6 — cocok untuk konten sosmed atau presentasi.",
-      href: "/video-studio",
-    },
-    {
-      icon: <AudioWaveform className="w-5 h-5" />,
-      label: "Voice Studio",
-      title: "TTS, voice cloning & voice design.",
-      desc: "Konversi teks ke suara natural, atau bikin suara custom kamu sendiri.",
-      href: "/voice-studio",
-    },
-    {
-      icon: <Library className="w-5 h-5" />,
-      label: "Pustaka",
-      title: "Upload dokumen, AI bisa baca.",
-      desc: "PDF, gambar, file teks — semua bisa di-attach ke chat untuk konteks tambahan.",
-      href: "/pustaka",
-    },
-    {
-      icon: <Code2 className="w-5 h-5" />,
-      label: "Code Artifact",
-      title: "Preview kode HTML/CSS/JS langsung.",
-      desc: "Lihat hasil kode yang AI generate tanpa harus copy-paste ke editor sendiri.",
-      href: "/register",
-    },
+    { icon: <MessageSquare className="w-6 h-6" />, label: "AI Chat" },
+    { icon: <ImageIcon className="w-6 h-6" />, label: "Buat Gambar" },
+    { icon: <Video className="w-6 h-6" />, label: "Buat Video" },
+    { icon: <AudioWaveform className="w-6 h-6" />, label: "Voice Studio" },
+    { icon: <Library className="w-6 h-6" />, label: "Pustaka" },
+    { icon: <Code2 className="w-6 h-6" />, label: "Code Artifact" },
   ];
 
   return (
@@ -145,43 +115,30 @@ export default function LandingPage() {
         </motion.div>
       </section>
 
-      {/* Feature cards — uniform grid */}
-      <section className="relative z-10 max-w-6xl mx-auto px-6 sm:px-10 pb-20">
-        <div className="text-center mb-10">
-          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
-            Semua yang kamu butuhin
-          </h2>
-          <p className="text-white/50 text-base">
-            Enam fitur utama, satu tempat, satu akun.
-          </p>
-        </div>
-
+      {/* Feature strip — single dark card with icons + labels */}
+      <section className="relative z-10 max-w-5xl mx-auto px-6 sm:px-10 pb-20">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5 }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"
+          className="rounded-2xl border border-white/[0.08] bg-[hsl(240,12%,8%)] p-6 sm:p-8"
         >
-          {features.map((f) => (
-            <FeatureCard key={f.label} {...f} />
-          ))}
+          <div className="flex items-center justify-center gap-2 mb-6 text-white/80 text-sm font-semibold">
+            <Sparkles className="w-4 h-4 text-primary" />
+            Satu Platform, Berbagai Fitur
+            <Sparkles className="w-4 h-4 text-primary" />
+          </div>
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-4 sm:gap-2">
+            {features.map((f) => (
+              <FeatureItem key={f.label} icon={f.icon} label={f.label} />
+            ))}
+          </div>
         </motion.div>
       </section>
 
-      {/* Social proof strip */}
-      <section className="relative z-10 max-w-6xl mx-auto px-6 sm:px-10 pb-16">
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-12 py-6 border-y border-white/5">
-          <SocialStat number="10rb+" label="developer & kreator" />
-          <SocialDivider />
-          <SocialStat number="1jt+" label="chat & gambar dibuat" />
-          <SocialDivider />
-          <SocialStat number="4.8★" label="rating dari pengguna" />
-        </div>
-      </section>
-
       {/* Pricing teaser */}
-      <section className="relative z-10 max-w-5xl mx-auto px-6 sm:px-10 pb-20">
+      <section className="relative z-10 max-w-5xl mx-auto px-6 sm:px-10 pb-24">
         <div className="text-center mb-10">
           <h2 className="text-3xl sm:text-4xl font-bold tracking-tight mb-3">
             Mulai gratis. Upgrade kalau butuh.
@@ -194,12 +151,18 @@ export default function LandingPage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <PricingCard
             tier="Free"
-            price="Rp 0"
+            priceLabel="Rp 0"
             features={["60K token/hari", "7 gambar/hari", "Akses chat dasar"]}
           />
           <PricingCard
             tier="Plus"
-            price="Rp 10rb"
+            priceLabel={formatIDR(discountedPrice(pricing.plus))}
+            originalPrice={
+              pricing.plus.discount_percent > 0
+                ? formatIDR(pricing.plus.price_idr)
+                : undefined
+            }
+            discountLabel={pricing.plus.discount_label}
             highlighted
             features={[
               "200K token/hari",
@@ -209,7 +172,13 @@ export default function LandingPage() {
           />
           <PricingCard
             tier="Pro"
-            price="Rp 18rb"
+            priceLabel={formatIDR(discountedPrice(pricing.pro))}
+            originalPrice={
+              pricing.pro.discount_percent > 0
+                ? formatIDR(pricing.pro.price_idr)
+                : undefined
+            }
+            discountLabel={pricing.pro.discount_label}
             features={[
               "360K token/hari",
               "40 gambar + 20 video/bln",
@@ -219,88 +188,49 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="relative z-10 max-w-2xl mx-auto px-6 pb-24 text-center">
-        <div className="bg-gradient-to-br from-primary/15 to-indigo-500/10 border border-primary/20 rounded-3xl p-10">
-          <h2 className="text-2xl sm:text-3xl font-bold mb-3">Siap mulai?</h2>
-          <p className="text-white/50 text-sm mb-7">
-            Gratis selamanya. Tidak perlu kartu kredit.
-          </p>
-          <Link href="/register">
-            <button className="inline-flex items-center gap-2 px-7 py-3 bg-primary hover:bg-primary/90 text-white rounded-xl font-semibold text-sm shadow-xl shadow-primary/30 hover:-translate-y-0.5 transition-all group">
-              Buat akun gratis
-              <ArrowRight className="w-4 h-4 group-hover:translate-x-0.5 transition-transform" />
-            </button>
-          </Link>
-        </div>
-      </section>
-
       {/* Footer */}
       <footer className="relative z-10 border-t border-white/5 py-8 text-center">
-        <div className="flex items-center justify-center gap-2 text-white/30 text-xs">
-          <Terminal className="w-3.5 h-3.5" />
-          <span>PioCode — teman ngoding yang selalu siap</span>
+        <div className="flex items-center justify-center gap-2 text-white/40 text-sm">
+          <Logo size={18} />
+          <span className="font-semibold text-white/70">PioCode</span>
+          <span className="text-white/30">— Semua dalam satu tempat</span>
         </div>
       </footer>
     </div>
   );
 }
 
-// ─────────────────────────── Feature Card ────────────────────────────────────
-function FeatureCard({
+// ─────────────────────────── Feature Item (icon + label only) ────────────────
+function FeatureItem({
   icon,
   label,
-  title,
-  desc,
-  href,
 }: {
   icon: React.ReactNode;
   label: string;
-  title: string;
-  desc: string;
-  href: string;
 }) {
   return (
-    <Link href={href}>
-      <div className="group relative h-full rounded-2xl border border-white/[0.07] bg-[hsl(240,10%,7%)] hover:bg-[hsl(240,10%,9%)] hover:border-white/15 transition-all hover:-translate-y-0.5 cursor-pointer p-6">
-        <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 text-primary mb-4 group-hover:bg-primary/15 transition-colors">
-          {icon}
-        </div>
-        <div className="text-[10px] uppercase tracking-wider text-white/40 font-semibold mb-1.5">
-          {label}
-        </div>
-        <div className="text-white text-base font-semibold leading-snug mb-2">
-          {title}
-        </div>
-        <div className="text-white/50 text-sm leading-relaxed">{desc}</div>
+    <div className="flex flex-col items-center justify-center gap-2 py-3 text-white/85">
+      <div className="text-white/90">{icon}</div>
+      <div className="text-xs sm:text-sm text-white/70 text-center">
+        {label}
       </div>
-    </Link>
-  );
-}
-
-// ─────────────────────────── Social proof helpers ────────────────────────────
-function SocialStat({ number, label }: { number: string; label: string }) {
-  return (
-    <div className="text-center">
-      <div className="text-2xl font-bold text-white">{number}</div>
-      <div className="text-xs text-white/40 mt-0.5">{label}</div>
     </div>
   );
-}
-
-function SocialDivider() {
-  return <div className="hidden sm:block w-px h-10 bg-white/10" />;
 }
 
 // ─────────────────────────── Pricing card ────────────────────────────────────
 function PricingCard({
   tier,
-  price,
+  priceLabel,
+  originalPrice,
+  discountLabel,
   features,
   highlighted,
 }: {
   tier: string;
-  price: string;
+  priceLabel: string;
+  originalPrice?: string;
+  discountLabel?: string;
   features: string[];
   highlighted?: boolean;
 }) {
@@ -320,9 +250,23 @@ function PricingCard({
           </div>
         )}
         <div className="text-sm font-semibold text-white/60 mb-1">{tier}</div>
+
+        {originalPrice && (
+          <div className="flex items-center gap-2 mb-0.5">
+            <span className="text-xs text-white/40 line-through">
+              {originalPrice}
+            </span>
+            {discountLabel && (
+              <span className="text-[10px] font-bold text-primary bg-primary/15 px-1.5 py-0.5 rounded">
+                {discountLabel}
+              </span>
+            )}
+          </div>
+        )}
+
         <div className="flex items-baseline gap-1 mb-4">
-          <span className="text-3xl font-bold text-white">{price}</span>
-          {price !== "Rp 0" && (
+          <span className="text-3xl font-bold text-white">{priceLabel}</span>
+          {priceLabel !== "Rp 0" && (
             <span className="text-xs text-white/40">/bln</span>
           )}
         </div>
