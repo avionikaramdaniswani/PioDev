@@ -52,24 +52,6 @@ async function getToken(): Promise<string> {
   return session?.access_token ?? "";
 }
 
-async function fetchJobs(token: string): Promise<VideoJob[]> {
-  const res = await fetch("/api/video-jobs", { headers: { Authorization: `Bearer ${token}` } });
-  if (!res.ok) return [];
-  const data = await res.json();
-  return data.map((j: any) => ({
-    id: j.id,
-    taskId: j.task_id,
-    prompt: j.prompt,
-    model: j.model,
-    mode: j.mode as VideoMode,
-    status: j.status as VideoJob["status"],
-    videoUrl: j.video_url || undefined,
-    imageUrl: j.image_url || undefined,
-    error: j.error || undefined,
-    createdAt: new Date(j.created_at),
-  }));
-}
-
 async function createJobInDb(token: string, job: { taskId: string; prompt: string; model: string; mode: string; imageUrl?: string }): Promise<string | null> {
   const res = await fetch("/api/video-jobs", {
     method: "POST",
@@ -114,7 +96,6 @@ export default function VideoStudio() {
   const [uploadedImageFile, setUploadedImageFile] = useState<File | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [jobs, setJobs] = useState<VideoJob[]>([]);
-  const [loadingJobs, setLoadingJobs] = useState(true);
   const [credits, setCredits] = useState<{ credits: number; maxCredits: number } | null>(null);
   const [playingVideos, setPlayingVideos] = useState<Set<string>>(new Set());
   const [expandedVideo, setExpandedVideo] = useState<string | null>(null);
@@ -128,16 +109,9 @@ export default function VideoStudio() {
   useEffect(() => {
     if (!user) { navigate("/login"); return; }
     (async () => {
-      setLoadingJobs(true);
       const token = await getToken();
-      const [loaded, creditsData] = await Promise.all([
-        fetchJobs(token),
-        fetch("/api/video-credits", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : null),
-      ]);
-      setJobs(loaded);
-      setLoadingJobs(false);
+      const creditsData = await fetch("/api/video-credits", { headers: { Authorization: `Bearer ${token}` } }).then(r => r.ok ? r.json() : null);
       if (creditsData) setCredits(creditsData);
-      loaded.filter(j => j.status === "pending" || j.status === "running").forEach(j => startPolling(j.id, j.taskId));
     })();
     return () => {
       pollingRef.current.forEach(t => clearTimeout(t));
@@ -551,22 +525,14 @@ export default function VideoStudio() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Riwayat ({jobs.length})
+                    Hasil
                   </h2>
-                  {jobs.length > 1 && (
-                    <button
-                      onClick={async () => {
-                        pollingRef.current.forEach(t => clearTimeout(t));
-                        pollingRef.current.clear();
-                        setJobs([]);
-                        const token = await getToken();
-                        await deleteAllJobsInDb(token);
-                      }}
-                      className="text-xs text-muted-foreground hover:text-red-500 transition-colors"
-                    >
-                      Hapus semua
-                    </button>
-                  )}
+                  <button
+                    onClick={() => navigate("/galeri-studio")}
+                    className="text-xs text-primary hover:text-primary/80 transition-colors"
+                  >
+                    Lihat di Galeri Studio →
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -704,22 +670,21 @@ export default function VideoStudio() {
               </div>
             )}
 
-            {loadingJobs && jobs.length === 0 && (
-              <div className="text-center py-12">
-                <Loader2 className="w-6 h-6 animate-spin text-primary mx-auto mb-3" />
-                <p className="text-xs text-muted-foreground">Memuat riwayat video...</p>
-              </div>
-            )}
-
-            {!loadingJobs && jobs.length === 0 && (
+            {jobs.length === 0 && (
               <div className="text-center py-12">
                 <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary/10 to-indigo-400/10 flex items-center justify-center mx-auto mb-3">
                   <Video className="w-7 h-7 text-primary/50" />
                 </div>
-                <h3 className="text-sm font-semibold text-foreground/70 mb-1">Belum ada video</h3>
-                <p className="text-xs text-muted-foreground max-w-xs mx-auto">
+                <h3 className="text-sm font-semibold text-foreground/70 mb-1">Mulai bikin video</h3>
+                <p className="text-xs text-muted-foreground max-w-xs mx-auto mb-3">
                   Deskripsikan video yang ingin kamu buat dan klik Generate
                 </p>
+                <button
+                  onClick={() => navigate("/galeri-studio")}
+                  className="text-xs text-primary hover:text-primary/80 transition-colors"
+                >
+                  Lihat riwayat di Galeri Studio →
+                </button>
               </div>
             )}
           </div>

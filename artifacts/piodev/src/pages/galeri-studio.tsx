@@ -14,6 +14,8 @@ import {
   RefreshCw,
   AudioLines,
   X,
+  CheckSquare,
+  Check,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
@@ -100,18 +102,40 @@ export default function GaleriStudio() {
   const [previewVideo, setPreviewVideo] = useState<VideoItem | null>(null);
   const [previewVoice, setPreviewVoice] = useState<VoiceItem | null>(null);
 
-  // Esc key buat tutup modal apapun
+  // Select / batch mode
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedKeys, setSelectedKeys] = useState<Set<string>>(new Set());
+  const [batchBusy, setBatchBusy] = useState<null | "download" | "delete">(null);
+
+  const itemKey = (it: GalleryItem) => `${it.kind}-${it.id}`;
+  const toggleSelect = (key: string) => {
+    setSelectedKeys(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
+  };
+  const exitSelectMode = () => {
+    setSelectMode(false);
+    setSelectedKeys(new Set());
+  };
+
+  // Esc key buat tutup modal apapun + keluar dari select mode
   useEffect(() => {
-    if (!previewVideo && !previewVoice) return;
+    if (!previewVideo && !previewVoice && !selectMode) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      if (e.key !== "Escape") return;
+      if (previewVideo || previewVoice) {
         setPreviewVideo(null);
         setPreviewVoice(null);
+      } else if (selectMode) {
+        exitSelectMode();
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [previewVideo, previewVoice]);
+  }, [previewVideo, previewVoice, selectMode]);
 
   const loadAll = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -217,6 +241,69 @@ export default function GaleriStudio() {
     }
   };
 
+  // Batch actions
+  const selectedItems = useMemo(
+    () => items.filter(it => selectedKeys.has(itemKey(it))),
+    [items, selectedKeys],
+  );
+
+  const handleBatchDownload = async () => {
+    const downloadable = selectedItems.filter(it =>
+      it.kind === "video" ? it.videoUrl : it.audioUrl,
+    );
+    if (downloadable.length === 0) return;
+    setBatchBusy("download");
+    try {
+      for (const it of downloadable) {
+        if (it.kind === "video" && it.videoUrl) {
+          downloadUrl(it.videoUrl, `pio-video-${it.id}.mp4`);
+        } else if (it.kind === "voice" && it.audioUrl) {
+          const ext = it.mime?.includes("wav") ? "wav" : "mp3";
+          downloadUrl(it.audioUrl, `pio-voice-${it.id}.${ext}`);
+        }
+        // Beda jeda antar download biar browser ga tolak
+        await new Promise(r => setTimeout(r, 350));
+      }
+    } finally {
+      setBatchBusy(null);
+    }
+  };
+
+  const handleBatchDelete = async () => {
+    if (selectedItems.length === 0) return;
+    if (!confirm(`Hapus ${selectedItems.length} item dari galeri? Aksi ini gak bisa di-undo.`)) return;
+    setBatchBusy("delete");
+    try {
+      const token = await getToken();
+      const videoIds = selectedItems.filter(it => it.kind === "video").map(it => it.id);
+      const voiceIds = selectedItems.filter(it => it.kind === "voice").map(it => it.id);
+
+      const results = await Promise.allSettled([
+        ...videoIds.map(id =>
+          fetch(`/api/video-jobs/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }),
+        ),
+        ...voiceIds.map(id =>
+          fetch(`/api/voice-studio/history/${id}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }),
+        ),
+      ]);
+
+      const okVideoIds = new Set<string>();
+      const okVoiceIds = new Set<string>();
+      results.forEach((r, idx) => {
+        if (r.status === "fulfilled" && r.value.ok) {
+          if (idx < videoIds.length) okVideoIds.add(videoIds[idx]);
+          else okVoiceIds.add(voiceIds[idx - videoIds.length]);
+        }
+      });
+
+      if (okVideoIds.size) setVideos(prev => prev.filter(v => !okVideoIds.has(v.id)));
+      if (okVoiceIds.size) setVoices(prev => prev.filter(v => !okVoiceIds.has(v.id)));
+      exitSelectMode();
+    } finally {
+      setBatchBusy(null);
+    }
+  };
+
   if (!user) return null;
 
   return (
@@ -291,14 +378,42 @@ export default function GaleriStudio() {
               <p className="text-[11px] text-muted-foreground truncate">Semua karyamu di Pio Studio</p>
             </div>
           </div>
-          <button
-            onClick={() => loadAll(true)}
-            disabled={refreshing}
-            className="p-2 rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
-            title="Refresh"
-          >
-            <RefreshCw className={cn("w-4 h-4", refreshing && "animate-spin")} />
-          </button>
+          {selectMode ? (
+            <button
+              onClick={exitSelectMode}
+              className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-muted hover:bg-muted/70 transition-colors inline-flex items-center gap-1.5"
+              title="Batal pilih"
+            >
+              <X className="w-3.5 h-3.5" /> Batal
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => setSelectMode(true)}
+                disabled={items.length === 0}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold hover:bg-muted transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
+                title="Pilih item"
+              >
+                <CheckSquare className="w-3.5 h-3.5" /> Pilih
+              </button>
+              <button
+                onClick={() => setSelectMode(true)}
+                disabled={items.length === 0}
+                className="sm:hidden p-2 rounded-lg hover:bg-muted transition-colors disabled:opacity-40"
+                title="Pilih item"
+              >
+                <CheckSquare className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => loadAll(true)}
+                disabled={refreshing}
+                className="p-2 rounded-lg hover:bg-muted transition-colors disabled:opacity-50"
+                title="Refresh"
+              >
+                <RefreshCw className={cn("w-4 h-4", refreshing && "animate-spin")} />
+              </button>
+            </>
+          )}
         </header>
 
         <div className="flex-1 overflow-auto">
@@ -387,31 +502,103 @@ export default function GaleriStudio() {
 
             {/* Grid */}
             {!loading && !error && items.length > 0 && (
-              <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
-                {items.map(item => (
-                  item.kind === "video" ? (
+              <div className={cn(
+                "grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3 md:gap-4",
+                selectMode && "pb-24"
+              )}>
+                {items.map(item => {
+                  const key = itemKey(item);
+                  const selected = selectedKeys.has(key);
+                  return item.kind === "video" ? (
                     <VideoCard
-                      key={`video-${item.id}`}
+                      key={key}
                       item={item}
                       isDeleting={deletingId === item.id}
+                      selectMode={selectMode}
+                      selected={selected}
+                      onToggleSelect={() => toggleSelect(key)}
                       onPlay={() => setPreviewVideo(item)}
                       onDelete={() => handleDeleteVideo(item.id)}
                     />
                   ) : (
                     <VoiceCard
-                      key={`voice-${item.id}`}
+                      key={key}
                       item={item}
                       isDeleting={deletingId === item.id}
+                      selectMode={selectMode}
+                      selected={selected}
+                      onToggleSelect={() => toggleSelect(key)}
                       onPlay={() => setPreviewVoice(item)}
                       onDelete={() => handleDeleteVoice(item.id)}
                     />
-                  )
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* ── Batch Action Bar ────────────────────────────────────────────── */}
+      <AnimatePresence>
+        {selectMode && (
+          <motion.div
+            initial={{ y: 80, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 80, opacity: 0 }}
+            transition={{ type: "spring", damping: 25, stiffness: 280 }}
+            className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-3 w-[min(640px,calc(100vw-1.5rem))]"
+          >
+            <div className={cn(
+              "rounded-2xl shadow-2xl border flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-2.5",
+              isDark ? "bg-zinc-900/95 border-white/10 backdrop-blur" : "bg-white/95 border-black/10 backdrop-blur"
+            )}>
+              <div className="text-xs sm:text-sm font-semibold flex-1 min-w-0">
+                {selectedKeys.size === 0 ? (
+                  <span className="text-muted-foreground">Pilih item dulu</span>
+                ) : (
+                  <span><span className="text-primary">{selectedKeys.size}</span> dipilih</span>
+                )}
+              </div>
+              <button
+                onClick={() => {
+                  if (selectedKeys.size === items.length) setSelectedKeys(new Set());
+                  else setSelectedKeys(new Set(items.map(itemKey)));
+                }}
+                className="text-[11px] sm:text-xs px-2.5 py-1.5 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              >
+                {selectedKeys.size === items.length ? "Batal semua" : "Pilih semua"}
+              </button>
+              <button
+                onClick={handleBatchDownload}
+                disabled={selectedKeys.size === 0 || batchBusy !== null}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/70 text-xs sm:text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Download yang dipilih"
+              >
+                {batchBusy === "download" ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Download className="w-3.5 h-3.5" />
+                )}
+                <span className="hidden sm:inline">Download</span>
+              </button>
+              <button
+                onClick={handleBatchDelete}
+                disabled={selectedKeys.size === 0 || batchBusy !== null}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/15 hover:bg-red-500/25 text-red-500 text-xs sm:text-sm font-semibold transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                title="Hapus yang dipilih"
+              >
+                {batchBusy === "delete" ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Trash2 className="w-3.5 h-3.5" />
+                )}
+                <span className="hidden sm:inline">Hapus</span>
+              </button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Video Preview Modal ─────────────────────────────────────────── */}
       <AnimatePresence>
@@ -555,11 +742,17 @@ export default function GaleriStudio() {
 function VideoCard({
   item,
   isDeleting,
+  selectMode,
+  selected,
+  onToggleSelect,
   onPlay,
   onDelete,
 }: {
   item: VideoItem;
   isDeleting: boolean;
+  selectMode: boolean;
+  selected: boolean;
+  onToggleSelect: () => void;
   onPlay: () => void;
   onDelete: () => void;
 }) {
@@ -572,15 +765,18 @@ function VideoCard({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      className="group rounded-xl sm:rounded-2xl border border-border/60 bg-card overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all"
+      className={cn(
+        "group rounded-xl sm:rounded-2xl border bg-card overflow-hidden hover:shadow-lg transition-all",
+        selected ? "border-primary ring-2 ring-primary/40" : "border-border/60 hover:border-primary/40"
+      )}
     >
       <button
         type="button"
-        onClick={isReady ? onPlay : undefined}
-        disabled={!isReady}
+        onClick={selectMode ? onToggleSelect : (isReady ? onPlay : undefined)}
+        disabled={!selectMode && !isReady}
         className={cn(
           "relative aspect-video w-full bg-gradient-to-br from-primary/10 to-indigo-400/10 overflow-hidden block",
-          isReady && "cursor-pointer"
+          (selectMode || isReady) && "cursor-pointer"
         )}
       >
         {isReady ? (
@@ -615,17 +811,32 @@ function VideoCard({
         </div>
 
         {/* Status badge */}
-        {isPending && (
+        {isPending && !selectMode && (
           <div className="absolute top-2 right-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/90 text-white text-[10px] font-semibold">
             <Loader2 className="w-2.5 h-2.5 animate-spin" /> Proses
           </div>
         )}
 
-        {/* Play button overlay (selalu kelihatan, lebih jelas pas hover) */}
-        {isReady && (
+        {/* Play button overlay (sembunyi pas select mode) */}
+        {isReady && !selectMode && (
           <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
             <div className="w-9 h-9 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-white/95 text-black flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
               <Play className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 ml-0.5" fill="currentColor" />
+            </div>
+          </div>
+        )}
+
+        {/* Select mode overlay — ceklis di kanan atas */}
+        {selectMode && (
+          <div className={cn(
+            "absolute inset-0 transition-colors",
+            selected ? "bg-primary/30" : "bg-black/20 hover:bg-black/30"
+          )}>
+            <div className={cn(
+              "absolute top-2 right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
+              selected ? "bg-primary border-primary" : "bg-black/40 border-white/70 backdrop-blur-sm"
+            )}>
+              {selected && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
             </div>
           </div>
         )}
@@ -670,11 +881,17 @@ function VideoCard({
 function VoiceCard({
   item,
   isDeleting,
+  selectMode,
+  selected,
+  onToggleSelect,
   onPlay,
   onDelete,
 }: {
   item: VoiceItem;
   isDeleting: boolean;
+  selectMode: boolean;
+  selected: boolean;
+  onToggleSelect: () => void;
   onPlay: () => void;
   onDelete: () => void;
 }) {
@@ -683,15 +900,18 @@ function VoiceCard({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      className="group rounded-xl sm:rounded-2xl border border-border/60 bg-card overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all"
+      className={cn(
+        "group rounded-xl sm:rounded-2xl border bg-card overflow-hidden hover:shadow-lg transition-all",
+        selected ? "border-primary ring-2 ring-primary/40" : "border-border/60 hover:border-primary/40"
+      )}
     >
       <button
         type="button"
-        onClick={item.audioUrl ? onPlay : undefined}
-        disabled={!item.audioUrl}
+        onClick={selectMode ? onToggleSelect : (item.audioUrl ? onPlay : undefined)}
+        disabled={!selectMode && !item.audioUrl}
         className={cn(
           "relative aspect-video w-full bg-gradient-to-br from-violet-500/15 via-primary/10 to-indigo-400/15 overflow-hidden flex items-center justify-center block",
-          item.audioUrl && "cursor-pointer"
+          (selectMode || item.audioUrl) && "cursor-pointer"
         )}
       >
         {/* Decorative wave bars */}
@@ -715,18 +935,35 @@ function VoiceCard({
         </div>
 
         {/* Voice label (sembunyi di mobile biar gak crowded) */}
-        {item.voiceLabel && (
+        {item.voiceLabel && !selectMode && (
           <div className="hidden sm:inline-flex absolute top-2 right-2 items-center gap-1 px-2 py-0.5 rounded-full bg-white/90 text-black text-[10px] font-semibold max-w-[60%] truncate">
             {item.voiceLabel}
           </div>
         )}
 
-        {/* Play button overlay (klik area apa aja → buka modal) */}
-        <div className="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-          <div className="w-9 h-9 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-white/95 text-primary flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-            <Play className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 ml-0.5" fill="currentColor" />
+        {/* Play button overlay (sembunyi pas select mode) */}
+        {!selectMode && (
+          <div className="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+            <div className="w-9 h-9 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-white/95 text-primary flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+              <Play className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 ml-0.5" fill="currentColor" />
+            </div>
           </div>
-        </div>
+        )}
+
+        {/* Select mode overlay — ceklis di kanan atas */}
+        {selectMode && (
+          <div className={cn(
+            "absolute inset-0 transition-colors",
+            selected ? "bg-primary/30" : "bg-black/20 hover:bg-black/30"
+          )}>
+            <div className={cn(
+              "absolute top-2 right-2 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all",
+              selected ? "bg-primary border-primary" : "bg-black/40 border-white/70 backdrop-blur-sm"
+            )}>
+              {selected && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+            </div>
+          </div>
+        )}
       </button>
 
       <div className="p-2 sm:p-3 md:p-3.5">

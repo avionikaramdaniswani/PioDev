@@ -133,6 +133,7 @@ export default function PremiumPricingPage() {
         "Akses model dasar",
         "7 gambar AI per hari",
         "3 video AI per bulan",
+        "10 voice AI per bulan (TTS, clone, design)",
         "Pustaka: 10 file (10 MB/file) · 100 hal/bulan",
       ],
       cta: !isPremium
@@ -152,6 +153,7 @@ export default function PremiumPricingPage() {
         "Semua model premium",
         "25 gambar AI per hari",
         "12 video AI per bulan",
+        "60 voice AI per bulan (TTS, clone, design)",
         "Pustaka: 20 file (20 MB/file) · 1.000 hal/bulan",
         "API key untuk developer",
         "Bonus saldo Rp 75.000 (satu kali, saat upgrade)",
@@ -181,6 +183,7 @@ export default function PremiumPricingPage() {
         "Semua model premium",
         "40 gambar AI per hari",
         "20 video AI per bulan",
+        "200 voice AI per bulan (TTS, clone, design)",
         "Pustaka: 35 file (30 MB/file) · 5.000 hal/bulan",
         "API key untuk developer",
         "Bonus saldo Rp 125.000 (satu kali, saat upgrade)",
@@ -482,10 +485,13 @@ const COMPARISON_GROUPS: Array<{ title: string; rows: Row[] }> = [
     ],
   },
   {
-    title: "Image & Video",
+    title: "Image, Video & Voice",
     rows: [
       { label: "Gambar AI per hari", free: "7", plus: "25", pro: "40" },
       { label: "Video AI per bulan", free: "3", plus: "12", pro: "20" },
+      { label: "Voice AI per bulan (TTS + clone + design)", free: "10", plus: "60", pro: "200" },
+      { label: "Voice cloning & voice design", free: { yes: true }, plus: { yes: true }, pro: { yes: true } },
+      { label: "Galeri Studio (riwayat video & voice)", free: { yes: true }, plus: { yes: true }, pro: { yes: true } },
     ],
   },
   {

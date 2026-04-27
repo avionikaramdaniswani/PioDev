@@ -317,7 +317,6 @@ export function ChatSidebar({
           <DropdownMenuContent side="right" align="start" className="w-52">
             <DropdownMenuItem onClick={() => navigate("/galeri-studio")} className="gap-2 cursor-pointer">
               <FolderOpen className="w-4 h-4" /> Galeri Studio
-              <span className="ml-auto text-[10px] text-muted-foreground">soon</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate("/image-studio")} className="gap-2 cursor-pointer">
               <ImageIcon className="w-4 h-4" /> Image Studio
@@ -449,7 +448,7 @@ export function ChatSidebar({
 
         {studioExpanded && (
           <div className="mt-1 ml-3 pl-3 border-l border-sidebar-border/60 flex flex-col gap-0.5">
-            {/* Galeri Studio (coming soon) */}
+            {/* Galeri Studio */}
             <button
               onClick={() => navigate("/galeri-studio")}
               className={cn(
@@ -461,7 +460,6 @@ export function ChatSidebar({
             >
               <FolderOpen className="w-4 h-4" />
               <span>Galeri Studio</span>
-              <span className="ml-auto text-[9px] uppercase text-sidebar-foreground/40">soon</span>
             </button>
 
             {/* Image Studio (coming soon) */}

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
-import { User, Lock, Check, Eye, EyeOff, Sun, Moon, Menu, X, BarChart2, Sparkles, Star, Zap, ImageIcon, Clapperboard, ChevronRight, Shield, Mail } from "lucide-react";
+import { User, Lock, Check, Eye, EyeOff, Sun, Moon, Menu, X, BarChart2, Sparkles, Star, Zap, ImageIcon, Clapperboard, ChevronRight, Shield, Mail, Mic } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
 import { useChat } from "@/hooks/use-chat";
@@ -45,6 +45,7 @@ export default function Settings() {
     token: { used: number; limit: number };
     image: { used: number; limit: number };
     video: { credits: number; max: number };
+    voice: { credits: number; max: number };
   };
   const [usageSummary, setUsageSummary] = useState<UsageSummary | null>(null);
   const [usageSummaryLoading, setUsageSummaryLoading] = useState(false);
@@ -713,7 +714,15 @@ export default function Settings() {
                             sub: "Reset tiap bulan",
                             used: usageSummary.video.max - usageSummary.video.credits,
                             limit: Math.max(usageSummary.video.max, 1),
-                            display: `${usageSummary.video.credits} / ${usageSummary.video.max >= 999 ? "∞" : usageSummary.video.max} sisa`,
+                            display: `${usageSummary.video.credits}/${usageSummary.video.max >= 999 ? "∞" : usageSummary.video.max}`,
+                          },
+                          {
+                            icon: Mic,
+                            label: "Kredit voice",
+                            sub: "Reset tiap bulan",
+                            used: usageSummary.voice.max - usageSummary.voice.credits,
+                            limit: Math.max(usageSummary.voice.max, 1),
+                            display: `${usageSummary.voice.credits}/${usageSummary.voice.max >= 999 ? "∞" : usageSummary.voice.max}`,
                           },
                         ].map(({ icon: Icon, label, sub, used, limit, display }) => (
                           <div key={label} className="space-y-1.5">
