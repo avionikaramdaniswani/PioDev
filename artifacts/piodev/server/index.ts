@@ -129,6 +129,8 @@ const PRO_ONLY_MODELS = new Set([
   // Wan 2.7 image (generasi terbaru — April 2026)
   "wan2.7-image","wan2.7-image-pro",
   // ── Video — newest generation & best ────────────────────────────────────
+  // HappyHorse 1.0 (family baru — Juli 2026, super limited 10/quota)
+  "happyhorse-1.0-t2v","happyhorse-1.0-i2v","happyhorse-1.0-r2v","happyhorse-1.0-video-edit",
   // Wan 2.7 video (generasi terbaru — April 2026)
   "wan2.7-t2v","wan2.7-t2v-2026-04-25",
   "wan2.7-i2v","wan2.7-i2v-2026-04-25",

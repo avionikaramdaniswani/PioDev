@@ -2157,6 +2157,12 @@ const IMAGE_MODELS: ModelRow[] = [
 // VIDEO models — endpoint: POST /api/v1/services/aigc/video-generation
 // ═══════════════════════════════════════════════════════════════════════════
 const VIDEO_MODELS: ModelRow[] = [
+  // ── HappyHorse 1.0 (family video baru — Juli 2026, super limited) ─────
+  { id: "happyhorse-1.0-t2v", label: "HappyHorse 1.0 T2V", desc: "🐎 Model video family baru dari Aliyun — text-to-video generasi terbaru.", access: "pro_only" },
+  { id: "happyhorse-1.0-i2v", label: "HappyHorse 1.0 I2V", desc: "🐎 HappyHorse image-to-video — animasi dari gambar awal.", access: "pro_only" },
+  { id: "happyhorse-1.0-r2v", label: "HappyHorse 1.0 R2V", desc: "🐎 HappyHorse reference-to-video — pake gambar referensi.", access: "pro_only" },
+  { id: "happyhorse-1.0-video-edit", label: "HappyHorse 1.0 Video Edit", desc: "🐎 HappyHorse video editing — modifikasi klip dengan prompt.", access: "pro_only" },
+
   // ── Text-to-Video (T2V) ────────────────────────────────────────────────
   { id: "wan2.7-t2v-2026-04-25", label: "Wan 2.7 T2V (2026-04-25)", desc: "🔥 Generasi paling baru — flagship text-to-video saat ini.", access: "pro_only" },
   { id: "wan2.7-t2v", label: "Wan 2.7 T2V", desc: "🔥 Wan 2.7 text-to-video — alias rolling.", access: "pro_only" },

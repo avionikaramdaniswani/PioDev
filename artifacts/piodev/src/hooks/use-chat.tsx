@@ -201,6 +201,11 @@ const IMAGE_EDIT_MODELS = [
 
 // Video generation models (text/image → video)
 const VIDEO_GEN_MODELS = [
+  // HappyHorse 1.0 (family video baru — Juli 2026, super limited quota)
+  "happyhorse-1.0-t2v",
+  "happyhorse-1.0-i2v",
+  "happyhorse-1.0-r2v",
+  "happyhorse-1.0-video-edit",
   // Wan 2.7 (generasi terbaru — April 2026, di depan sebagai flagship)
   "wan2.7-t2v-2026-04-25",
   "wan2.7-t2v",
