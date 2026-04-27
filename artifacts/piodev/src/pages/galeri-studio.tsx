@@ -14,6 +14,7 @@ import {
   Loader2,
   RefreshCw,
   AudioLines,
+  X,
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
@@ -98,6 +99,17 @@ export default function GaleriStudio() {
   const [error, setError] = useState<string | null>(null);
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [previewVideo, setPreviewVideo] = useState<VideoItem | null>(null);
+
+  // Esc key buat tutup modal
+  useEffect(() => {
+    if (!previewVideo) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPreviewVideo(null);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [previewVideo]);
 
   const loadAll = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -396,6 +408,7 @@ export default function GaleriStudio() {
                       key={`video-${item.id}`}
                       item={item}
                       isDeleting={deletingId === item.id}
+                      onPlay={() => setPreviewVideo(item)}
                       onDelete={() => handleDeleteVideo(item.id)}
                     />
                   ) : (
@@ -415,6 +428,63 @@ export default function GaleriStudio() {
           </div>
         </div>
       </div>
+
+      {/* ── Video Preview Modal ─────────────────────────────────────────── */}
+      <AnimatePresence>
+        {previewVideo && previewVideo.videoUrl && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-[60] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4 sm:p-8"
+            onClick={() => setPreviewVideo(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="relative w-full max-w-5xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Close button */}
+              <button
+                onClick={() => setPreviewVideo(null)}
+                className="absolute -top-12 right-0 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                title="Tutup (Esc)"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="rounded-2xl overflow-hidden bg-black shadow-2xl">
+                <video
+                  src={previewVideo.videoUrl}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="w-full max-h-[80vh] block"
+                />
+              </div>
+
+              <div className="mt-4 flex items-start justify-between gap-4 text-white">
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm leading-snug line-clamp-3">{previewVideo.prompt || "Tanpa prompt"}</p>
+                  <div className="text-[11px] text-white/60 mt-1">
+                    {previewVideo.model} · {formatDate(previewVideo.createdAt)}
+                  </div>
+                </div>
+                <button
+                  onClick={() => downloadUrl(previewVideo.videoUrl!, `pio-video-${previewVideo.id}.mp4`)}
+                  className="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-sm font-medium transition-colors shrink-0"
+                >
+                  <Download className="w-4 h-4" /> Download
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -423,13 +493,14 @@ export default function GaleriStudio() {
 function VideoCard({
   item,
   isDeleting,
+  onPlay,
   onDelete,
 }: {
   item: VideoItem;
   isDeleting: boolean;
+  onPlay: () => void;
   onDelete: () => void;
 }) {
-  const [hovered, setHovered] = useState(false);
   const isReady = item.status === "succeeded" && item.videoUrl;
   const isFailed = item.status === "failed";
   const isPending = item.status === "pending" || item.status === "running";
@@ -439,26 +510,31 @@ function VideoCard({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
       className="group rounded-2xl border border-border/60 bg-card overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all"
     >
-      <div className="relative aspect-video bg-gradient-to-br from-primary/10 to-indigo-400/10 overflow-hidden">
+      <button
+        type="button"
+        onClick={isReady ? onPlay : undefined}
+        disabled={!isReady}
+        className={cn(
+          "relative aspect-video w-full bg-gradient-to-br from-primary/10 to-indigo-400/10 overflow-hidden block",
+          isReady && "cursor-pointer"
+        )}
+      >
         {isReady ? (
-          <video
-            src={item.videoUrl}
-            poster={item.imageUrl}
-            muted
-            loop
-            playsInline
-            preload="metadata"
-            className="w-full h-full object-cover"
-            ref={(el) => {
-              if (!el) return;
-              if (hovered) el.play().catch(() => {});
-              else { el.pause(); el.currentTime = 0; }
-            }}
-          />
+          // Static thumbnail: pake poster (gambar input untuk i2v) atau frame pertama video.
+          // preload="metadata" + muted + tanpa autoplay → cuma load 1 frame.
+          item.imageUrl ? (
+            <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <video
+              src={item.videoUrl}
+              muted
+              playsInline
+              preload="metadata"
+              className="w-full h-full object-cover pointer-events-none"
+            />
+          )
         ) : (
           <div className="w-full h-full flex items-center justify-center">
             {isPending && <Loader2 className="w-8 h-8 text-primary animate-spin" />}
@@ -483,21 +559,15 @@ function VideoCard({
           </div>
         )}
 
-        {/* Hover actions */}
+        {/* Play button overlay (selalu kelihatan, lebih jelas pas hover) */}
         {isReady && (
-          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-            <a
-              href={item.videoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-11 h-11 rounded-full bg-white/95 text-black flex items-center justify-center shadow-md hover:scale-105 transition-transform"
-              title="Buka video"
-            >
-              <Play className="w-5 h-5 ml-0.5" />
-            </a>
+          <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+            <div className="w-14 h-14 rounded-full bg-white/95 text-black flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+              <Play className="w-6 h-6 ml-0.5" fill="currentColor" />
+            </div>
           </div>
         )}
-      </div>
+      </button>
 
       <div className="p-3.5">
         <p className="text-sm font-medium leading-snug line-clamp-2 mb-1.5">{item.prompt || "Tanpa prompt"}</p>
