@@ -933,8 +933,9 @@ function SectionPengguna({
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <button
+                                type="button"
                                 aria-label="Aksi pengguna"
-                                className="p-1.5 rounded-md hover:bg-muted transition-colors text-muted-foreground"
+                                className="p-2.5 sm:p-1.5 rounded-md hover:bg-muted active:bg-muted transition-colors text-muted-foreground touch-manipulation"
                               >
                                 <MoreHorizontal className="w-4 h-4" />
                               </button>

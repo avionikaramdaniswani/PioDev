@@ -209,11 +209,16 @@ export function ChatSidebar({
       )}
 
       {editingId !== chat.id && (
-        <div className="opacity-0 group-hover:opacity-100 transition-all shrink-0" onClick={(e) => e.stopPropagation()}>
+        <div
+          className="opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-all shrink-0"
+          onClick={(e) => e.stopPropagation()}
+        >
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
-                className="p-1 rounded hover:bg-sidebar-accent/70 text-sidebar-foreground/50 hover:text-sidebar-foreground transition-colors"
+                type="button"
+                aria-label="Opsi chat"
+                className="p-1.5 -m-0.5 rounded hover:bg-sidebar-accent/70 text-sidebar-foreground/60 hover:text-sidebar-foreground transition-colors touch-manipulation"
                 title="Opsi"
               >
                 <MoreHorizontal className="w-4 h-4" />
