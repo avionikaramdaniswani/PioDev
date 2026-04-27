@@ -1967,33 +1967,39 @@ interface ModelRow {
 }
 
 const CHAT_MODELS: ModelRow[] = [
+  // Plus & Pro
   { id: "qwen-flash", label: "Qwen Flash", desc: "Paling cepat & murah. Cocok untuk task ringan, autocomplete, klasifikasi.", access: "plus_pro" },
   { id: "qwen-plus", label: "Qwen Plus", desc: "Sweet spot kecepatan, kualitas, dan biaya. Pilihan aman buat hampir semua use case.", access: "plus_pro" },
   { id: "qwen-turbo", label: "Qwen Turbo", desc: "Throughput tinggi, latency rendah. Bagus untuk produksi volume besar.", access: "plus_pro" },
+  { id: "qwen3-coder-flash", label: "Qwen3 Coder Flash", desc: "Coder versi cepat & murah untuk autocomplete IDE.", access: "plus_pro" },
+  { id: "deepseek-v3.2", label: "DeepSeek V3.2", desc: "Alternatif kuat untuk reasoning & coding.", access: "plus_pro" },
+  // Pro only
   { id: "qwen3-max", label: "Qwen3 Max", desc: "Frontier model — paling pintar untuk reasoning, analisa kompleks, long context.", access: "pro_only" },
   { id: "qwen3-235b-a22b-thinking-2507", label: "Qwen3 235B Thinking", desc: "Mode thinking eksplisit. Bagus untuk math, logic, debugging.", access: "pro_only" },
   { id: "qwen3-coder-plus", label: "Qwen3 Coder Plus", desc: "Spesialis coding — code generation, refactor, review.", access: "pro_only" },
-  { id: "qwen3-coder-flash", label: "Qwen3 Coder Flash", desc: "Coder versi cepat & murah untuk autocomplete IDE.", access: "plus_pro" },
-  { id: "deepseek-v3.2", label: "DeepSeek V3.2", desc: "Alternatif kuat untuk reasoning & coding.", access: "plus_pro" },
 ];
 
 const IMAGE_MODELS: ModelRow[] = [
+  // Plus & Pro
   { id: "qwen-image", label: "Qwen Image", desc: "Balanced quality & speed. Aman buat hampir semua kebutuhan generate gambar.", access: "plus_pro" },
   { id: "qwen-image-plus", label: "Qwen Image Plus", desc: "Detail lebih tajam, fotorealistik lebih bagus.", access: "plus_pro" },
-  { id: "qwen-image-max", label: "Qwen Image Max", desc: "Output paling detail dan tajam.", access: "pro_only" },
-  { id: "qwen-image-2.0-pro", label: "Qwen Image 2.0 Pro", desc: "Generasi terbaru, prompt adherence lebih akurat.", access: "pro_only" },
   { id: "z-image-turbo", label: "Z-Image Turbo", desc: "Generate super cepat untuk preview/iterasi.", access: "plus_pro" },
   { id: "wan2.2-t2i-flash", label: "Wan 2.2 T2I Flash", desc: "Wan series text-to-image, gaya artistik kuat.", access: "plus_pro" },
   { id: "qwen-image-edit", label: "Qwen Image Edit", desc: "Edit gambar existing pakai prompt (image-to-image).", access: "plus_pro" },
+  // Pro only
+  { id: "qwen-image-max", label: "Qwen Image Max", desc: "Output paling detail dan tajam.", access: "pro_only" },
+  { id: "qwen-image-2.0-pro", label: "Qwen Image 2.0 Pro", desc: "Generasi terbaru, prompt adherence lebih akurat.", access: "pro_only" },
   { id: "qwen-image-edit-plus", label: "Qwen Image Edit Plus", desc: "Image edit dengan kontrol lebih presisi.", access: "pro_only" },
 ];
 
 const VIDEO_MODELS: ModelRow[] = [
+  // Plus & Pro
   { id: "wan2.2-t2v-plus", label: "Wan 2.2 T2V Plus", desc: "Pilihan utama text-to-video. Output 5 detik 720p.", access: "plus_pro" },
-  { id: "wan2.6-t2v", label: "Wan 2.6 T2V", desc: "Generasi terbaru, motion lebih smooth.", access: "pro_only" },
   { id: "wan2.1-t2v-turbo", label: "Wan 2.1 T2V Turbo", desc: "Versi cepat untuk iterasi prompt.", access: "plus_pro" },
-  { id: "wan2.2-i2v-plus", label: "Wan 2.2 I2V Plus", desc: "Image-to-video — kasih gambar awal + prompt motion.", access: "pro_only" },
   { id: "wan2.2-i2v-flash", label: "Wan 2.2 I2V Flash", desc: "I2V versi cepat & murah.", access: "plus_pro" },
+  // Pro only
+  { id: "wan2.6-t2v", label: "Wan 2.6 T2V", desc: "Generasi terbaru, motion lebih smooth.", access: "pro_only" },
+  { id: "wan2.2-i2v-plus", label: "Wan 2.2 I2V Plus", desc: "Image-to-video — kasih gambar awal + prompt motion.", access: "pro_only" },
   { id: "wan2.6-i2v", label: "Wan 2.6 I2V", desc: "I2V terbaru, kualitas paling baik.", access: "pro_only" },
 ];
 
