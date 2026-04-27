@@ -1,0 +1,190 @@
+Model Code	
+Remaining Free Quota
+Expiration Time
+Status
+Actions
+qwen3-asr-flash-2025-09-08
+Remaining36,000/Total36,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-omni-30b-a3b-captioner
+Remaining1,000,000/Total1,000,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-tts-vd-2026-01-26
+Remaining10,000/Total10,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-tts-vc-realtime-2026-01-15
+Remaining10,000/Total10,000
+2026/06/12
+Off	
+Free Quota Only
+cosyvoice-v3-flash
+Remaining10,000/Total10,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-tts-flash-realtime
+Remaining10,000/Total10,000
+2026/06/12
+Off	
+Free Quota Only
+fun-asr-2025-08-25
+Remaining36,000/Total36,000
+2026/06/12
+Off	
+Free Quota Only
+fun-asr-mtl
+Remaining36,000/Total36,000
+2026/06/12
+Off	
+Free Quota Only
+fun-asr-realtime-2025-11-07
+Remaining36,000/Total36,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-tts-flash-2025-09-18
+Remaining10,000/Total10,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-tts-flash
+Remaining10,000/Total10,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-tts-flash-realtime-2025-09-18
+Remaining10,000/Total10,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-asr-flash-realtime-2026-02-10
+Remaining36,000/Total36,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-livetranslate-flash-realtime-2025-09-22
+Remaining1,000,000/Total1,000,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-tts-vc-2026-01-22
+Remaining10,000/Total10,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-tts-instruct-flash-2026-01-26
+Remaining10,000/Total10,000
+2026/06/12
+Off	
+Free Quota Only
+fun-asr-2025-11-07
+Remaining36,000/Total36,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-tts-flash-2025-11-27
+Remaining10,000/Total10,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-asr-flash-realtime-2025-10-27
+Remaining36,000/Total36,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-asr-flash-realtime
+Remaining36,000/Total36,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-tts-vd-realtime-2025-12-16
+Remaining10,000/Total10,000
+2026/06/12
+Off	
+Free Quota Only
+cosyvoice-v3-plus
+Remaining10,000/Total10,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-tts-instruct-flash-realtime-2026-01-22
+Remaining10,000/Total10,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-asr-flash-2026-02-10
+Remaining36,000/Total36,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-tts-instruct-flash
+Remaining10,000/Total10,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-tts-instruct-flash-realtime
+Remaining10,000/Total10,000
+2026/06/12
+Off	
+Free Quota Only
+fun-asr-mtl-2025-08-25
+Remaining36,000/Total36,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-tts-vd-realtime-2026-01-15
+Remaining10,000/Total10,000
+2026/06/12
+Off	
+Free Quota Only
+fun-asr-realtime
+Remaining36,000/Total36,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-asr-flash-filetrans
+Remaining36,000/Total36,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-asr-flash-filetrans-2025-11-17
+Remaining36,000/Total36,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-livetranslate-flash-realtime
+Remaining1,000,000/Total1,000,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-tts-flash-realtime-2025-11-27
+Remaining10,000/Total10,000
+2026/06/12
+Off	
+Free Quota Only
+fun-asr
+Remaining36,000/Total36,000
+2026/06/12
+Off	
+Free Quota Only
+qwen3-asr-flash
+Remaining36,000/Total36,000
+2026/06/12
+Off	
+Free Quota Only
+qwen-voice-design
+Remaining10/Total10
+2026/06/12
+Off	
+Free Quota Only
+voice-enrollment
+No free quota
+-
+Not Supported
+-
