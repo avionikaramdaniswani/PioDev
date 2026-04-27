@@ -498,30 +498,14 @@ export default function GaleriStudio() {
               </button>
 
               <div className="rounded-2xl overflow-hidden bg-card border border-border/60 shadow-2xl">
-                {/* Visual header */}
-                <div className="relative aspect-video bg-gradient-to-br from-violet-500/25 via-primary/20 to-indigo-400/25 flex items-center justify-center overflow-hidden">
-                  <div className="absolute inset-0 flex items-center justify-center gap-1 px-8 pointer-events-none">
-                    {Array.from({ length: 32 }).map((_, i) => {
-                      const seed = (previewVoice.id.charCodeAt(i % previewVoice.id.length) || 50) % 100;
-                      const h = 16 + (seed % 70);
-                      return (
-                        <div
-                          key={i}
-                          className="w-1 rounded-full bg-primary/50"
-                          style={{ height: `${h}%` }}
-                        />
-                      );
-                    })}
-                  </div>
+                {/* Content */}
+                <div className="p-5 space-y-4">
                   {previewVoice.voiceLabel && (
-                    <div className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 text-black text-xs font-semibold">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
                       <AudioLines className="w-3 h-3" /> {previewVoice.voiceLabel}
                     </div>
                   )}
-                </div>
 
-                {/* Content */}
-                <div className="p-5 space-y-4">
                   <div>
                     <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Teks</div>
                     <p className="text-sm leading-relaxed max-h-40 overflow-y-auto pr-1">
