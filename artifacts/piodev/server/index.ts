@@ -123,10 +123,16 @@ const PRO_ONLY_MODELS = new Set([
   "qvq-max","qvq-max-latest","qvq-max-2025-03-25",
   // ── Image — premium quality & latest ────────────────────────────────────
   "qwen-image-max","qwen-image-max-2025-12-30",
-  "qwen-image-2.0-pro","qwen-image-2.0-pro-2026-03-03",
+  "qwen-image-2.0-pro","qwen-image-2.0-pro-2026-03-03","qwen-image-2.0-pro-2026-04-22",
   "qwen-image-edit-max","qwen-image-edit-max-2026-01-16",
   "qwen-image-edit-plus","qwen-image-edit-plus-2025-12-15","qwen-image-edit-plus-2025-10-30",
+  // Wan 2.7 image (generasi terbaru — April 2026)
+  "wan2.7-image","wan2.7-image-pro",
   // ── Video — newest generation & best ────────────────────────────────────
+  // Wan 2.7 video (generasi terbaru — April 2026)
+  "wan2.7-t2v","wan2.7-t2v-2026-04-25",
+  "wan2.7-i2v","wan2.7-i2v-2026-04-25",
+  "wan2.7-r2v","wan2.7-videoedit",
   "wan2.6-t2v","wan2.6-i2v","wan2.6-i2v-flash",
   "wan2.6-r2v","wan2.6-r2v-flash", // reference-to-video terbaru
   "wan2.2-i2v-plus","wan2.5-t2v-preview","wan2.5-i2v-preview",

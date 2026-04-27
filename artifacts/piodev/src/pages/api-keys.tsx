@@ -2119,8 +2119,9 @@ const CHAT_MODELS: ModelRow[] = [
 // ═══════════════════════════════════════════════════════════════════════════
 const IMAGE_MODELS: ModelRow[] = [
   // ── Qwen Image generation ───────────────────────────────────────────────
-  { id: "qwen-image-2.0-pro", label: "Qwen Image 2.0 Pro", desc: "🔥 Generasi terbaru, prompt adherence paling akurat.", access: "pro_only" },
-  { id: "qwen-image-2.0-pro-2026-03-03", label: "Qwen Image 2.0 Pro (2026-03-03)", desc: "🔥 Snapshot dated terbaru qwen-image-2.0-pro.", access: "pro_only" },
+  { id: "qwen-image-2.0-pro-2026-04-22", label: "Qwen Image 2.0 Pro (2026-04-22)", desc: "🔥 Snapshot dated paling baru — flagship image generation saat ini.", access: "pro_only" },
+  { id: "qwen-image-2.0-pro", label: "Qwen Image 2.0 Pro", desc: "🔥 Alias rolling — prompt adherence paling akurat.", access: "pro_only" },
+  { id: "qwen-image-2.0-pro-2026-03-03", label: "Qwen Image 2.0 Pro (2026-03-03)", desc: "🔥 Snapshot dated qwen-image-2.0-pro.", access: "pro_only" },
   { id: "qwen-image-max", label: "Qwen Image Max", desc: "🔥 Output paling detail dan tajam.", access: "pro_only" },
   { id: "qwen-image-max-2025-12-30", label: "Qwen Image Max (2025-12-30)", desc: "🔥 Snapshot dated qwen-image-max.", access: "pro_only" },
   { id: "qwen-image-2.0", label: "Qwen Image 2.0", desc: "Versi base 2.0 — kualitas tinggi tanpa premium tier.", access: "plus_pro" },
@@ -2139,7 +2140,9 @@ const IMAGE_MODELS: ModelRow[] = [
   { id: "qwen-image-edit", label: "Qwen Image Edit", desc: "Edit gambar pakai prompt (image-to-image basic).", access: "plus_pro" },
 
   // ── Wan series (text-to-image artistik) ────────────────────────────────
-  { id: "wan2.6-image", label: "Wan 2.6 Image", desc: "Wan generasi terbaru text-to-image.", access: "plus_pro" },
+  { id: "wan2.7-image-pro", label: "Wan 2.7 Image Pro", desc: "🔥 Wan 2.7 Pro tier — generasi terbaru, kualitas image paling tinggi.", access: "pro_only" },
+  { id: "wan2.7-image", label: "Wan 2.7 Image", desc: "🔥 Wan 2.7 image — generasi terbaru text-to-image.", access: "pro_only" },
+  { id: "wan2.6-image", label: "Wan 2.6 Image", desc: "Wan 2.6 text-to-image.", access: "plus_pro" },
   { id: "wan2.6-t2i", label: "Wan 2.6 T2I", desc: "Wan 2.6 text-to-image alias.", access: "plus_pro" },
   { id: "wan2.5-t2i-preview", label: "Wan 2.5 T2I Preview", desc: "Wan 2.5 preview build text-to-image.", access: "plus_pro" },
   { id: "wan2.5-i2i-preview", label: "Wan 2.5 I2I Preview", desc: "Wan 2.5 image-to-image preview.", access: "plus_pro" },
@@ -2155,22 +2158,27 @@ const IMAGE_MODELS: ModelRow[] = [
 // ═══════════════════════════════════════════════════════════════════════════
 const VIDEO_MODELS: ModelRow[] = [
   // ── Text-to-Video (T2V) ────────────────────────────────────────────────
-  { id: "wan2.6-t2v", label: "Wan 2.6 T2V", desc: "🔥 Generasi terbaru, motion paling smooth.", access: "pro_only" },
+  { id: "wan2.7-t2v-2026-04-25", label: "Wan 2.7 T2V (2026-04-25)", desc: "🔥 Generasi paling baru — flagship text-to-video saat ini.", access: "pro_only" },
+  { id: "wan2.7-t2v", label: "Wan 2.7 T2V", desc: "🔥 Wan 2.7 text-to-video — alias rolling.", access: "pro_only" },
+  { id: "wan2.6-t2v", label: "Wan 2.6 T2V", desc: "🔥 Generasi sebelumnya, motion smooth.", access: "pro_only" },
   { id: "wan2.5-t2v-preview", label: "Wan 2.5 T2V Preview", desc: "🔥 Wan 2.5 preview text-to-video.", access: "pro_only" },
   { id: "wan2.2-t2v-plus", label: "Wan 2.2 T2V Plus", desc: "Workhorse text-to-video. Output 5 detik 720p.", access: "plus_pro" },
-  { id: "wan2.1-t2v-plus", label: "Wan 2.1 T2V Plus", desc: "Wan 2.1 Plus — generasi sebelumnya.", access: "plus_pro" },
+  { id: "wan2.1-t2v-plus", label: "Wan 2.1 T2V Plus", desc: "Wan 2.1 Plus — generasi lebih lama.", access: "plus_pro" },
   { id: "wan2.1-t2v-turbo", label: "Wan 2.1 T2V Turbo", desc: "Cepat untuk iterasi prompt.", access: "plus_pro" },
 
   // ── Image-to-Video (I2V) ───────────────────────────────────────────────
-  { id: "wan2.6-i2v", label: "Wan 2.6 I2V", desc: "🔥 I2V terbaru — kualitas paling baik.", access: "pro_only" },
-  { id: "wan2.6-i2v-flash", label: "Wan 2.6 I2V Flash", desc: "🔥 I2V terbaru versi flash — cepat.", access: "pro_only" },
+  { id: "wan2.7-i2v-2026-04-25", label: "Wan 2.7 I2V (2026-04-25)", desc: "🔥 Generasi paling baru — flagship image-to-video saat ini.", access: "pro_only" },
+  { id: "wan2.7-i2v", label: "Wan 2.7 I2V", desc: "🔥 Wan 2.7 image-to-video — alias rolling.", access: "pro_only" },
+  { id: "wan2.6-i2v", label: "Wan 2.6 I2V", desc: "🔥 I2V Wan 2.6 — kualitas tinggi.", access: "pro_only" },
+  { id: "wan2.6-i2v-flash", label: "Wan 2.6 I2V Flash", desc: "🔥 Wan 2.6 I2V versi flash — cepat.", access: "pro_only" },
   { id: "wan2.5-i2v-preview", label: "Wan 2.5 I2V Preview", desc: "🔥 Wan 2.5 preview image-to-video.", access: "pro_only" },
   { id: "wan2.2-i2v-plus", label: "Wan 2.2 I2V Plus", desc: "🔥 I2V — gambar awal + prompt motion.", access: "pro_only" },
   { id: "wan2.2-i2v-flash", label: "Wan 2.2 I2V Flash", desc: "I2V versi cepat & murah.", access: "plus_pro" },
-  { id: "wan2.1-i2v-plus", label: "Wan 2.1 I2V Plus", desc: "Wan 2.1 Plus — generasi sebelumnya.", access: "plus_pro" },
+  { id: "wan2.1-i2v-plus", label: "Wan 2.1 I2V Plus", desc: "Wan 2.1 Plus — generasi lebih lama.", access: "plus_pro" },
   { id: "wan2.1-i2v-turbo", label: "Wan 2.1 I2V Turbo", desc: "Wan 2.1 turbo image-to-video.", access: "plus_pro" },
 
   // ── Reference-to-Video (R2V — gambar referensi) ───────────────────────
+  { id: "wan2.7-r2v", label: "Wan 2.7 R2V", desc: "🔥 Reference-to-video Wan 2.7 — generasi terbaru.", access: "pro_only" },
   { id: "wan2.6-r2v", label: "Wan 2.6 R2V", desc: "🔥 Reference-to-video — generate video pake gambar referensi.", access: "pro_only" },
   { id: "wan2.6-r2v-flash", label: "Wan 2.6 R2V Flash", desc: "🔥 R2V versi flash — cepat.", access: "pro_only" },
 
@@ -2179,6 +2187,7 @@ const VIDEO_MODELS: ModelRow[] = [
   { id: "wan2.1-kf2v-plus", label: "Wan 2.1 KF2V Plus", desc: "Wan 2.1 keyframe-to-video versi Plus.", access: "plus_pro" },
 
   // ── Video editing & animation ─────────────────────────────────────────
+  { id: "wan2.7-videoedit", label: "Wan 2.7 Video Edit", desc: "🔥 Tier video editing terbaru — edit klip dengan prompt.", access: "pro_only" },
   { id: "wan2.1-vace-plus", label: "Wan 2.1 VACE Plus", desc: "Video editing — modifikasi video existing.", access: "plus_pro" },
   { id: "wan2.2-animate-move", label: "Wan 2.2 Animate Move", desc: "Animate gambar dengan motion preset.", access: "plus_pro" },
   { id: "wan2.2-animate-mix", label: "Wan 2.2 Animate Mix", desc: "Animate dengan blending multi-source.", access: "plus_pro" },

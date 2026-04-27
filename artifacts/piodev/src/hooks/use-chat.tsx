@@ -175,12 +175,14 @@ const VISION_CHAIN = [
 
 // Image generation models (text → image)
 const IMAGE_GEN_MODELS = [
-  "qwen-image-plus",
-  "qwen-image-plus-2026-01-09",
+  // Qwen Image 2.0 Pro (newest dated April 2026 di depan sebagai flagship)
+  "qwen-image-2.0-pro-2026-04-22",
+  "qwen-image-2.0-pro-2026-03-03",
+  "qwen-image-2.0-pro",
   "qwen-image-max",
   "qwen-image-max-2025-12-30",
-  "qwen-image-2.0-pro",
-  "qwen-image-2.0-pro-2026-03-03",
+  "qwen-image-plus",
+  "qwen-image-plus-2026-01-09",
   "qwen-image-2.0",
   "qwen-image-2.0-2026-03-03",
   "qwen-image",
@@ -199,6 +201,13 @@ const IMAGE_EDIT_MODELS = [
 
 // Video generation models (text/image → video)
 const VIDEO_GEN_MODELS = [
+  // Wan 2.7 (generasi terbaru — April 2026, di depan sebagai flagship)
+  "wan2.7-t2v-2026-04-25",
+  "wan2.7-t2v",
+  "wan2.7-i2v-2026-04-25",
+  "wan2.7-i2v",
+  "wan2.7-r2v",
+  "wan2.7-videoedit",
   // Text to video
   "wan2.2-t2v-plus",
   "wan2.6-t2v",
@@ -227,6 +236,9 @@ const VIDEO_GEN_MODELS = [
 
 // Image generation from text (Wan series — image only)
 const WAN_IMAGE_MODELS = [
+  // Wan 2.7 image (generasi terbaru — April 2026)
+  "wan2.7-image-pro",
+  "wan2.7-image",
   "wan2.6-image",
   "wan2.6-t2i",
   "wan2.2-t2i-plus",
