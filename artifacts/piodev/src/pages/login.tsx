@@ -30,48 +30,46 @@ export default function Login() {
   return (
     <div className="h-screen overflow-hidden flex flex-col lg:flex-row bg-background">
 
-      {/* Panel kiri — branding */}
+      {/* Panel kiri — pure visual gradient */}
       <div className="hidden lg:flex lg:w-[50%] relative flex-col justify-between p-12 bg-[hsl(240,12%,6%)] overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full bg-primary/20 blur-[120px]" />
-          <div className="absolute -bottom-20 -right-20 w-[400px] h-[400px] rounded-full bg-indigo-500/15 blur-[100px]" />
-        </div>
+        {/* Animated ambient blobs */}
+        <motion.div
+          className="absolute -top-40 -left-40 w-[600px] h-[600px] rounded-full bg-primary/25 blur-[140px]"
+          animate={{ x: [0, 40, 0], y: [0, 30, 0] }}
+          transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute top-1/2 -right-32 w-[450px] h-[450px] rounded-full bg-indigo-500/20 blur-[120px]"
+          animate={{ x: [0, -30, 0], y: [0, -40, 0] }}
+          transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute -bottom-32 -left-20 w-[500px] h-[500px] rounded-full bg-violet-500/20 blur-[130px]"
+          animate={{ x: [0, 50, 0], y: [0, -30, 0] }}
+          transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+        />
 
+        {/* Logo top-left */}
         <div className="relative z-10 flex items-center gap-2.5">
           <Logo size={32} />
           <span className="text-white font-bold tracking-tight">PioCode</span>
         </div>
 
-        <div className="relative z-10">
-          <h2 className="text-4xl font-bold text-white leading-tight tracking-tight">
-            Tulis kode lebih cepat,<br />
-            <span className="bg-gradient-to-r from-primary via-indigo-400 to-violet-400 bg-clip-text text-transparent">
-              dengan bantuan AI.
+        {/* Centered tagline */}
+        <div className="relative z-10 flex-1 flex items-center">
+          <h2 className="text-5xl xl:text-6xl font-bold leading-[1.05] tracking-tight">
+            <span className="bg-gradient-to-r from-white via-primary to-indigo-300 bg-clip-text text-transparent">
+              Semua dalam
+            </span>
+            <br />
+            <span className="bg-gradient-to-r from-indigo-300 via-violet-400 to-primary bg-clip-text text-transparent">
+              satu tempat.
             </span>
           </h2>
-          <p className="mt-4 text-[hsl(240,5%,55%)] text-base leading-relaxed max-w-xs">
-            Tanya soal coding, minta bantu debug, atau diskusi arsitektur — semuanya di satu tempat.
-          </p>
-          <ul className="mt-8 space-y-4">
-            {[
-              ["Jawaban yang relevan",  "AI yang fokus pada konteks kode kamu"],
-              ["Debug lebih mudah",     "Jelaskan errornya, dapat solusi yang jelas"],
-              ["Siap kapan saja",       "Tidak perlu tunggu, tidak perlu googling lama"],
-            ].map(([title, desc]) => (
-              <li key={title} className="flex items-start gap-3">
-                <span className="mt-1.5 w-1.5 h-1.5 rounded-full bg-primary shrink-0" />
-                <div>
-                  <p className="text-sm font-medium text-white/85">{title}</p>
-                  <p className="text-xs text-[hsl(240,5%,50%)] mt-0.5">{desc}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
         </div>
 
-        <p className="relative z-10 text-xs text-[hsl(240,5%,35%)]">
-          Dibuat untuk developer yang ingin bekerja lebih efisien.
-        </p>
+        {/* Empty bottom for balance */}
+        <div className="relative z-10" />
       </div>
 
       {/* Panel kanan — form */}
