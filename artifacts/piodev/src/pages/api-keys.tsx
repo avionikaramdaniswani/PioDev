@@ -84,7 +84,7 @@ export default function ApiKeysPage() {
   const [copied, setCopied] = useState(false);
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<"keys" | "history" | "docs">("keys");
+  const [activeTab, setActiveTab] = useState<"keys" | "history" | "models" | "docs">("keys");
 
   // Reveal state per key id: full plaintext key (kalo lagi ditampilin)
   const [revealed, setRevealed] = useState<Record<string, string>>({});
@@ -378,6 +378,9 @@ export default function ApiKeysPage() {
           </TabButton>
           <TabButton active={activeTab === "history"} onClick={() => setActiveTab("history")}>
             <History className="w-4 h-4" /> Riwayat
+          </TabButton>
+          <TabButton active={activeTab === "models"} onClick={() => setActiveTab("models")}>
+            <Cpu className="w-4 h-4" /> Models
           </TabButton>
           <TabButton active={activeTab === "docs"} onClick={() => setActiveTab("docs")}>
             <Code className="w-4 h-4" /> Dokumentasi
@@ -700,6 +703,8 @@ export default function ApiKeysPage() {
         )}
 
         {activeTab === "history" && !error && <RiwayatTab />}
+
+        {activeTab === "models" && <ModelsSection />}
 
         {activeTab === "docs" && <Docs />}
       </div>
@@ -1511,11 +1516,10 @@ function Callout({ icon: Icon, color, children }: { icon: any; color: "blue" | "
 
 function Docs() {
   const baseUrl = typeof window !== "undefined" ? `${window.location.origin}/v1` : "https://your-domain.com/v1";
-  const [docTab, setDocTab] = useState<"start" | "models" | "chat" | "image" | "video" | "ocr" | "file" | "ref">("start");
+  const [docTab, setDocTab] = useState<"start" | "chat" | "image" | "video" | "ocr" | "file" | "ref">("start");
 
   const tabs: { id: typeof docTab; label: string; icon: any }[] = [
     { id: "start", label: "Mulai di sini", icon: Rocket },
-    { id: "models", label: "Models", icon: Cpu },
     { id: "chat", label: "Chat", icon: MessageSquare },
     { id: "image", label: "Gambar", icon: ImageIcon },
     { id: "video", label: "Video", icon: Video },
@@ -1656,9 +1660,6 @@ Invoke-RestMethod -Uri "${baseUrl}/chat/completions" \`
           </Card>
         </div>
       )}
-
-      {/* MODELS */}
-      {docTab === "models" && <ModelsSection />}
 
       {/* CHAT */}
       {docTab === "chat" && (
@@ -2208,6 +2209,11 @@ function ModelTable({ models, defaultHint }: { models: ModelRow[]; defaultHint: 
     setTimeout(() => setCopiedId((curr) => (curr === id ? null : curr)), 1500);
   };
 
+  // Sort: plus_pro (akses umum) dulu, baru pro_only (frontier) di bawah.
+  // Stable sort — urutan original (per family) dipertahankan dalam masing-masing tier.
+  const accessOrder: Record<AccessTier, number> = { plus_pro: 0, pro_only: 1 };
+  const sortedModels = [...models].sort((a, b) => accessOrder[a.access] - accessOrder[b.access]);
+
   return (
     <div className="ml-7">
       <div className="rounded-lg border border-border overflow-hidden">
@@ -2223,7 +2229,7 @@ function ModelTable({ models, defaultHint }: { models: ModelRow[]; defaultHint: 
             </tr>
           </thead>
           <tbody>
-            {models.map((m) => (
+            {sortedModels.map((m) => (
               <tr key={m.id} className="border-t border-border hover:bg-muted/30 transition">
                 <td className="px-3 py-2.5 font-mono text-xs text-foreground/90 align-top">{m.id}</td>
                 <td className="px-3 py-2.5 font-medium align-top">{m.label}</td>
@@ -2247,7 +2253,7 @@ function ModelTable({ models, defaultHint }: { models: ModelRow[]; defaultHint: 
 
         {/* Mobile cards */}
         <div className="md:hidden divide-y divide-border">
-          {models.map((m) => (
+          {sortedModels.map((m) => (
             <div key={m.id} className="p-3 space-y-2">
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
@@ -2274,61 +2280,73 @@ function ModelTable({ models, defaultHint }: { models: ModelRow[]; defaultHint: 
 }
 
 function ModelsSection() {
+  const [modelTab, setModelTab] = useState<"llm" | "image" | "video">("llm");
+
+  const subTabs: { id: typeof modelTab; label: string; icon: any }[] = [
+    { id: "llm", label: "LLM", icon: MessageSquare },
+    { id: "image", label: "Gambar", icon: ImageIcon },
+    { id: "video", label: "Video", icon: Video },
+  ];
+
   return (
     <div className="space-y-6">
-      <Card className="bg-gradient-to-br from-primary/5 to-transparent">
-        <SectionHeader icon={Cpu} title="Daftar model siap pakai" subtitle="Semua model di bawah ini bisa dipakai langsung lewat API key kamu. Klik ikon copy untuk salin Model ID." />
-        <div className="ml-7 grid gap-2 sm:grid-cols-3 mt-2">
-          <div className="p-3 rounded-lg border border-border bg-background/40">
-            <div className="text-xs text-muted-foreground">Tarif Chat</div>
-            <div className="font-semibold text-sm mt-0.5">Rp 1 / 2 token</div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">Berlaku semua model chat</div>
-          </div>
-          <div className="p-3 rounded-lg border border-border bg-background/40">
-            <div className="text-xs text-muted-foreground">Tarif Gambar</div>
-            <div className="font-semibold text-sm mt-0.5">Rp 1.000 / gambar</div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">Per output image</div>
-          </div>
-          <div className="p-3 rounded-lg border border-border bg-background/40">
-            <div className="text-xs text-muted-foreground">Tarif Video</div>
-            <div className="font-semibold text-sm mt-0.5">Rp 10.000 / video</div>
-            <div className="text-[11px] text-muted-foreground mt-0.5">Per output video</div>
-          </div>
-        </div>
-        <div className="ml-7 mt-3 space-y-2">
-          <Callout icon={Lightbulb} color="blue">
-            Akses API butuh subscription <strong>Plus</strong> atau <strong>Pro</strong> aktif. Sebagian besar model bisa dipakai semua user Plus/Pro. Model yang ditandai{" "}
-            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 align-middle">
-              <Crown className="w-2.5 h-2.5" /> Pro only
-            </span>{" "}
-            adalah model frontier — eksklusif untuk pengguna <strong>Pro</strong>.
-          </Callout>
-        </div>
-      </Card>
+      {/* Info ringkas akses (tanpa card tarif) */}
+      <Callout icon={Lightbulb} color="blue">
+        Akses API butuh subscription <strong>Plus</strong> atau <strong>Pro</strong> aktif. Sebagian besar model bisa dipakai semua user Plus/Pro. Model yang ditandai{" "}
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold border bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/30 align-middle">
+          <Crown className="w-2.5 h-2.5" /> Pro only
+        </span>{" "}
+        adalah model frontier — eksklusif untuk pengguna <strong>Pro</strong>. Klik ikon copy buat salin Model ID.
+      </Callout>
 
-      <Card>
-        <SectionHeader icon={MessageSquare} title="Chat (LLM)" subtitle="Endpoint: POST /v1/chat/completions" />
-        <ModelTable
-          models={CHAT_MODELS}
-          defaultHint="Belum tau pilih yang mana? Mulai dari qwen-plus — itu sweet spot kualitas vs harga."
-        />
-      </Card>
+      {/* Sub-tabs LLM / Gambar / Video */}
+      <div className="flex flex-wrap gap-1.5 p-1.5 rounded-xl bg-muted/40 border border-border">
+        {subTabs.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            onClick={() => setModelTab(id)}
+            className={cn(
+              "flex items-center gap-1.5 px-3 py-1.5 text-sm rounded-lg transition",
+              modelTab === id
+                ? "bg-background text-foreground shadow-sm font-medium"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            <Icon className="w-3.5 h-3.5" />
+            {label}
+          </button>
+        ))}
+      </div>
 
-      <Card>
-        <SectionHeader icon={ImageIcon} title="Gambar" subtitle="Endpoint: POST /v1/images/generations · POST /v1/images/edits" />
-        <ModelTable
-          models={IMAGE_MODELS}
-          defaultHint="Default rekomendasi: qwen-image. Untuk hasil premium pakai qwen-image-max."
-        />
-      </Card>
+      {modelTab === "llm" && (
+        <Card>
+          <SectionHeader icon={MessageSquare} title="Chat (LLM)" subtitle="Endpoint: POST /v1/chat/completions" />
+          <ModelTable
+            models={CHAT_MODELS}
+            defaultHint="Belum tau pilih yang mana? Mulai dari qwen-plus — itu sweet spot kualitas vs harga."
+          />
+        </Card>
+      )}
 
-      <Card>
-        <SectionHeader icon={Video} title="Video" subtitle="Endpoint: POST /v1/videos/generations" />
-        <ModelTable
-          models={VIDEO_MODELS}
-          defaultHint="Default text-to-video: wan2.2-t2v-plus. Untuk image-to-video pakai wan2.2-i2v-plus."
-        />
-      </Card>
+      {modelTab === "image" && (
+        <Card>
+          <SectionHeader icon={ImageIcon} title="Gambar" subtitle="Endpoint: POST /v1/images/generations · POST /v1/images/edits" />
+          <ModelTable
+            models={IMAGE_MODELS}
+            defaultHint="Default rekomendasi: qwen-image. Untuk hasil premium pakai qwen-image-max."
+          />
+        </Card>
+      )}
+
+      {modelTab === "video" && (
+        <Card>
+          <SectionHeader icon={Video} title="Video" subtitle="Endpoint: POST /v1/videos/generations" />
+          <ModelTable
+            models={VIDEO_MODELS}
+            defaultHint="Default text-to-video: wan2.2-t2v-plus. Untuk image-to-video pakai wan2.2-i2v-plus."
+          />
+        </Card>
+      )}
 
       <Card className="bg-muted/30">
         <SectionHeader icon={AlertCircle} title="Catatan penting" />
@@ -2336,7 +2354,6 @@ function ModelsSection() {
           <li>List ini adalah model rekomendasi yang paling stabil. Server juga support varian dated (mis. <code className="px-1 py-0.5 bg-muted rounded text-xs">qwen-plus-2025-09-11</code>) untuk pin versi.</li>
           <li>Akses ke endpoint <code className="px-1 py-0.5 bg-muted rounded text-xs">/v1/*</code> butuh subscription Plus atau Pro aktif. Tanpa itu, request balik <code className="px-1 py-0.5 bg-muted rounded text-xs">403 permission_denied</code> di middleware auth.</li>
           <li>User <strong>Plus</strong> yang nyoba pakai model <Crown className="w-3 h-3 inline -mt-0.5 text-amber-500" /> Pro-only akan dapat <code className="px-1 py-0.5 bg-muted rounded text-xs">403 MODEL_PRO_ONLY</code> dengan pesan upgrade. Cek header <code className="px-1 py-0.5 bg-muted rounded text-xs">X-Pioo-Error</code> dan field <code className="px-1 py-0.5 bg-muted rounded text-xs">required_tier</code> di response error.</li>
-          <li>Pricing per token = total prompt + completion tokens. Hitungan: <code className="px-1 py-0.5 bg-muted rounded text-xs">ceil(total_tokens / 2)</code> rupiah.</li>
           <li>Daftar model bisa berubah seiring rilis baru — selalu cek halaman ini sebelum hardcode di production.</li>
         </ul>
       </Card>
