@@ -20,6 +20,7 @@ import {
 import { ChatSidebar } from "@/components/chat-sidebar";
 import { supabase } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
+import { saveLastTTS, loadLastTTS, clearLastTTS } from "@/lib/voice-cache";
 
 type Tab = "tts" | "clone" | "design" | "voices";
 
@@ -132,6 +133,26 @@ export default function VoiceStudio() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [audioPlaying, setAudioPlaying] = useState(false);
 
+  // Restore the last generated TTS so it survives page refresh.
+  useEffect(() => {
+    let cancelled = false;
+    let restoredUrl: string | null = null;
+    loadLastTTS().then((cached) => {
+      if (!cached || cancelled) return;
+      restoredUrl = URL.createObjectURL(cached.blob);
+      setAudioUrl(restoredUrl);
+      setTtsText(cached.text);
+      setTtsVoiceKey(cached.voiceKey);
+      setTtsLanguage(cached.language);
+      setTtsModel(cached.model);
+      if (cached.instruction) setTtsInstruction(cached.instruction);
+    });
+    return () => {
+      cancelled = true;
+      if (restoredUrl) URL.revokeObjectURL(restoredUrl);
+    };
+  }, []);
+
   const isInstructModel = ttsModel === "qwen3-tts-instruct-flash";
   const selectedPreset = ttsVoiceKey.startsWith("preset:")
     ? voices.presets.find(p => `preset:${p.id}` === ttsVoiceKey)
@@ -173,6 +194,15 @@ export default function VoiceStudio() {
       }
       const blob = await res.blob();
       setAudioUrl(URL.createObjectURL(blob));
+      saveLastTTS({
+        blob,
+        text: ttsText,
+        voiceKey: ttsVoiceKey,
+        language: ttsLanguage,
+        model: ttsModel,
+        instruction: isInstructModel ? ttsInstruction : undefined,
+        createdAt: Date.now(),
+      });
       refreshQuota();
     } catch (err: any) {
       setTtsError(err?.message || "Gagal generate audio");
