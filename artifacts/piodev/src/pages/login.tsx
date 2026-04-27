@@ -67,14 +67,14 @@ export default function Login() {
         <Link href="/"
           className="absolute top-5 left-5 z-50 inline-flex items-center gap-1.5 pl-2 pr-3 py-2 rounded-xl bg-muted/60 hover:bg-muted border border-border text-muted-foreground hover:text-foreground text-sm transition-colors group">
           <ArrowLeft className="w-4 h-4 group-hover:-translate-x-0.5 transition-transform" />
-          <span>Kembali</span>
+          <span className="hidden sm:inline">Kembali</span>
         </Link>
         <button onClick={toggleTheme}
           className="absolute top-5 right-5 z-50 p-2 rounded-xl bg-muted/60 hover:bg-muted border border-border text-muted-foreground hover:text-foreground transition-colors">
           {theme === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
         </button>
 
-        <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-10">
+        <div className="flex-1 flex flex-col items-center justify-center px-6 sm:px-10 pt-20 lg:pt-0">
           <motion.div
             initial={{ opacity: 0, y: 14 }}
             animate={{ opacity: 1, y: 0 }}
