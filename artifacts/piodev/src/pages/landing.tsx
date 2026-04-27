@@ -9,8 +9,8 @@ import {
   ImageIcon,
   Video,
   AudioWaveform,
-  Library,
-  Code2,
+  Key,
+  Plus,
   Crown,
   Check,
 } from "lucide-react";
@@ -36,8 +36,8 @@ export default function LandingPage() {
     { icon: <ImageIcon className="w-6 h-6" />, label: "Buat Gambar" },
     { icon: <Video className="w-6 h-6" />, label: "Buat Video" },
     { icon: <AudioWaveform className="w-6 h-6" />, label: "Voice Studio" },
-    { icon: <Library className="w-6 h-6" />, label: "Pustaka" },
-    { icon: <Code2 className="w-6 h-6" />, label: "Code Artifact" },
+    { icon: <Key className="w-6 h-6" />, label: "APIKeys" },
+    { icon: <Plus className="w-6 h-6" />, label: "Dan masih banyak lagi" },
   ];
 
   return (
@@ -79,17 +79,12 @@ export default function LandingPage() {
       </nav>
 
       {/* Hero */}
-      <section className="relative z-10 max-w-4xl mx-auto px-6 sm:px-10 pt-16 pb-16 text-center">
+      <section className="relative z-10 max-w-4xl mx-auto px-6 sm:px-10 pt-20 pb-32 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-medium mb-6">
-            <Sparkles className="w-3 h-3" />
-            Satu langganan · Semua AI
-          </div>
-
           <h1 className="text-5xl sm:text-6xl font-bold leading-[1.05] tracking-tight mb-5">
             Satu AI,{" "}
             <span className="bg-gradient-to-r from-primary via-indigo-400 to-violet-400 bg-clip-text text-transparent">
@@ -116,7 +111,7 @@ export default function LandingPage() {
       </section>
 
       {/* Feature strip — single dark card with icons + labels */}
-      <section className="relative z-10 max-w-5xl mx-auto px-6 sm:px-10 pb-20">
+      <section className="relative z-10 max-w-5xl mx-auto px-6 sm:px-10 pb-32">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
