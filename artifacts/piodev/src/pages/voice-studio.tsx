@@ -123,6 +123,7 @@ export default function VoiceStudio() {
   const [audioPlaying, setAudioPlaying] = useState(false);
 
   const isInstructModel = ttsModel === "qwen3-tts-instruct-flash";
+  const isPresetVoice = ttsVoiceKey.startsWith("preset:");
 
   const handleGenerateTTS = async () => {
     if (!ttsText.trim()) { setTtsError("Teks gak boleh kosong"); return; }
@@ -458,7 +459,7 @@ export default function VoiceStudio() {
                         onChange={(e) => setTtsVoiceKey(e.target.value)}
                         className={inputCls}
                       >
-                        <optgroup label="Preset Qwen">
+                        <optgroup label="Preset Qwen3-TTS">
                           {voices.presets.map(p => (
                             <option key={p.id} value={`preset:${p.id}`}>{p.name}</option>
                           ))}
@@ -488,8 +489,8 @@ export default function VoiceStudio() {
                     </div>
                   </div>
 
-                  {/* Model picker (only for preset voices) */}
-                  {ttsVoiceKey.startsWith("preset:") && (
+                  {/* Model picker (preset voices only — custom pake model bawaan) */}
+                  {isPresetVoice && (
                     <div>
                       <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Model</label>
                       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -515,7 +516,7 @@ export default function VoiceStudio() {
                   )}
 
                   {/* Instruct input (conditional) */}
-                  {isInstructModel && ttsVoiceKey.startsWith("preset:") && (
+                  {isPresetVoice && isInstructModel && (
                     <div>
                       <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">
                         Instruksi gaya <span className="text-muted-foreground/60 font-normal normal-case">(opsional)</span>

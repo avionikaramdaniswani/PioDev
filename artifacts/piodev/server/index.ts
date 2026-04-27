@@ -874,13 +874,13 @@ const voiceCloneUpload = multer({
   limits: { fileSize: 10 * 1024 * 1024 },
 });
 
-// Voice presets bawaan Qwen3-TTS (id-friendly default + multilingual)
+// Voice presets bawaan Qwen3-TTS — multilingual, support Bahasa Indonesia di model qwen3-tts-flash
 const VOICE_STUDIO_PRESETS = [
   { id: "Cherry",  name: "Cherry (Wanita, hangat)",     lang: "multi", gender: "female" },
-  { id: "Ethan",   name: "Ethan (Pria, dewasa)",        lang: "multi", gender: "male" },
+  { id: "Ethan",   name: "Ethan (Pria, dewasa)",        lang: "multi", gender: "male"   },
   { id: "Chelsie", name: "Chelsie (Wanita, ceria)",     lang: "multi", gender: "female" },
   { id: "Serena",  name: "Serena (Wanita, kalem)",      lang: "multi", gender: "female" },
-  { id: "Dylan",   name: "Dylan (Pria, ramah)",         lang: "multi", gender: "male" },
+  { id: "Dylan",   name: "Dylan (Pria, ramah)",         lang: "multi", gender: "male"   },
   { id: "Jada",    name: "Jada (Wanita, tegas)",        lang: "multi", gender: "female" },
 ];
 
@@ -1090,7 +1090,7 @@ app.post("/api/voice-studio/tts", requireAuth, async (req, res) => {
 
   const model = String(req.body?.model || "qwen3-tts-flash");
   const voice = String(req.body?.voice || "Cherry");
-  const language = String(req.body?.language || "Indonesian");
+  const language = String(req.body?.language || "Auto");
   const instruction = req.body?.instruction ? String(req.body.instruction).slice(0, 200) : undefined;
 
   // Cek dulu apakah masih ada kredit
