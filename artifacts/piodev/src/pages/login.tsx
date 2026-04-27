@@ -57,15 +57,7 @@ export default function Login() {
 
         {/* Centered tagline */}
         <div className="relative z-10 flex-1 flex items-center">
-          <h2 className="text-5xl xl:text-6xl font-bold leading-[1.05] tracking-tight">
-            <span className="bg-gradient-to-r from-white via-primary to-indigo-300 bg-clip-text text-transparent">
-              Semua dalam
-            </span>
-            <br />
-            <span className="bg-gradient-to-r from-indigo-300 via-violet-400 to-primary bg-clip-text text-transparent">
-              satu tempat.
-            </span>
-          </h2>
+          <TypingTagline />
         </div>
 
         {/* Empty bottom for balance */}
@@ -147,5 +139,61 @@ export default function Login() {
         </div>
       </div>
     </div>
+  );
+}
+
+// ─────────────────────────── Typing tagline ──────────────────────────────────
+function TypingTagline() {
+  const line1 = "Semua dalam";
+  const line2 = "satu tempat.";
+  const startDelay = 0.4;
+  const charDelay = 0.07;
+  const totalChars = line1.length + line2.length;
+  const cursorStart = startDelay + totalChars * charDelay;
+
+  return (
+    <h2 className="text-4xl xl:text-5xl font-bold leading-[1.1] tracking-tight">
+      <span className="bg-gradient-to-r from-white via-primary to-indigo-300 bg-clip-text text-transparent">
+        {line1.split("").map((c, i) => (
+          <motion.span
+            key={`a${i}`}
+            className="inline-block"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.05, delay: startDelay + i * charDelay }}
+          >
+            {c === " " ? "\u00A0" : c}
+          </motion.span>
+        ))}
+      </span>
+      <br />
+      <span className="bg-gradient-to-r from-indigo-300 via-violet-400 to-primary bg-clip-text text-transparent">
+        {line2.split("").map((c, i) => (
+          <motion.span
+            key={`b${i}`}
+            className="inline-block"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{
+              duration: 0.05,
+              delay: startDelay + (line1.length + i) * charDelay,
+            }}
+          >
+            {c === " " ? "\u00A0" : c}
+          </motion.span>
+        ))}
+      </span>
+      <motion.span
+        className="inline-block ml-1 w-[3px] h-[0.8em] align-middle bg-primary translate-y-[-0.05em]"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 1, 1, 0, 0, 1] }}
+        transition={{
+          duration: 1.2,
+          repeat: Infinity,
+          delay: cursorStart,
+          ease: "linear",
+        }}
+      />
+    </h2>
   );
 }
