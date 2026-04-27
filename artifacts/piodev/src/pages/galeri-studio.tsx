@@ -352,11 +352,11 @@ export default function GaleriStudio() {
 
             {/* Loading */}
             {loading && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {Array.from({ length: 8 }).map((_, i) => (
-                  <div key={i} className="rounded-2xl border border-border/60 bg-card overflow-hidden">
+              <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
+                {Array.from({ length: 9 }).map((_, i) => (
+                  <div key={i} className="rounded-xl sm:rounded-2xl border border-border/60 bg-card overflow-hidden">
                     <div className="aspect-video bg-muted/50 animate-pulse" />
-                    <div className="p-3.5 space-y-2">
+                    <div className="p-2 sm:p-3.5 space-y-2">
                       <div className="h-3 bg-muted/50 rounded animate-pulse w-3/4" />
                       <div className="h-2.5 bg-muted/40 rounded animate-pulse w-1/2" />
                     </div>
@@ -401,7 +401,7 @@ export default function GaleriStudio() {
 
             {/* Grid */}
             {!loading && !error && items.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              <div className="grid grid-cols-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3 md:gap-4">
                 {items.map(item => (
                   item.kind === "video" ? (
                     <VideoCard
@@ -510,7 +510,7 @@ function VideoCard({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      className="group rounded-2xl border border-border/60 bg-card overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all"
+      className="group rounded-xl sm:rounded-2xl border border-border/60 bg-card overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all"
     >
       <button
         type="button"
@@ -562,41 +562,43 @@ function VideoCard({
         {/* Play button overlay (selalu kelihatan, lebih jelas pas hover) */}
         {isReady && (
           <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-            <div className="w-14 h-14 rounded-full bg-white/95 text-black flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-              <Play className="w-6 h-6 ml-0.5" fill="currentColor" />
+            <div className="w-9 h-9 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-white/95 text-black flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+              <Play className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 ml-0.5" fill="currentColor" />
             </div>
           </div>
         )}
       </button>
 
-      <div className="p-3.5">
-        <p className="text-sm font-medium leading-snug line-clamp-2 mb-1.5">{item.prompt || "Tanpa prompt"}</p>
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground min-w-0">
+      <div className="p-2 sm:p-3 md:p-3.5">
+        <p className="text-[11px] sm:text-xs md:text-sm font-medium leading-snug line-clamp-2 mb-1 sm:mb-1.5">{item.prompt || "Tanpa prompt"}</p>
+        <div className="flex items-center justify-between gap-1.5">
+          <div className="flex items-center gap-1 text-[9px] sm:text-[10px] text-muted-foreground min-w-0">
             <span className="truncate">{item.model}</span>
-            <span>·</span>
-            <span className="shrink-0">{formatDate(item.createdAt)}</span>
+            <span className="hidden sm:inline">·</span>
+            <span className="hidden sm:inline shrink-0">{formatDate(item.createdAt)}</span>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-0.5 shrink-0">
             {isReady && item.videoUrl && (
               <button
                 onClick={() => downloadUrl(item.videoUrl!, `pio-video-${item.id}.mp4`)}
-                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                className="p-1 sm:p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 title="Download"
               >
-                <Download className="w-3.5 h-3.5" />
+                <Download className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </button>
             )}
             <button
               onClick={onDelete}
               disabled={isDeleting}
-              className="p-1.5 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+              className="p-1 sm:p-1.5 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-50"
               title="Hapus"
             >
-              {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+              {isDeleting ? <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" /> : <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
             </button>
           </div>
         </div>
+        {/* Tanggal di mobile (di bawah, biar gak crowded) */}
+        <div className="sm:hidden text-[9px] text-muted-foreground mt-0.5">{formatDate(item.createdAt)}</div>
       </div>
     </motion.div>
   );
@@ -623,11 +625,11 @@ function VoiceCard({
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      className="group rounded-2xl border border-border/60 bg-card overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all"
+      className="group rounded-xl sm:rounded-2xl border border-border/60 bg-card overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all"
     >
       <div className="relative aspect-video bg-gradient-to-br from-violet-500/15 via-primary/10 to-indigo-400/15 overflow-hidden flex items-center justify-center">
         {/* Decorative wave bars */}
-        <div className="absolute inset-0 flex items-center justify-center gap-1 px-6 pointer-events-none">
+        <div className="absolute inset-0 flex items-center justify-center gap-0.5 sm:gap-1 px-2 sm:px-6 pointer-events-none">
           {Array.from({ length: 28 }).map((_, i) => {
             const seed = (item.id.charCodeAt(i % item.id.length) || 50) % 100;
             const h = 12 + (seed % 60);
@@ -635,7 +637,7 @@ function VoiceCard({
               <div
                 key={i}
                 className={cn(
-                  "w-1 rounded-full bg-primary/40 transition-all",
+                  "w-0.5 sm:w-1 rounded-full bg-primary/40 transition-all",
                   isPlaying && "animate-pulse"
                 )}
                 style={{
@@ -649,13 +651,13 @@ function VoiceCard({
         </div>
 
         {/* Top badge */}
-        <div className="absolute top-2 left-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm text-white text-[10px] font-semibold">
-          <AudioLines className="w-3 h-3" /> Voice
+        <div className="absolute top-1 left-1 sm:top-2 sm:left-2 inline-flex items-center gap-1 px-1.5 sm:px-2 py-0.5 rounded-full bg-black/60 backdrop-blur-sm text-white text-[9px] sm:text-[10px] font-semibold">
+          <AudioLines className="w-2.5 h-2.5 sm:w-3 sm:h-3" /> Voice
         </div>
 
-        {/* Voice label */}
+        {/* Voice label (sembunyi di mobile biar gak crowded) */}
         {item.voiceLabel && (
-          <div className="absolute top-2 right-2 inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-white/90 text-black text-[10px] font-semibold max-w-[60%] truncate">
+          <div className="hidden sm:inline-flex absolute top-2 right-2 items-center gap-1 px-2 py-0.5 rounded-full bg-white/90 text-black text-[10px] font-semibold max-w-[60%] truncate">
             {item.voiceLabel}
           </div>
         )}
@@ -664,10 +666,12 @@ function VoiceCard({
         <button
           onClick={onTogglePlay}
           disabled={!item.audioUrl}
-          className="relative z-10 w-14 h-14 rounded-full bg-white/95 text-primary flex items-center justify-center shadow-lg hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100"
+          className="relative z-10 w-9 h-9 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-white/95 text-primary flex items-center justify-center shadow-lg hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100"
           title={isPlaying ? "Pause" : "Play"}
         >
-          {isPlaying ? <Pause className="w-6 h-6" /> : <Play className="w-6 h-6 ml-0.5" />}
+          {isPlaying
+            ? <Pause className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
+            : <Play className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 ml-0.5" />}
         </button>
 
         {item.audioUrl && (
@@ -682,30 +686,30 @@ function VoiceCard({
         )}
       </div>
 
-      <div className="p-3.5">
-        <p className="text-sm font-medium leading-snug line-clamp-2 mb-1.5">{item.text || "Tanpa teks"}</p>
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground min-w-0">
-            {item.language && <><span className="truncate">{item.language}</span><span>·</span></>}
+      <div className="p-2 sm:p-3 md:p-3.5">
+        <p className="text-[11px] sm:text-xs md:text-sm font-medium leading-snug line-clamp-2 mb-1 sm:mb-1.5">{item.text || "Tanpa teks"}</p>
+        <div className="flex items-center justify-between gap-1.5">
+          <div className="flex items-center gap-1 text-[9px] sm:text-[10px] text-muted-foreground min-w-0">
+            {item.language && <><span className="truncate hidden sm:inline">{item.language}</span><span className="hidden sm:inline">·</span></>}
             <span className="shrink-0">{formatDate(item.createdAt)}</span>
           </div>
-          <div className="flex items-center gap-1 shrink-0">
+          <div className="flex items-center gap-0.5 shrink-0">
             {item.audioUrl && (
               <button
                 onClick={() => downloadUrl(item.audioUrl!, `pio-voice-${item.id}.${item.mime?.includes("wav") ? "wav" : "mp3"}`)}
-                className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                className="p-1 sm:p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                 title="Download"
               >
-                <Download className="w-3.5 h-3.5" />
+                <Download className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
               </button>
             )}
             <button
               onClick={onDelete}
               disabled={isDeleting}
-              className="p-1.5 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+              className="p-1 sm:p-1.5 rounded-md text-muted-foreground hover:text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-50"
               title="Hapus"
             >
-              {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+              {isDeleting ? <Loader2 className="w-3 h-3 sm:w-3.5 sm:h-3.5 animate-spin" /> : <Trash2 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />}
             </button>
           </div>
         </div>
