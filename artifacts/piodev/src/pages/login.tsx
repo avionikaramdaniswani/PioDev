@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, ArrowRight, Sun, Moon, Loader2 } from "lucide-react";
@@ -146,53 +146,54 @@ export default function Login() {
 function TypingTagline() {
   const line1 = "Semua dalam";
   const line2 = "satu tempat.";
-  const startDelay = 0.4;
-  const charDelay = 0.07;
-  const totalChars = line1.length + line2.length;
-  const cursorStart = startDelay + totalChars * charDelay;
+  const total = line1.length + line2.length;
+
+  const [count, setCount] = useState(0);
+  const [phase, setPhase] = useState<"typing" | "holding" | "deleting" | "pausing">("typing");
+
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout>;
+    if (phase === "typing") {
+      if (count < total) {
+        t = setTimeout(() => setCount((c) => c + 1), 75);
+      } else {
+        t = setTimeout(() => setPhase("holding"), 0);
+      }
+    } else if (phase === "holding") {
+      t = setTimeout(() => setPhase("deleting"), 2200);
+    } else if (phase === "deleting") {
+      if (count > 0) {
+        t = setTimeout(() => setCount((c) => c - 1), 35);
+      } else {
+        t = setTimeout(() => setPhase("pausing"), 0);
+      }
+    } else {
+      t = setTimeout(() => setPhase("typing"), 500);
+    }
+    return () => clearTimeout(t);
+  }, [phase, count, total]);
+
+  const line1Visible = line1.slice(0, Math.min(count, line1.length));
+  const line2Visible = count > line1.length ? line2.slice(0, count - line1.length) : "";
+  const showLine2Started = count > line1.length;
 
   return (
-    <h2 className="text-4xl xl:text-5xl font-bold leading-[1.1] tracking-tight">
+    <h2 className="text-4xl xl:text-5xl font-bold leading-[1.1] tracking-tight min-h-[2.4em]">
       <span className="bg-gradient-to-r from-white via-primary to-indigo-300 bg-clip-text text-transparent">
-        {line1.split("").map((c, i) => (
-          <motion.span
-            key={`a${i}`}
-            className="inline-block"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.05, delay: startDelay + i * charDelay }}
-          >
-            {c === " " ? "\u00A0" : c}
-          </motion.span>
+        {line1Visible.split("").map((c, i) => (
+          <span key={`a${i}`}>{c === " " ? "\u00A0" : c}</span>
         ))}
       </span>
-      <br />
+      {showLine2Started && <br />}
       <span className="bg-gradient-to-r from-indigo-300 via-violet-400 to-primary bg-clip-text text-transparent">
-        {line2.split("").map((c, i) => (
-          <motion.span
-            key={`b${i}`}
-            className="inline-block"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{
-              duration: 0.05,
-              delay: startDelay + (line1.length + i) * charDelay,
-            }}
-          >
-            {c === " " ? "\u00A0" : c}
-          </motion.span>
+        {line2Visible.split("").map((c, i) => (
+          <span key={`b${i}`}>{c === " " ? "\u00A0" : c}</span>
         ))}
       </span>
       <motion.span
         className="inline-block ml-1 w-[3px] h-[0.8em] align-middle bg-primary translate-y-[-0.05em]"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: [0, 1, 1, 0, 0, 1] }}
-        transition={{
-          duration: 1.2,
-          repeat: Infinity,
-          delay: cursorStart,
-          ease: "linear",
-        }}
+        animate={{ opacity: [1, 1, 0, 0] }}
+        transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
       />
     </h2>
   );
