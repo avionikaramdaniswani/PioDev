@@ -73,38 +73,63 @@ function tokensToIdr(tokens: number): number {
 const DASHSCOPE_BASE = "https://dashscope-intl.aliyuncs.com";
 const DASHSCOPE_COMPATIBLE_BASE = `${DASHSCOPE_BASE}/compatible-mode/v1`;
 
-// Model-model yang hanya boleh dipakai user Plus/Admin
+// Model-model yang hanya boleh dipakai user Plus/Pro/Admin (Free akan kena 403 MODEL_RESTRICTED)
 const PREMIUM_ONLY_MODELS = new Set([
-  // PLUS_CHAIN
+  // ── Qwen3 Max / Flagship (frontier) ─────────────────────────────────────
   "qwen3-max","qwen3-max-preview","qwen3-max-2026-01-23","qwen3-max-2025-09-23",
   "qwen3.5-397b-a17b","qwen3.5-122b-a10b",
   "qwen3-235b-a22b","qwen3-235b-a22b-instruct-2507","qwen3-235b-a22b-thinking-2507",
   "qwen3-next-80b-a3b-instruct","qwen3-next-80b-a3b-thinking",
   "qwq-plus","deepseek-v3.2",
-  "qwen3.5-35b-a3b","qwen3.5-27b","qwen3.5-plus","qwen3.5-plus-2026-02-15",
+  "qwen3.5-35b-a3b","qwen3.5-27b","qwen3.5-plus","qwen3.5-plus-2026-02-15","qwen3.5-plus-2026-04-20",
   "qwen3-32b","qwen3-30b-a3b","qwen3-30b-a3b-instruct-2507","qwen3-30b-a3b-thinking-2507",
   "qwen3-14b","qwen2.5-72b-instruct","qwen-max","qwen-max-2025-01-25",
-  // CODER_CHAIN
+  // ── Qwen3.6 (generasi terbaru — April 2026) ─────────────────────────────
+  "qwen3.6-max-preview",
+  "qwen3.6-plus","qwen3.6-plus-2026-04-02",
+  "qwen3.6-flash","qwen3.6-flash-2026-04-16",
+  "qwen3.6-27b","qwen3.6-35b-a3b",
+  // ── Coder ───────────────────────────────────────────────────────────────
   "qwen3-coder-480b-a35b-instruct","qwen3-coder-next",
   "qwen3-coder-plus","qwen3-coder-plus-2025-09-23","qwen3-coder-plus-2025-07-22",
   "qwen3-coder-30b-a3b-instruct","qwen3-coder-flash","qwen3-coder-flash-2025-07-28",
+  // ── Qwen3-VL (vision-language generasi baru) ────────────────────────────
+  "qwen3-vl-235b-a22b-instruct","qwen3-vl-235b-a22b-thinking",
+  "qwen3-vl-30b-a3b-instruct","qwen3-vl-30b-a3b-thinking",
+  "qwen3-vl-plus","qwen3-vl-plus-2025-12-19","qwen3-vl-plus-2025-09-23",
+  "qwen3-vl-flash","qwen3-vl-flash-2026-01-22","qwen3-vl-flash-2025-10-15",
+  "qwen3-vl-8b-instruct","qwen3-vl-8b-thinking",
+  // ── QvQ (visual reasoning) ──────────────────────────────────────────────
+  "qvq-max","qvq-max-latest","qvq-max-2025-03-25",
+  // ── Qwen Omni (multimodal text+image+audio) ─────────────────────────────
+  "qwen3-omni-flash","qwen3-omni-flash-2025-09-15",
+  "qwen-omni-turbo","qwen-omni-turbo-2025-03-26",
+  "qwen3-omni-flash-realtime","qwen3-omni-flash-realtime-2025-09-15",
+  "qwen-omni-turbo-realtime","qwen-omni-turbo-realtime-2025-05-08",
 ]);
 
 // Model-model paling powerful — eksklusif untuk tier Pro (Plus akan kena 403 MODEL_PRO_ONLY)
 // Plus tetap bisa pakai semua model lain (workhorse + alternatif kuat).
 const PRO_ONLY_MODELS = new Set([
-  // Chat — frontier & top-tier
+  // ── Chat — frontier & top-tier ──────────────────────────────────────────
   "qwen3-max","qwen3-max-preview","qwen3-max-2026-01-23","qwen3-max-2025-09-23",
+  "qwen3.6-max-preview", // ← flagship terbaru (April 2026)
   "qwen3-235b-a22b-thinking-2507",
+  "qwen3.5-397b-a17b", // MoE raksasa generasi 3.5
   "qwen3-coder-plus","qwen3-coder-plus-2025-09-23","qwen3-coder-plus-2025-07-22",
-  // Image — premium quality & latest
-  "qwen-image-max",
-  "qwen-image-2.0-pro",
-  "qwen-image-edit-plus",
-  // Video — newest generation & best I2V
-  "wan2.6-t2v",
-  "wan2.6-i2v",
-  "wan2.2-i2v-plus",
+  "qwen3-coder-480b-a35b-instruct", // coder MoE raksasa
+  // ── Vision-Language — frontier ──────────────────────────────────────────
+  "qwen3-vl-235b-a22b-instruct","qwen3-vl-235b-a22b-thinking",
+  "qvq-max","qvq-max-latest","qvq-max-2025-03-25",
+  // ── Image — premium quality & latest ────────────────────────────────────
+  "qwen-image-max","qwen-image-max-2025-12-30",
+  "qwen-image-2.0-pro","qwen-image-2.0-pro-2026-03-03",
+  "qwen-image-edit-max","qwen-image-edit-max-2026-01-16",
+  "qwen-image-edit-plus","qwen-image-edit-plus-2025-12-15","qwen-image-edit-plus-2025-10-30",
+  // ── Video — newest generation & best ────────────────────────────────────
+  "wan2.6-t2v","wan2.6-i2v","wan2.6-i2v-flash",
+  "wan2.6-r2v","wan2.6-r2v-flash", // reference-to-video terbaru
+  "wan2.2-i2v-plus","wan2.5-t2v-preview","wan2.5-i2v-preview",
 ]);
 
 /** Tanggal hari ini dalam timezone WIB (UTC+7), format YYYY-MM-DD */

@@ -27,11 +27,20 @@ async function getToken(): Promise<string> {
 }
 
 // Pioo Plus — flagship models, kualitas terbaik (umum)
+// Urutan: Qwen3.6 (terbaru) → Qwen3 Max → Qwen3.5 → Qwen3 → fallback
 const PLUS_CHAIN = [
+  // Qwen3.6 — generasi terbaru (April 2026)
+  "qwen3.6-max-preview",
+  "qwen3.6-plus-2026-04-02",
+  "qwen3.6-plus",
+  "qwen3.6-27b",
+  "qwen3.6-35b-a3b",
+  // Qwen3 Max — frontier sebelumnya
   "qwen3-max",
   "qwen3-max-preview",
   "qwen3-max-2026-01-23",
   "qwen3-max-2025-09-23",
+  // Qwen3.5 — workhorse besar
   "qwen3.5-397b-a17b",
   "qwen3.5-122b-a10b",
   "qwen3-235b-a22b",
@@ -43,8 +52,10 @@ const PLUS_CHAIN = [
   "deepseek-v3.2",
   "qwen3.5-35b-a3b",
   "qwen3.5-27b",
-  "qwen3.5-plus",
+  "qwen3.5-plus-2026-04-20",
   "qwen3.5-plus-2026-02-15",
+  "qwen3.5-plus",
+  // Qwen3 — fallback dense / MoE
   "qwen3-32b",
   "qwen3-30b-a3b",
   "qwen3-30b-a3b-instruct-2507",
@@ -56,21 +67,28 @@ const PLUS_CHAIN = [
 ];
 
 // Pioo Coder — spesialis coding & programming
+// Urutan: 480B raksasa → coder-plus dated → next → mid → flash → fallback
 const CODER_CHAIN = [
   "qwen3-coder-480b-a35b-instruct",
-  "qwen3-coder-next",
-  "qwen3-coder-plus",
   "qwen3-coder-plus-2025-09-23",
+  "qwen3-coder-plus",
   "qwen3-coder-plus-2025-07-22",
+  "qwen3-coder-next",
   "qwen3-coder-30b-a3b-instruct",
   "qwen3-coder-flash",
   "qwen3-coder-flash-2025-07-28",
+  // Fallback ke flagship umum kalo coder lagi down
+  "qwen3.6-max-preview",
   "qwen3-max",
   "deepseek-v3.2",
 ];
 
 // Pioo Mini — model cepat dan ringan
 const MINI_CHAIN = [
+  // Qwen3.6 flash — generasi terbaru (April 2026)
+  "qwen3.6-flash-2026-04-16",
+  "qwen3.6-flash",
+  // Fallback flash & small
   "qwen3-8b",
   "qwen2.5-32b-instruct",
   "qwen3.5-flash",
