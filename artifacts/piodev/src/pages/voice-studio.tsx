@@ -127,8 +127,12 @@ export default function VoiceStudio() {
   const selectedPreset = ttsVoiceKey.startsWith("preset:")
     ? voices.presets.find(p => `preset:${p.id}` === ttsVoiceKey)
     : null;
-  const isAzureVoice = !!selectedPreset && selectedPreset.provider === "azure";
-  const isDashscopePreset = !!selectedPreset && selectedPreset.provider === "dashscope";
+  // Provider fallback: kalau API belum return field provider, deteksi dari prefix "azure:"
+  const selectedProvider: "azure" | "dashscope" | null = selectedPreset
+    ? (selectedPreset.provider || (selectedPreset.id.startsWith("azure:") ? "azure" : "dashscope"))
+    : null;
+  const isAzureVoice = selectedProvider === "azure";
+  const isDashscopePreset = selectedProvider === "dashscope";
 
   const handleGenerateTTS = async () => {
     if (!ttsText.trim()) { setTtsError("Teks gak boleh kosong"); return; }
@@ -459,40 +463,54 @@ export default function VoiceStudio() {
                   <div className={cn("grid gap-3", isAzureVoice ? "grid-cols-1" : "grid-cols-1 sm:grid-cols-2")}>
                     <div>
                       <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5 block">Suara</label>
-                      <select
-                        value={ttsVoiceKey}
-                        onChange={(e) => setTtsVoiceKey(e.target.value)}
-                        className={inputCls}
-                      >
-                        <optgroup label="🇮🇩 Bahasa Indonesia (Microsoft Neural — recommended)">
-                          {voices.presets.filter(p => p.provider === "azure" && p.lang === "id-ID").map(p => (
-                            <option key={p.id} value={`preset:${p.id}`}>{p.name}</option>
-                          ))}
-                        </optgroup>
-                        {voices.presets.filter(p => p.provider === "azure" && p.lang !== "id-ID").length > 0 && (
-                          <optgroup label="🌍 Bahasa lain (Microsoft Neural)">
-                            {voices.presets.filter(p => p.provider === "azure" && p.lang !== "id-ID").map(p => (
-                              <option key={p.id} value={`preset:${p.id}`}>{p.name}</option>
-                            ))}
-                          </optgroup>
-                        )}
-                        {voices.presets.filter(p => p.provider === "dashscope").length > 0 && (
-                          <optgroup label="🎤 Qwen3-TTS (multilingual)">
-                            {voices.presets.filter(p => p.provider === "dashscope").map(p => (
-                              <option key={p.id} value={`preset:${p.id}`}>{p.name}</option>
-                            ))}
-                          </optgroup>
-                        )}
-                        {voices.custom.length > 0 && (
-                          <optgroup label="🧬 Suaraku (Custom)">
-                            {voices.custom.map(c => (
-                              <option key={c.id} value={`custom:${c.id}`}>
-                                {c.name} · {c.type === "clone" ? "clone" : "design"}
-                              </option>
-                            ))}
-                          </optgroup>
-                        )}
-                      </select>
+                      {(() => {
+                        // Anggap preset tanpa field provider sebagai dashscope (legacy/fallback)
+                        const presetsWithProvider = voices.presets.map(p => ({
+                          ...p,
+                          provider: (p.provider as "azure" | "dashscope") || (p.id.startsWith("azure:") ? "azure" : "dashscope"),
+                        }));
+                        const azureID = presetsWithProvider.filter(p => p.provider === "azure" && p.lang === "id-ID");
+                        const azureOther = presetsWithProvider.filter(p => p.provider === "azure" && p.lang !== "id-ID");
+                        const qwen = presetsWithProvider.filter(p => p.provider === "dashscope");
+                        return (
+                          <select
+                            value={ttsVoiceKey}
+                            onChange={(e) => setTtsVoiceKey(e.target.value)}
+                            className={inputCls}
+                          >
+                            {azureID.length > 0 && (
+                              <optgroup label="🇮🇩 Bahasa Indonesia (Microsoft Neural)">
+                                {azureID.map(p => (
+                                  <option key={p.id} value={`preset:${p.id}`}>{p.name}</option>
+                                ))}
+                              </optgroup>
+                            )}
+                            {azureOther.length > 0 && (
+                              <optgroup label="🌍 Bahasa lain (Microsoft Neural)">
+                                {azureOther.map(p => (
+                                  <option key={p.id} value={`preset:${p.id}`}>{p.name}</option>
+                                ))}
+                              </optgroup>
+                            )}
+                            {qwen.length > 0 && (
+                              <optgroup label="🎤 Qwen3-TTS (multilingual)">
+                                {qwen.map(p => (
+                                  <option key={p.id} value={`preset:${p.id}`}>{p.name}</option>
+                                ))}
+                              </optgroup>
+                            )}
+                            {voices.custom.length > 0 && (
+                              <optgroup label="🧬 Suaraku (Custom)">
+                                {voices.custom.map(c => (
+                                  <option key={c.id} value={`custom:${c.id}`}>
+                                    {c.name} · {c.type === "clone" ? "clone" : "design"}
+                                  </option>
+                                ))}
+                              </optgroup>
+                            )}
+                          </select>
+                        );
+                      })()}
                     </div>
                     {!isAzureVoice && (
                       <div>
