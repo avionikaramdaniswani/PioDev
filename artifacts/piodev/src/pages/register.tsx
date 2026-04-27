@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, ArrowRight, Sun, Moon, Loader2 } from "lucide-react";
+import { Eye, EyeOff, ArrowRight, Sun, Moon, Loader2, MessageSquare, Image as ImageIcon, Video, Mic, Code2 } from "lucide-react";
 import { Logo } from "@/components/logo";
 import { useAuth } from "@/hooks/use-auth";
 import { useTheme } from "@/hooks/use-theme";
@@ -69,13 +69,11 @@ export default function Register() {
           <span className="text-white font-bold tracking-tight">PioCode</span>
         </div>
 
-        {/* Centered tagline */}
-        <div className="relative z-10 flex-1 flex items-center">
+        {/* Centered tagline + features */}
+        <div className="relative z-10 flex-1 flex flex-col justify-center gap-10">
           <TypingTagline />
+          <FeaturePills />
         </div>
-
-        {/* Empty bottom for balance */}
-        <div className="relative z-10" />
       </div>
 
       {/* Panel kanan — form */}
@@ -182,10 +180,16 @@ export default function Register() {
 }
 
 // ─────────────────────────── Typing tagline ──────────────────────────────────
+const TAGLINES: { l1: string; l2: string }[] = [
+  { l1: "Semua dalam", l2: "satu tempat." },
+  { l1: "Satu langganan,", l2: "semua AI." },
+  { l1: "Bikin apa aja,", l2: "di sini aja." },
+];
+
 function TypingTagline() {
-  const line1 = "Semua dalam";
-  const line2 = "satu tempat.";
-  const total = line1.length + line2.length;
+  const [idx, setIdx] = useState(0);
+  const current = TAGLINES[idx];
+  const total = current.l1.length + current.l2.length;
 
   const [count, setCount] = useState(0);
   const [phase, setPhase] = useState<"typing" | "holding" | "deleting" | "pausing">("typing");
@@ -199,22 +203,25 @@ function TypingTagline() {
         t = setTimeout(() => setPhase("holding"), 0);
       }
     } else if (phase === "holding") {
-      t = setTimeout(() => setPhase("deleting"), 2200);
+      t = setTimeout(() => setPhase("deleting"), 2000);
     } else if (phase === "deleting") {
       if (count > 0) {
-        t = setTimeout(() => setCount((c) => c - 1), 35);
+        t = setTimeout(() => setCount((c) => c - 1), 30);
       } else {
         t = setTimeout(() => setPhase("pausing"), 0);
       }
     } else {
-      t = setTimeout(() => setPhase("typing"), 500);
+      t = setTimeout(() => {
+        setIdx((i) => (i + 1) % TAGLINES.length);
+        setPhase("typing");
+      }, 400);
     }
     return () => clearTimeout(t);
   }, [phase, count, total]);
 
-  const line1Visible = line1.slice(0, Math.min(count, line1.length));
-  const line2Visible = count > line1.length ? line2.slice(0, count - line1.length) : "";
-  const showLine2Started = count > line1.length;
+  const line1Visible = current.l1.slice(0, Math.min(count, current.l1.length));
+  const line2Visible = count > current.l1.length ? current.l2.slice(0, count - current.l1.length) : "";
+  const showLine2Started = count > current.l1.length;
 
   return (
     <h2 className="text-4xl xl:text-5xl font-bold leading-[1.1] tracking-tight min-h-[2.4em]">
@@ -235,5 +242,35 @@ function TypingTagline() {
         transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
       />
     </h2>
+  );
+}
+
+// ─────────────────────────── Feature pills ───────────────────────────────────
+function FeaturePills() {
+  const items = [
+    { icon: MessageSquare, label: "Chat AI" },
+    { icon: ImageIcon, label: "Gambar" },
+    { icon: Video, label: "Video" },
+    { icon: Mic, label: "Voice" },
+    { icon: Code2, label: "API" },
+  ];
+  return (
+    <div className="flex flex-wrap gap-2">
+      {items.map((item, i) => {
+        const Icon = item.icon;
+        return (
+          <motion.div
+            key={item.label}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 + i * 0.08, duration: 0.4, ease: "easeOut" }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-white/10 bg-white/[0.04] backdrop-blur-sm text-xs text-white/70 hover:bg-white/[0.07] hover:border-primary/30 transition-colors"
+          >
+            <Icon className="w-3.5 h-3.5 text-primary" />
+            {item.label}
+          </motion.div>
+        );
+      })}
+    </div>
   );
 }
