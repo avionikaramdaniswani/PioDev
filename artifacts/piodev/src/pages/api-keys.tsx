@@ -1957,57 +1957,71 @@ console.log(res.choices[0].message.content);`}</CodeBlock>
   );
 }
 
-type ModelTier = "free" | "plus" | "pro";
+type ModelTag =
+  | "Default"
+  | "Premium"
+  | "Fast"
+  | "Reasoning"
+  | "Coding"
+  | "Edit"
+  | "I2V"
+  | "New"
+  | "Long context";
 
 interface ModelRow {
   id: string;
   label: string;
   desc: string;
-  tiers: ModelTier[];
-  badge?: string;
+  tags: ModelTag[];
 }
 
 const CHAT_MODELS: ModelRow[] = [
-  { id: "qwen-flash", label: "Qwen Flash", desc: "Paling cepat & murah. Cocok untuk task ringan, autocomplete, klasifikasi.", tiers: ["free", "plus", "pro"] },
-  { id: "qwen-plus", label: "Qwen Plus", desc: "Default rekomendasi. Balance antara kecepatan, kualitas, dan biaya.", tiers: ["free", "plus", "pro"], badge: "Default" },
-  { id: "qwen-turbo", label: "Qwen Turbo", desc: "Throughput tinggi, latency rendah. Bagus untuk produksi volume besar.", tiers: ["free", "plus", "pro"] },
-  { id: "qwen3-max", label: "Qwen3 Max", desc: "Frontier model — paling pintar untuk reasoning, analisa kompleks, long context.", tiers: ["plus", "pro"], badge: "Premium" },
-  { id: "qwen3-235b-a22b-thinking-2507", label: "Qwen3 235B Thinking", desc: "Mode thinking eksplisit. Bagus untuk math, logic, debugging.", tiers: ["plus", "pro"] },
-  { id: "qwen3-coder-plus", label: "Qwen3 Coder Plus", desc: "Spesialis coding — code generation, refactor, review.", tiers: ["plus", "pro"], badge: "Coding" },
-  { id: "qwen3-coder-flash", label: "Qwen3 Coder Flash", desc: "Coder versi cepat & murah untuk autocomplete IDE.", tiers: ["plus", "pro"] },
-  { id: "deepseek-v3.2", label: "DeepSeek V3.2", desc: "Alternatif kuat untuk reasoning & coding.", tiers: ["plus", "pro"] },
+  { id: "qwen-flash", label: "Qwen Flash", desc: "Paling cepat & murah. Cocok untuk task ringan, autocomplete, klasifikasi.", tags: ["Fast"] },
+  { id: "qwen-plus", label: "Qwen Plus", desc: "Sweet spot kecepatan, kualitas, dan biaya. Pilihan aman buat hampir semua use case.", tags: ["Default"] },
+  { id: "qwen-turbo", label: "Qwen Turbo", desc: "Throughput tinggi, latency rendah. Bagus untuk produksi volume besar.", tags: ["Fast"] },
+  { id: "qwen3-max", label: "Qwen3 Max", desc: "Frontier model — paling pintar untuk reasoning, analisa kompleks, long context.", tags: ["Premium", "Long context"] },
+  { id: "qwen3-235b-a22b-thinking-2507", label: "Qwen3 235B Thinking", desc: "Mode thinking eksplisit. Bagus untuk math, logic, debugging.", tags: ["Reasoning"] },
+  { id: "qwen3-coder-plus", label: "Qwen3 Coder Plus", desc: "Spesialis coding — code generation, refactor, review.", tags: ["Coding", "Premium"] },
+  { id: "qwen3-coder-flash", label: "Qwen3 Coder Flash", desc: "Coder versi cepat & murah untuk autocomplete IDE.", tags: ["Coding", "Fast"] },
+  { id: "deepseek-v3.2", label: "DeepSeek V3.2", desc: "Alternatif kuat untuk reasoning & coding.", tags: ["Reasoning"] },
 ];
 
 const IMAGE_MODELS: ModelRow[] = [
-  { id: "qwen-image", label: "Qwen Image", desc: "Default text-to-image, balanced quality & speed.", tiers: ["free", "plus", "pro"], badge: "Default" },
-  { id: "qwen-image-plus", label: "Qwen Image Plus", desc: "Detail lebih tajam, fotorealistik lebih bagus.", tiers: ["plus", "pro"] },
-  { id: "qwen-image-max", label: "Qwen Image Max", desc: "Premium quality, output paling detail.", tiers: ["plus", "pro"], badge: "Premium" },
-  { id: "qwen-image-2.0-pro", label: "Qwen Image 2.0 Pro", desc: "Generasi terbaru, prompt adherence lebih akurat.", tiers: ["plus", "pro"] },
-  { id: "z-image-turbo", label: "Z-Image Turbo", desc: "Generate sangat cepat untuk preview/iterasi.", tiers: ["free", "plus", "pro"] },
-  { id: "wan2.2-t2i-flash", label: "Wan 2.2 T2I Flash", desc: "Wan series text-to-image, gaya artistik kuat.", tiers: ["free", "plus", "pro"] },
-  { id: "qwen-image-edit", label: "Qwen Image Edit", desc: "Edit gambar existing pakai prompt (image-to-image).", tiers: ["free", "plus", "pro"], badge: "Edit" },
-  { id: "qwen-image-edit-plus", label: "Qwen Image Edit Plus", desc: "Image edit dengan kontrol lebih presisi.", tiers: ["plus", "pro"] },
+  { id: "qwen-image", label: "Qwen Image", desc: "Balanced quality & speed. Aman buat hampir semua kebutuhan generate gambar.", tags: ["Default"] },
+  { id: "qwen-image-plus", label: "Qwen Image Plus", desc: "Detail lebih tajam, fotorealistik lebih bagus.", tags: [] },
+  { id: "qwen-image-max", label: "Qwen Image Max", desc: "Output paling detail dan tajam.", tags: ["Premium"] },
+  { id: "qwen-image-2.0-pro", label: "Qwen Image 2.0 Pro", desc: "Generasi terbaru, prompt adherence lebih akurat.", tags: ["New"] },
+  { id: "z-image-turbo", label: "Z-Image Turbo", desc: "Generate super cepat untuk preview/iterasi.", tags: ["Fast"] },
+  { id: "wan2.2-t2i-flash", label: "Wan 2.2 T2I Flash", desc: "Wan series text-to-image, gaya artistik kuat.", tags: ["Fast"] },
+  { id: "qwen-image-edit", label: "Qwen Image Edit", desc: "Edit gambar existing pakai prompt (image-to-image).", tags: ["Edit"] },
+  { id: "qwen-image-edit-plus", label: "Qwen Image Edit Plus", desc: "Image edit dengan kontrol lebih presisi.", tags: ["Edit", "Premium"] },
 ];
 
 const VIDEO_MODELS: ModelRow[] = [
-  { id: "wan2.2-t2v-plus", label: "Wan 2.2 T2V Plus", desc: "Default text-to-video. Output 5 detik 720p.", tiers: ["plus", "pro"], badge: "Default" },
-  { id: "wan2.6-t2v", label: "Wan 2.6 T2V", desc: "Generasi terbaru, motion lebih smooth.", tiers: ["plus", "pro"] },
-  { id: "wan2.1-t2v-turbo", label: "Wan 2.1 T2V Turbo", desc: "Versi cepat untuk iterasi prompt.", tiers: ["plus", "pro"] },
-  { id: "wan2.2-i2v-plus", label: "Wan 2.2 I2V Plus", desc: "Image-to-video — kasih gambar awal + prompt motion.", tiers: ["plus", "pro"], badge: "I2V" },
-  { id: "wan2.2-i2v-flash", label: "Wan 2.2 I2V Flash", desc: "I2V versi cepat & murah.", tiers: ["plus", "pro"] },
-  { id: "wan2.6-i2v", label: "Wan 2.6 I2V", desc: "I2V terbaru, kualitas paling baik.", tiers: ["plus", "pro"] },
+  { id: "wan2.2-t2v-plus", label: "Wan 2.2 T2V Plus", desc: "Pilihan utama text-to-video. Output 5 detik 720p.", tags: ["Default"] },
+  { id: "wan2.6-t2v", label: "Wan 2.6 T2V", desc: "Generasi terbaru, motion lebih smooth.", tags: ["New"] },
+  { id: "wan2.1-t2v-turbo", label: "Wan 2.1 T2V Turbo", desc: "Versi cepat untuk iterasi prompt.", tags: ["Fast"] },
+  { id: "wan2.2-i2v-plus", label: "Wan 2.2 I2V Plus", desc: "Image-to-video — kasih gambar awal + prompt motion.", tags: ["I2V"] },
+  { id: "wan2.2-i2v-flash", label: "Wan 2.2 I2V Flash", desc: "I2V versi cepat & murah.", tags: ["I2V", "Fast"] },
+  { id: "wan2.6-i2v", label: "Wan 2.6 I2V", desc: "I2V terbaru, kualitas paling baik.", tags: ["I2V", "New"] },
 ];
 
-function TierBadge({ tier }: { tier: ModelTier }) {
-  const styles: Record<ModelTier, string> = {
-    free: "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20",
-    plus: "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
-    pro: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-  };
-  const labels: Record<ModelTier, string> = { free: "Free", plus: "Plus", pro: "Pro" };
+const TAG_STYLES: Record<ModelTag, string> = {
+  Default:        "bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-500/20",
+  Premium:        "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
+  Fast:           "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
+  Reasoning:      "bg-purple-500/10 text-purple-600 dark:text-purple-400 border-purple-500/20",
+  Coding:         "bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border-cyan-500/20",
+  Edit:           "bg-rose-500/10 text-rose-600 dark:text-rose-400 border-rose-500/20",
+  I2V:            "bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-500/20",
+  New:            "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
+  "Long context": "bg-slate-500/10 text-slate-600 dark:text-slate-400 border-slate-500/20",
+};
+
+function TagBadge({ tag }: { tag: ModelTag }) {
   return (
-    <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border", styles[tier])}>
-      {labels[tier]}
+    <span className={cn("inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium border whitespace-nowrap", TAG_STYLES[tag])}>
+      {tag}
     </span>
   );
 }
@@ -2031,7 +2045,7 @@ function ModelTable({ models, defaultHint }: { models: ModelRow[]; defaultHint: 
             <tr>
               <th className="text-left px-3 py-2 font-medium">Model ID</th>
               <th className="text-left px-3 py-2 font-medium">Nama</th>
-              <th className="text-left px-3 py-2 font-medium">Akses</th>
+              <th className="text-left px-3 py-2 font-medium">Kategori</th>
               <th className="text-left px-3 py-2 font-medium">Catatan</th>
               <th className="text-right px-3 py-2 font-medium w-12"></th>
             </tr>
@@ -2039,20 +2053,13 @@ function ModelTable({ models, defaultHint }: { models: ModelRow[]; defaultHint: 
           <tbody>
             {models.map((m) => (
               <tr key={m.id} className="border-t border-border hover:bg-muted/30 transition">
-                <td className="px-3 py-2.5 font-mono text-xs text-foreground/90 align-top">
-                  <div className="flex items-center gap-1.5">
-                    <span>{m.id}</span>
-                    {m.badge && (
-                      <span className="px-1.5 py-0.5 rounded text-[10px] bg-primary/10 text-primary border border-primary/20 font-sans">
-                        {m.badge}
-                      </span>
-                    )}
-                  </div>
-                </td>
+                <td className="px-3 py-2.5 font-mono text-xs text-foreground/90 align-top">{m.id}</td>
                 <td className="px-3 py-2.5 font-medium align-top">{m.label}</td>
                 <td className="px-3 py-2.5 align-top">
                   <div className="flex flex-wrap gap-1">
-                    {m.tiers.map((t) => <TierBadge key={t} tier={t} />)}
+                    {m.tags.length === 0
+                      ? <span className="text-xs text-muted-foreground/60">—</span>
+                      : m.tags.map((t) => <TagBadge key={t} tag={t} />)}
                   </div>
                 </td>
                 <td className="px-3 py-2.5 text-muted-foreground text-xs align-top">{m.desc}</td>
@@ -2087,14 +2094,11 @@ function ModelTable({ models, defaultHint }: { models: ModelRow[]; defaultHint: 
                   {copiedId === m.id ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
                 </button>
               </div>
-              <div className="flex flex-wrap gap-1">
-                {m.badge && (
-                  <span className="px-1.5 py-0.5 rounded text-[10px] bg-primary/10 text-primary border border-primary/20">
-                    {m.badge}
-                  </span>
-                )}
-                {m.tiers.map((t) => <TierBadge key={t} tier={t} />)}
-              </div>
+              {m.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1">
+                  {m.tags.map((t) => <TagBadge key={t} tag={t} />)}
+                </div>
+              )}
               <p className="text-xs text-muted-foreground">{m.desc}</p>
             </div>
           ))}
@@ -2129,8 +2133,7 @@ function ModelsSection() {
         </div>
         <div className="ml-7 mt-3">
           <Callout icon={Lightbulb} color="blue">
-            Badge <TierBadge tier="free" /> <TierBadge tier="plus" /> <TierBadge tier="pro" /> menunjukkan tier akun yang bisa pakai model tsb.
-            Saldo IDR tetep dipotong dari balance kamu, terlepas dari tier.
+            Akses API butuh subscription <strong>Plus</strong> atau <strong>Pro</strong> aktif. Setelah itu, <strong>semua model</strong> di bawah bisa kamu pakai langsung — gak ada batasan model per tier. Yang dipotong cuma saldo IDR sesuai tarif di atas.
           </Callout>
         </div>
       </Card>
@@ -2163,7 +2166,8 @@ function ModelsSection() {
         <SectionHeader icon={AlertCircle} title="Catatan penting" />
         <ul className="ml-7 space-y-2 text-sm text-muted-foreground list-disc list-inside">
           <li>List ini adalah model rekomendasi yang paling stabil. Server juga support varian dated (mis. <code className="px-1 py-0.5 bg-muted rounded text-xs">qwen-plus-2025-09-11</code>) untuk pin versi.</li>
-          <li>Model dengan badge <span className="px-1.5 py-0.5 rounded text-[10px] bg-primary/10 text-primary border border-primary/20">Premium</span> butuh tier Plus atau Pro. Free tier akan dapat error <code className="px-1 py-0.5 bg-muted rounded text-xs">MODEL_RESTRICTED</code>.</li>
+          <li>Akses ke endpoint <code className="px-1 py-0.5 bg-muted rounded text-xs">/v1/*</code> butuh subscription Plus atau Pro aktif. Tanpa itu, request balik <code className="px-1 py-0.5 bg-muted rounded text-xs">403 permission_denied</code> di middleware auth.</li>
+          <li>Selama subscription aktif, semua model di tabel di atas bisa dipakai — kategori (Default, Premium, Coding, dll) cuma indikator karakter model, bukan pembatas akses.</li>
           <li>Pricing per token = total prompt + completion tokens. Hitungan: <code className="px-1 py-0.5 bg-muted rounded text-xs">ceil(total_tokens / 2)</code> rupiah.</li>
           <li>Daftar model bisa berubah seiring rilis baru — selalu cek halaman ini sebelum hardcode di production.</li>
         </ul>
