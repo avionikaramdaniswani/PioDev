@@ -7,23 +7,25 @@ interface LogoProps {
 }
 
 export function Logo({ className, size = 32 }: LogoProps) {
+  const maskStyle = {
+    width: size,
+    height: size,
+    maskImage: `url(${logoSrc})`,
+    WebkitMaskImage: `url(${logoSrc})`,
+    maskSize: "contain",
+    WebkitMaskSize: "contain",
+    maskPosition: "center",
+    WebkitMaskPosition: "center",
+    maskRepeat: "no-repeat",
+    WebkitMaskRepeat: "no-repeat",
+  } as React.CSSProperties;
+
   return (
     <div
-      className={cn(
-        "relative shrink-0 inline-flex items-center justify-center overflow-hidden rounded-[22%]",
-        // Light mode: tambahin plat gelap biar logo putih tetep keliatan
-        // Dark mode: transparan, polos di atas bg gelap
-        "bg-[hsl(238,55%,18%)] dark:bg-transparent",
-        className,
-      )}
-      style={{ width: size, height: size }}
-    >
-      <img
-        src={logoSrc}
-        alt="PioCode"
-        className="object-contain w-full h-full"
-        draggable={false}
-      />
-    </div>
+      role="img"
+      aria-label="PioCode"
+      className={cn("shrink-0 bg-primary", className)}
+      style={maskStyle}
+    />
   );
 }
