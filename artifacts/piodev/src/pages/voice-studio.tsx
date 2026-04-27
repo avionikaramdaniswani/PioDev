@@ -302,7 +302,8 @@ export default function VoiceStudio() {
       : "bg-zinc-50 border-black/[0.06] text-foreground hover:bg-zinc-100"
   );
   const selectContentCls = cn(
-    "rounded-xl border shadow-xl backdrop-blur-xl overflow-hidden",
+    "rounded-xl border shadow-xl backdrop-blur-xl",
+    "max-h-[260px] [&::-webkit-scrollbar]:hidden [scrollbar-width:none] [-ms-overflow-style:none]",
     isDark
       ? "bg-zinc-900/95 border-white/[0.08] text-foreground"
       : "bg-white/95 border-black/[0.08] text-foreground"
