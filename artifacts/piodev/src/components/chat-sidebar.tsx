@@ -454,13 +454,13 @@ export function ChatSidebar({
             <button
               onClick={() => navigate("/galeri-studio")}
               className={cn(
-                "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors",
+                "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[13px] transition-colors",
                 isOnGaleriStudio
                   ? "bg-primary/10 text-primary"
                   : "text-sidebar-foreground/65 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
               )}
             >
-              <FolderOpen className="w-3.5 h-3.5" />
+              <FolderOpen className="w-4 h-4" />
               <span>Galeri Studio</span>
               <span className="ml-auto text-[9px] uppercase text-sidebar-foreground/40">soon</span>
             </button>
@@ -469,13 +469,13 @@ export function ChatSidebar({
             <button
               onClick={() => navigate("/image-studio")}
               className={cn(
-                "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors",
+                "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[13px] transition-colors",
                 isOnImageStudio
                   ? "bg-primary/10 text-primary"
                   : "text-sidebar-foreground/65 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
               )}
             >
-              <ImageIcon className="w-3.5 h-3.5" />
+              <ImageIcon className="w-4 h-4" />
               <span>Image Studio</span>
               <span className="ml-auto text-[9px] uppercase text-sidebar-foreground/40">soon</span>
             </button>
@@ -484,13 +484,13 @@ export function ChatSidebar({
             <button
               onClick={() => navigate("/voice-studio")}
               className={cn(
-                "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors",
+                "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[13px] transition-colors",
                 isOnVoiceStudio
                   ? "bg-primary/10 text-primary"
                   : "text-sidebar-foreground/65 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
               )}
             >
-              <Mic className="w-3.5 h-3.5" />
+              <Mic className="w-4 h-4" />
               <span>Voice Studio</span>
               <span className="ml-auto text-[9px] font-bold bg-primary/15 text-primary px-1.5 rounded">NEW</span>
             </button>
@@ -499,13 +499,13 @@ export function ChatSidebar({
             <button
               onClick={() => navigate("/video-studio")}
               className={cn(
-                "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-xs transition-colors",
+                "w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-[13px] transition-colors",
                 isOnVideoStudio
                   ? "bg-primary/10 text-primary"
                   : "text-sidebar-foreground/65 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
               )}
             >
-              <Video className="w-3.5 h-3.5" />
+              <Video className="w-4 h-4" />
               <span>Video Studio</span>
             </button>
           </div>
