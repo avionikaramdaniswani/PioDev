@@ -421,9 +421,8 @@ export default function VoiceStudio() {
             <div>
               <div className="flex items-center gap-1.5">
                 <h1 className="text-base font-bold">Voice Studio</h1>
-                <span className="text-[9px] font-bold bg-primary/15 text-primary px-1.5 py-0.5 rounded">NEW</span>
               </div>
-              <p className="text-[11px] text-muted-foreground -mt-0.5">TTS, voice cloning &amp; voice design pake Qwen</p>
+              <p className="text-[11px] text-muted-foreground -mt-0.5">Generate voice dengan AI</p>
             </div>
           </div>
         </header>

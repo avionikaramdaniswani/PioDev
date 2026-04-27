@@ -325,7 +325,6 @@ export function ChatSidebar({
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate("/voice-studio")} className="gap-2 cursor-pointer">
               <Mic className="w-4 h-4" /> Voice Studio
-              <span className="ml-auto text-[10px] bg-primary/10 text-primary px-1.5 rounded">NEW</span>
             </DropdownMenuItem>
             <DropdownMenuItem onClick={() => navigate("/video-studio")} className="gap-2 cursor-pointer">
               <Video className="w-4 h-4" /> Video Studio
@@ -492,7 +491,6 @@ export function ChatSidebar({
             >
               <Mic className="w-4 h-4" />
               <span>Voice Studio</span>
-              <span className="ml-auto text-[9px] font-bold bg-primary/15 text-primary px-1.5 rounded">NEW</span>
             </button>
 
             {/* Video Studio */}
