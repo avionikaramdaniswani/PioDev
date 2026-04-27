@@ -954,15 +954,14 @@ async function callDashscopeTTS(payload: {
   language?: string;
   instruction?: string;
 }): Promise<{ ok: true; audioBuffer: Buffer; mime: string } | { ok: false; status: number; error: string }> {
+  // Qwen3-TTS family: language_type & instruct ada di INPUT (bukan parameters).
+  // Ref: https://help.aliyun.com/zh/model-studio/qwen-tts (REST sync)
   const body: any = {
     model: payload.model,
     input: {
       text: payload.text,
       voice: payload.voice,
-    },
-    parameters: {
-      language_type: payload.language || "Indonesian",
-      stream: false,
+      language_type: payload.language || "Auto",
     },
   };
   if (payload.instruction) {
@@ -970,43 +969,73 @@ async function callDashscopeTTS(payload: {
   }
 
   const url = `${DASHSCOPE_BASE}/api/v1/services/aigc/multimodal-generation/generation`;
-  const upstream = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${dashscopeApiKey}`,
-      "Content-Type": "application/json",
-      "X-DashScope-Async": "disable",
-    },
-    body: JSON.stringify(body),
-  });
+  let upstream: Response;
+  try {
+    upstream = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${dashscopeApiKey}`,
+        "Content-Type": "application/json",
+        "X-DashScope-Async": "disable",
+      },
+      body: JSON.stringify(body),
+    });
+  } catch (err: any) {
+    console.error("[voice-studio][TTS] fetch error:", err?.message);
+    return { ok: false, status: 502, error: `Network error ke DashScope: ${err?.message || err}` };
+  }
 
   const txt = await upstream.text();
   if (!upstream.ok) {
-    return { ok: false, status: upstream.status, error: txt.slice(0, 300) };
+    console.error("[voice-studio][TTS] HTTP", upstream.status, "body:", txt.slice(0, 500));
+    // Coba parse JSON error message biar lebih jelas
+    let cleanMsg = txt.slice(0, 300);
+    try {
+      const errJson = JSON.parse(txt);
+      cleanMsg = errJson?.message || errJson?.error?.message || errJson?.code || cleanMsg;
+    } catch {}
+    return { ok: false, status: upstream.status, error: cleanMsg };
   }
 
   let json: any;
-  try { json = JSON.parse(txt); } catch { return { ok: false, status: 502, error: "Invalid JSON dari DashScope" }; }
+  try { json = JSON.parse(txt); } catch {
+    console.error("[voice-studio][TTS] invalid JSON:", txt.slice(0, 300));
+    return { ok: false, status: 502, error: "Invalid JSON dari DashScope" };
+  }
 
-  // Audio bisa di output.audio.url (download) atau output.audio.data (base64)
+  // Audio bisa di output.audio.url (download), output.audio.data (base64), atau output.audio.audio (qwen3-tts pake key 'audio')
   const audio = json?.output?.audio;
   if (!audio) {
-    return { ok: false, status: 502, error: "Audio kosong di response: " + JSON.stringify(json).slice(0, 200) };
+    console.error("[voice-studio][TTS] no audio in response:", JSON.stringify(json).slice(0, 500));
+    const apiMsg = json?.message || json?.code;
+    return { ok: false, status: 502, error: apiMsg ? `DashScope: ${apiMsg}` : "Audio kosong di response (kemungkinan model gak support sync mode)" };
   }
 
   let audioBuffer: Buffer;
   let mime = "audio/mpeg";
-  if (audio.url) {
-    const dl = await fetch(audio.url);
-    if (!dl.ok) return { ok: false, status: 502, error: "Gagal download audio dari URL" };
-    audioBuffer = Buffer.from(await dl.arrayBuffer());
-    const ct = dl.headers.get("content-type") || "";
-    if (ct.includes("wav")) mime = "audio/wav";
-    else if (ct.includes("mp3") || ct.includes("mpeg")) mime = "audio/mpeg";
-  } else if (audio.data) {
-    audioBuffer = Buffer.from(audio.data, "base64");
+  // Beberapa varian: audio.url, audio.data (base64), audio.audio (string base64 di qwen3-tts)
+  const url2 = audio.url;
+  const b64 = audio.data || audio.audio;
+  if (url2) {
+    try {
+      const dl = await fetch(url2);
+      if (!dl.ok) return { ok: false, status: 502, error: `Gagal download audio dari URL (HTTP ${dl.status})` };
+      audioBuffer = Buffer.from(await dl.arrayBuffer());
+      const ct = dl.headers.get("content-type") || "";
+      if (ct.includes("wav")) mime = "audio/wav";
+      else if (ct.includes("mp3") || ct.includes("mpeg")) mime = "audio/mpeg";
+    } catch (err: any) {
+      return { ok: false, status: 502, error: `Network error download audio: ${err?.message || err}` };
+    }
+  } else if (b64) {
+    try {
+      audioBuffer = Buffer.from(b64, "base64");
+    } catch {
+      return { ok: false, status: 502, error: "Format audio base64 invalid" };
+    }
   } else {
-    return { ok: false, status: 502, error: "Format audio tidak dikenal" };
+    console.error("[voice-studio][TTS] unknown audio shape:", JSON.stringify(audio).slice(0, 300));
+    return { ok: false, status: 502, error: "Format audio tidak dikenal di response" };
   }
 
   return { ok: true, audioBuffer, mime };

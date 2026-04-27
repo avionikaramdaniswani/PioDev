@@ -40,18 +40,26 @@ interface QuotaResponse {
 }
 
 const TTS_MODELS = [
-  { id: "qwen3-tts-flash",          label: "Qwen3 TTS Flash",      desc: "Cepat, multibahasa, default" },
-  { id: "qwen3-tts-instruct-flash", label: "Qwen3 TTS Instruct",   desc: "Bisa kontrol gaya via instruksi" },
-  { id: "cosyvoice-v3-flash",       label: "CosyVoice v3 Flash",   desc: "Bahasa Indonesia natural" },
-  { id: "cosyvoice-v3-plus",        label: "CosyVoice v3 Plus",    desc: "Kualitas premium, lebih lambat" },
+  { id: "qwen3-tts-flash",          label: "Qwen3 TTS Flash",    desc: "Cepat, multibahasa, default" },
+  { id: "qwen3-tts-instruct-flash", label: "Qwen3 TTS Instruct", desc: "Bisa kontrol gaya via instruksi" },
 ];
 
 const LANGUAGES = [
+  { id: "Auto",       label: "Auto (deteksi)" },
   { id: "Indonesian", label: "Bahasa Indonesia" },
   { id: "English",    label: "English" },
   { id: "Chinese",    label: "中文 (Mandarin)" },
   { id: "Japanese",   label: "日本語 (Japanese)" },
   { id: "Korean",     label: "한국어 (Korean)" },
+  { id: "Vietnamese", label: "Tiếng Việt" },
+  { id: "Thai",       label: "ภาษาไทย" },
+  { id: "Spanish",    label: "Español" },
+  { id: "French",     label: "Français" },
+  { id: "German",     label: "Deutsch" },
+  { id: "Italian",    label: "Italiano" },
+  { id: "Portuguese", label: "Português" },
+  { id: "Russian",    label: "Русский" },
+  { id: "Arabic",     label: "العربية" },
 ];
 
 const SAMPLE_TEXTS = [
@@ -140,7 +148,9 @@ export default function VoiceStudio() {
       });
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
-        throw new Error(j?.error || `HTTP ${res.status}`);
+        const main = j?.error || `HTTP ${res.status}`;
+        const detail = j?.detail ? ` — ${j.detail}` : "";
+        throw new Error(main + detail);
       }
       const blob = await res.blob();
       setAudioUrl(URL.createObjectURL(blob));
