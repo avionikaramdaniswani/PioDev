@@ -8,7 +8,6 @@ import {
   Video as VideoIcon,
   Mic,
   Play,
-  Pause,
   Download,
   Trash2,
   Loader2,
@@ -97,19 +96,22 @@ export default function GaleriStudio() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [previewVideo, setPreviewVideo] = useState<VideoItem | null>(null);
+  const [previewVoice, setPreviewVoice] = useState<VoiceItem | null>(null);
 
-  // Esc key buat tutup modal
+  // Esc key buat tutup modal apapun
   useEffect(() => {
-    if (!previewVideo) return;
+    if (!previewVideo && !previewVoice) return;
     const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setPreviewVideo(null);
+      if (e.key === "Escape") {
+        setPreviewVideo(null);
+        setPreviewVoice(null);
+      }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [previewVideo]);
+  }, [previewVideo, previewVoice]);
 
   const loadAll = async (silent = false) => {
     if (!silent) setLoading(true);
@@ -212,22 +214,6 @@ export default function GaleriStudio() {
       if (res.ok) setVoices(prev => prev.filter(v => v.id !== id));
     } finally {
       setDeletingId(null);
-    }
-  };
-
-  const togglePlayAudio = (item: VoiceItem) => {
-    if (!item.audioUrl) return;
-    const id = `voice-${item.id}`;
-    const audioEl = document.getElementById(id) as HTMLAudioElement | null;
-    if (!audioEl) return;
-    if (playingAudioId === item.id) {
-      audioEl.pause();
-      setPlayingAudioId(null);
-    } else {
-      // Pause others
-      document.querySelectorAll<HTMLAudioElement>("audio[data-gallery-audio]").forEach(a => a.pause());
-      audioEl.play().catch(() => {});
-      setPlayingAudioId(item.id);
     }
   };
 
@@ -415,10 +401,8 @@ export default function GaleriStudio() {
                     <VoiceCard
                       key={`voice-${item.id}`}
                       item={item}
-                      isPlaying={playingAudioId === item.id}
                       isDeleting={deletingId === item.id}
-                      onTogglePlay={() => togglePlayAudio(item)}
-                      onAudioEnded={() => setPlayingAudioId(null)}
+                      onPlay={() => setPreviewVoice(item)}
                       onDelete={() => handleDeleteVoice(item.id)}
                     />
                   )
@@ -480,6 +464,100 @@ export default function GaleriStudio() {
                 >
                   <Download className="w-4 h-4" /> Download
                 </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Voice Preview Modal ─────────────────────────────────────────── */}
+      <AnimatePresence>
+        {previewVoice && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="fixed inset-0 z-[60] bg-black/85 backdrop-blur-sm flex items-center justify-center p-4"
+            onClick={() => setPreviewVoice(null)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              className="relative w-full max-w-md"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button
+                onClick={() => setPreviewVoice(null)}
+                className="absolute -top-12 right-0 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors"
+                title="Tutup (Esc)"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              <div className="rounded-2xl overflow-hidden bg-card border border-border/60 shadow-2xl">
+                {/* Visual header */}
+                <div className="relative aspect-video bg-gradient-to-br from-violet-500/25 via-primary/20 to-indigo-400/25 flex items-center justify-center overflow-hidden">
+                  <div className="absolute inset-0 flex items-center justify-center gap-1 px-8 pointer-events-none">
+                    {Array.from({ length: 32 }).map((_, i) => {
+                      const seed = (previewVoice.id.charCodeAt(i % previewVoice.id.length) || 50) % 100;
+                      const h = 16 + (seed % 70);
+                      return (
+                        <div
+                          key={i}
+                          className="w-1 rounded-full bg-primary/50"
+                          style={{ height: `${h}%` }}
+                        />
+                      );
+                    })}
+                  </div>
+                  {previewVoice.voiceLabel && (
+                    <div className="absolute top-3 left-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/95 text-black text-xs font-semibold">
+                      <AudioLines className="w-3 h-3" /> {previewVoice.voiceLabel}
+                    </div>
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="p-5 space-y-4">
+                  <div>
+                    <div className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-1.5">Teks</div>
+                    <p className="text-sm leading-relaxed max-h-40 overflow-y-auto pr-1">
+                      {previewVoice.text || "Tanpa teks"}
+                    </p>
+                  </div>
+
+                  {previewVoice.audioUrl ? (
+                    <audio
+                      src={previewVoice.audioUrl}
+                      controls
+                      autoPlay
+                      className="w-full"
+                    />
+                  ) : (
+                    <div className="text-xs text-muted-foreground italic">Audio gak tersedia</div>
+                  )}
+
+                  <div className="flex items-center justify-between gap-3 pt-2 border-t border-border/60">
+                    <div className="text-[11px] text-muted-foreground min-w-0">
+                      {previewVoice.language && <span>{previewVoice.language} · </span>}
+                      <span>{formatDate(previewVoice.createdAt)}</span>
+                    </div>
+                    {previewVoice.audioUrl && (
+                      <button
+                        onClick={() => downloadUrl(
+                          previewVoice.audioUrl!,
+                          `pio-voice-${previewVoice.id}.${previewVoice.mime?.includes("wav") ? "wav" : "mp3"}`
+                        )}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-muted hover:bg-muted/70 text-xs font-medium transition-colors shrink-0"
+                      >
+                        <Download className="w-3.5 h-3.5" /> Download
+                      </button>
+                    )}
+                  </div>
+                </div>
               </div>
             </motion.div>
           </motion.div>
@@ -607,17 +685,13 @@ function VideoCard({
 // ── Voice Card ───────────────────────────────────────────────────────────────
 function VoiceCard({
   item,
-  isPlaying,
   isDeleting,
-  onTogglePlay,
-  onAudioEnded,
+  onPlay,
   onDelete,
 }: {
   item: VoiceItem;
-  isPlaying: boolean;
   isDeleting: boolean;
-  onTogglePlay: () => void;
-  onAudioEnded: () => void;
+  onPlay: () => void;
   onDelete: () => void;
 }) {
   return (
@@ -627,7 +701,15 @@ function VoiceCard({
       transition={{ duration: 0.2 }}
       className="group rounded-xl sm:rounded-2xl border border-border/60 bg-card overflow-hidden hover:border-primary/40 hover:shadow-lg transition-all"
     >
-      <div className="relative aspect-video bg-gradient-to-br from-violet-500/15 via-primary/10 to-indigo-400/15 overflow-hidden flex items-center justify-center">
+      <button
+        type="button"
+        onClick={item.audioUrl ? onPlay : undefined}
+        disabled={!item.audioUrl}
+        className={cn(
+          "relative aspect-video w-full bg-gradient-to-br from-violet-500/15 via-primary/10 to-indigo-400/15 overflow-hidden flex items-center justify-center block",
+          item.audioUrl && "cursor-pointer"
+        )}
+      >
         {/* Decorative wave bars */}
         <div className="absolute inset-0 flex items-center justify-center gap-0.5 sm:gap-1 px-2 sm:px-6 pointer-events-none">
           {Array.from({ length: 28 }).map((_, i) => {
@@ -636,15 +718,8 @@ function VoiceCard({
             return (
               <div
                 key={i}
-                className={cn(
-                  "w-0.5 sm:w-1 rounded-full bg-primary/40 transition-all",
-                  isPlaying && "animate-pulse"
-                )}
-                style={{
-                  height: `${h}%`,
-                  animationDelay: `${(i % 8) * 80}ms`,
-                  animationDuration: `${600 + (seed % 400)}ms`,
-                }}
+                className="w-0.5 sm:w-1 rounded-full bg-primary/40"
+                style={{ height: `${h}%` }}
               />
             );
           })}
@@ -662,29 +737,13 @@ function VoiceCard({
           </div>
         )}
 
-        {/* Play button */}
-        <button
-          onClick={onTogglePlay}
-          disabled={!item.audioUrl}
-          className="relative z-10 w-9 h-9 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-white/95 text-primary flex items-center justify-center shadow-lg hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100"
-          title={isPlaying ? "Pause" : "Play"}
-        >
-          {isPlaying
-            ? <Pause className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6" />
-            : <Play className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 ml-0.5" />}
-        </button>
-
-        {item.audioUrl && (
-          <audio
-            id={`voice-${item.id}`}
-            src={item.audioUrl}
-            data-gallery-audio="1"
-            onEnded={onAudioEnded}
-            onPause={onAudioEnded}
-            preload="none"
-          />
-        )}
-      </div>
+        {/* Play button overlay (klik area apa aja → buka modal) */}
+        <div className="absolute inset-0 bg-black/10 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+          <div className="w-9 h-9 sm:w-12 sm:h-12 md:w-14 md:h-14 rounded-full bg-white/95 text-primary flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+            <Play className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 ml-0.5" fill="currentColor" />
+          </div>
+        </div>
+      </button>
 
       <div className="p-2 sm:p-3 md:p-3.5">
         <p className="text-[11px] sm:text-xs md:text-sm font-medium leading-snug line-clamp-2 mb-1 sm:mb-1.5">{item.text || "Tanpa teks"}</p>
