@@ -387,7 +387,161 @@ export default function ApiKeysPage() {
                 <p className="text-muted-foreground">Belum ada API key. Buat satu untuk mulai.</p>
               </div>
             ) : (
-              <div className="border border-border rounded-xl overflow-hidden">
+              <>
+              {/* ── Mobile: card list ──────────────────────────────────── */}
+              <div className="md:hidden space-y-3">
+                {activeKeys.map((k) => {
+                  const isRevealed = !!revealed[k.id];
+                  const isRevealing = revealingId === k.id;
+                  const justCopied = copiedId === k.id;
+                  const isEditing = editingId === k.id;
+                  const isSavingEdit = savingEditId === k.id;
+                  const neverUsed = !k.last_used_at;
+                  return (
+                    <div
+                      key={k.id}
+                      className="border border-border rounded-xl bg-card/40 p-4 space-y-3"
+                      data-testid={`card-key-${k.id}`}
+                    >
+                      {/* ── Header: name + actions ─────────────────────── */}
+                      <div className="flex items-start justify-between gap-2">
+                        {isEditing ? (
+                          <div className="flex-1 min-w-0">
+                            <RenameInput
+                              value={editName}
+                              onChange={setEditName}
+                              onSave={() => saveRename(k.id)}
+                              onCancel={cancelRename}
+                              saving={isSavingEdit}
+                              testId={`input-rename-${k.id}`}
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex-1 min-w-0">
+                            <div
+                              className="font-semibold text-base text-foreground break-words leading-tight"
+                              data-testid={`text-key-name-${k.id}`}
+                            >
+                              {k.name}
+                            </div>
+                            <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                              <StatusBadge tone="active">Aktif</StatusBadge>
+                              {neverUsed && <StatusBadge tone="info">Belum dipakai</StatusBadge>}
+                              {!k.revealable && <StatusBadge tone="warning">Legacy</StatusBadge>}
+                            </div>
+                          </div>
+                        )}
+                        {!isEditing && (
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => startRename(k)}
+                              title="Ganti nama"
+                              aria-label="Ganti nama key"
+                              className="p-2 rounded-md hover:bg-muted active:bg-muted text-muted-foreground hover:text-foreground transition touch-manipulation"
+                              data-testid={`button-rename-mobile-${k.id}`}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => askRevoke(k)}
+                              disabled={deletingId === k.id}
+                              title="Revoke key"
+                              aria-label="Hapus key"
+                              className="p-2 rounded-md hover:bg-destructive/10 active:bg-destructive/10 text-destructive transition disabled:opacity-50 touch-manipulation"
+                              data-testid={`button-revoke-mobile-${k.id}`}
+                            >
+                              {deletingId === k.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="w-4 h-4" />
+                              )}
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* ── Key code + reveal/copy ─────────────────────── */}
+                      <div
+                        className={cn(
+                          "flex items-center gap-2 rounded-lg border px-2.5 py-2",
+                          isRevealed
+                            ? "bg-primary/5 border-primary/30"
+                            : "bg-muted/40 border-border",
+                        )}
+                      >
+                        <code
+                          className={cn(
+                            "flex-1 min-w-0 font-mono text-xs break-all",
+                            isRevealed ? "text-foreground" : "text-muted-foreground",
+                          )}
+                          data-testid={`text-key-mobile-${k.id}`}
+                        >
+                          {isRevealed ? revealed[k.id] : k.key_prefix}
+                        </code>
+                        {k.revealable ? (
+                          <div className="flex items-center gap-0.5 shrink-0">
+                            <button
+                              type="button"
+                              onClick={() => handleReveal(k.id)}
+                              disabled={isRevealing}
+                              title={isRevealed ? "Sembunyikan" : "Tampilkan & salin"}
+                              aria-label={isRevealed ? "Sembunyikan key" : "Tampilkan key"}
+                              className="p-1.5 rounded-md hover:bg-background/60 active:bg-background/60 text-muted-foreground hover:text-foreground transition disabled:opacity-50 touch-manipulation"
+                              data-testid={`button-reveal-mobile-${k.id}`}
+                            >
+                              {isRevealing ? (
+                                <Loader2 className="w-4 h-4 animate-spin" />
+                              ) : isRevealed ? (
+                                <EyeOff className="w-4 h-4" />
+                              ) : (
+                                <Eye className="w-4 h-4" />
+                              )}
+                            </button>
+                            {isRevealed && (
+                              <button
+                                type="button"
+                                onClick={() => handleCopyRow(k.id)}
+                                title="Salin"
+                                aria-label="Salin key"
+                                className="p-1.5 rounded-md hover:bg-background/60 active:bg-background/60 text-muted-foreground hover:text-foreground transition touch-manipulation"
+                                data-testid={`button-copy-mobile-${k.id}`}
+                              >
+                                {justCopied ? (
+                                  <Check className="w-4 h-4 text-green-500" />
+                                ) : (
+                                  <Copy className="w-4 h-4" />
+                                )}
+                              </button>
+                            )}
+                          </div>
+                        ) : null}
+                      </div>
+                      {justCopied && (
+                        <div className="text-[11px] text-green-500 font-medium -mt-1">Key disalin ke clipboard</div>
+                      )}
+
+                      {/* ── Footer: dates ──────────────────────────────── */}
+                      <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border">
+                        <div>
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-medium">Dibuat</div>
+                          <div className="text-xs text-foreground mt-0.5">{formatDate(k.created_at)}</div>
+                        </div>
+                        <div>
+                          <div className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-medium">Terakhir dipakai</div>
+                          <div className="text-xs text-foreground mt-0.5">
+                            {neverUsed ? <span className="text-muted-foreground">Belum pernah</span> : formatDate(k.last_used_at)}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* ── Desktop: table ─────────────────────────────────────── */}
+              <div className="hidden md:block border border-border rounded-xl overflow-hidden">
                 <table className="w-full text-sm">
                   <thead className="bg-muted/50">
                     <tr>
@@ -516,6 +670,7 @@ export default function ApiKeysPage() {
                   </tbody>
                 </table>
               </div>
+              </>
             )}
           </>
         )}
