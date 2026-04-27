@@ -1521,7 +1521,7 @@ function Docs() {
     { id: "video", label: "Video", icon: Video },
     { id: "ocr", label: "OCR", icon: ScanText },
     { id: "file", label: "File", icon: FileText },
-    { id: "ref", label: "Referensi", icon: BookOpen },
+    { id: "ref", label: "Endpoint", icon: BookOpen },
   ];
 
   return (
@@ -1924,29 +1924,6 @@ console.log(res.choices[0].message.content);`}</CodeBlock>
                 </tbody>
               </table>
             </div>
-          </Card>
-
-          <Card>
-            <SectionHeader icon={Clock} title="Limit harian" subtitle="Reset setiap tengah malam WIB" color="text-amber-500" />
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
-              <div className="p-3 rounded-lg bg-muted/40 text-center">
-                <p className="text-2xl font-bold">200K</p>
-                <p className="text-xs text-muted-foreground mt-1">Token / hari</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted/40 text-center">
-                <p className="text-2xl font-bold">50</p>
-                <p className="text-xs text-muted-foreground mt-1">Gambar / hari</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted/40 text-center">
-                <p className="text-2xl font-bold">10</p>
-                <p className="text-xs text-muted-foreground mt-1">Video / hari</p>
-              </div>
-              <div className="p-3 rounded-lg bg-muted/40 text-center">
-                <p className="text-2xl font-bold">1.000</p>
-                <p className="text-xs text-muted-foreground mt-1">Request / hari</p>
-              </div>
-            </div>
-            <p className="text-xs text-muted-foreground mt-4">Limit ini terpisah dari pemakaian via web app PioCode.</p>
           </Card>
 
           <Card>
