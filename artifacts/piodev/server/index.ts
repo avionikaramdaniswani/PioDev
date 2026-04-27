@@ -1103,7 +1103,7 @@ async function callDashscopeTTS(payload: {
 // Bucket dibuat lewat scripts/run-tts-history-migration.ts.
 // Tabel public.tts_history harus dibuat lewat SQL editor (file: tts-history-migration.sql).
 const TTS_BUCKET = "voice-studio-tts";
-const TTS_HISTORY_MAX_PER_USER = 50; // auto-prune entry paling lama lebih dari 50
+const TTS_HISTORY_MAX_PER_USER = 30; // auto-prune entry paling lama lebih dari 30
 
 async function saveTtsHistory(params: {
   userId: string;
