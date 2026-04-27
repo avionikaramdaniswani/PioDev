@@ -132,31 +132,6 @@ export default function VoiceStudio() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [audioPlaying, setAudioPlaying] = useState(false);
 
-  // Restore the last generated TTS dari Supabase history (cross-device, persistent).
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const token = await getToken();
-      if (!token || cancelled) return;
-      const res = await fetch("/api/voice-studio/history?limit=1", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok || cancelled) return;
-      const json = await res.json().catch(() => null);
-      const last = json?.items?.[0];
-      if (!last || cancelled) return;
-      if (last.audioUrl) setAudioUrl(last.audioUrl);
-      if (last.text) setTtsText(last.text);
-      if (last.voiceKey) setTtsVoiceKey(last.voiceKey);
-      if (last.language) setTtsLanguage(last.language);
-      if (last.model) setTtsModel(last.model);
-      if (last.instruction) setTtsInstruction(last.instruction);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
   const isInstructModel = ttsModel === "qwen3-tts-instruct-flash";
   const selectedPreset = ttsVoiceKey.startsWith("preset:")
     ? voices.presets.find(p => `preset:${p.id}` === ttsVoiceKey)
